@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from gto_trainer.dynamic.cards import str_to_int
-from gto_trainer.dynamic.generator import Node
-from gto_trainer.solver.oracle import CSVStrategyOracle
+from gto_poker_trainer_cli.dynamic.cards import str_to_int
+from gto_poker_trainer_cli.dynamic.generator import Node
+from gto_poker_trainer_cli.solver.oracle import CSVStrategyOracle
 
 
 def _node_preflop(hero_hand: str, open_size: float) -> Node:

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import random
 
-from gto_trainer.core.models import Option
-from gto_trainer.dynamic.cards import str_to_int
-from gto_trainer.dynamic.generator import Node, generate_episode
-from gto_trainer.dynamic.policy import (
+from gto_poker_trainer_cli.core.models import Option
+from gto_poker_trainer_cli.dynamic.cards import str_to_int
+from gto_poker_trainer_cli.dynamic.generator import Node, generate_episode
+from gto_poker_trainer_cli.dynamic.policy import (
     flop_options,
     options_for,
     preflop_options,
@@ -120,4 +120,3 @@ def test_options_for_dispatches_all_streets():
         )
         opts = options_for(node, rng, mc_trials=10)
         assert isinstance(opts, list) and opts
-

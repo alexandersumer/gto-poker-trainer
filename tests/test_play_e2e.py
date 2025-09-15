@@ -12,7 +12,7 @@ SRC_DIR = PROJECT_ROOT / "src"
 def run_cli(args: list[str], input_text: str | None = None) -> subprocess.CompletedProcess:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(SRC_DIR)
-    cmd = [sys.executable, "-m", "gto_trainer", "play", *args]
+    cmd = [sys.executable, "-m", "gto_poker_trainer_cli", "play", *args]
     return subprocess.run(
         cmd,
         input=(input_text or "").encode(),
@@ -24,9 +24,10 @@ def run_cli(args: list[str], input_text: str | None = None) -> subprocess.Comple
     )
 
 
-def test_play_shows_all_streets_and_summary():
+def test_play_shows_all_streets_and_summary_then_loops_until_quit():
     # Deterministic run with no color for stable assertions; answer 4 times then end
-    cp = run_cli(["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"], input_text="2\n2\n2\n2\n")
+    # First session completes; on next session's first prompt, quit.
+    cp = run_cli(["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"], input_text="2\n2\n2\n2\nq\n")
     out = cp.stdout.decode()
     assert cp.returncode == 0, out
     assert "GTO Trainer – Live" in out
@@ -35,6 +36,8 @@ def test_play_shows_all_streets_and_summary():
     assert "TURN" in out
     assert "RIVER" in out
     assert "Session Summary" in out
+    # Verify next session started by seeing another hand header
+    assert out.count("Hand 1/1") >= 2
     assert "Hands answered:" in out
     assert "Top EV leaks" in out
 

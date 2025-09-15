@@ -6,10 +6,10 @@ Interactive CLI trainer that generates fresh hands on the fly and quizzes you fr
 
 - Install editable (recommended) then run the entry point:
   - `pip install -e .`
-  - `gto-trainer`
+  - `gto-poker-trainer-cli`
 - Or run in-place without installing:
-  - `PYTHONPATH=src python -m gto_trainer` (from the project root), or
-  - `cd src && python -m gto_trainer`
+  - `PYTHONPATH=src python -m gto_poker_trainer_cli` (from the project root), or
+  - `cd src && python -m gto_poker_trainer_cli`
 
 ## Development (Python 3.12.11)
 
@@ -33,7 +33,7 @@ The test suite includes end-to-end CLI tests that feed interactive input, valida
 
 Single mode only (multi‑street play). The optional `play` word is accepted for compatibility but not required.
 
-- `gto-trainer [--hands N] [--seed N] [--mc N] [--no-color|--force-color] [--solver-csv PATH]`
+- `gto-poker-trainer-cli [--hands N] [--seed N] [--mc N] [--no-color|--force-color] [--solver-csv PATH]`
 
 ## Notes
 

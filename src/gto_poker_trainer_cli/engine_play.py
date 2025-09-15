@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import secrets
 
 from .core.engine_core import run_core
@@ -37,13 +38,23 @@ def run_play(
         option_provider = CompositeOptionProvider(primary=solver, fallback=base_provider)
     else:
         option_provider = base_provider
-    # Choose a random seed when none is provided for varied sessions
-    actual_seed = seed if seed is not None else secrets.randbits(32)
-    run_core(
-        generator=_DynamicGenerator(),
-        option_provider=option_provider,
-        presenter=presenter,
-        seed=actual_seed,
-        hands=hands,
-        mc_trials=mc_trials,
-    )
+
+    # Session seed strategy: deterministic progression if a seed is provided;
+    # otherwise use secure randomness per session.
+    session_rng = None if seed is None else random.Random(seed)
+
+    while True:
+        presenter.quit_requested = False
+        actual_seed = (
+            session_rng.getrandbits(32) if session_rng is not None else secrets.randbits(32)
+        )
+        run_core(
+            generator=_DynamicGenerator(),
+            option_provider=option_provider,
+            presenter=presenter,
+            seed=actual_seed,
+            hands=hands,
+            mc_trials=mc_trials,
+        )
+        if presenter.quit_requested:
+            break

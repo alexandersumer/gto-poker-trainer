@@ -12,6 +12,7 @@ from ..dynamic.generator import Node
 class RichPresenter(Presenter):
     def __init__(self, *, no_color: bool = False, force_color: bool = False):
         self.console = Console(force_terminal=force_color, color_system=None if no_color else "auto")
+        self.quit_requested = False
 
     def start_session(self, total_hands: int) -> None:
         pass
@@ -33,6 +34,7 @@ class RichPresenter(Presenter):
         while True:
             raw = input(f"Your choice (1-{n}), or 'q' to quit: ").strip().lower()
             if raw == "q":
+                self.quit_requested = True
                 return -1
             if raw.isdigit():
                 v = int(raw)

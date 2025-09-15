@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 
-from gto_trainer.dynamic.cards import (
+from gto_poker_trainer_cli.dynamic.cards import (
     RANKS,
     SUITS,
     canonical_hand_abbrev,

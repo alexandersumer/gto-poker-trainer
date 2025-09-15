@@ -3,10 +3,10 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from gto_trainer.core.models import Option
-from gto_trainer.solver.oracle import CSVStrategyOracle, CompositeOptionProvider
-from gto_trainer.dynamic.cards import str_to_int
-from gto_trainer.dynamic.generator import Node
+from gto_poker_trainer_cli.core.models import Option
+from gto_poker_trainer_cli.solver.oracle import CSVStrategyOracle, CompositeOptionProvider
+from gto_poker_trainer_cli.dynamic.cards import str_to_int
+from gto_poker_trainer_cli.dynamic.generator import Node
 
 
 class _FallbackProvider:
@@ -51,4 +51,3 @@ def test_composite_falls_back_when_csv_does_not_support_street(tmp_path: Path):
     # For flop street, CSVStrategyOracle raises; composite should use fallback
     opts = provider.options(_node("flop"), None, 0)
     assert [o.key for o in opts] == ["Fallback"]
-

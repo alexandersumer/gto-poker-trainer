@@ -12,7 +12,7 @@ SRC_DIR = PROJECT_ROOT / "src"
 def run_cli(args: list[str], input_text: str | None = None, cwd: Path | None = None) -> str:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(SRC_DIR)
-    cmd = [sys.executable, "-m", "gto_trainer", *args]
+    cmd = [sys.executable, "-m", "gto_poker_trainer_cli", *args]
     proc = subprocess.run(
         cmd,
         input=(input_text or "").encode(),
@@ -28,7 +28,7 @@ def run_cli(args: list[str], input_text: str | None = None, cwd: Path | None = N
 def run_cli_play(args: list[str], input_text: str | None = None) -> subprocess.CompletedProcess:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(SRC_DIR)
-    cmd = [sys.executable, "-m", "gto_trainer", "play", *args]
+    cmd = [sys.executable, "-m", "gto_poker_trainer_cli", "play", *args]
     return subprocess.run(
         cmd,
         input=(input_text or "").encode(),
@@ -40,12 +40,18 @@ def run_cli_play(args: list[str], input_text: str | None = None) -> subprocess.C
     )
 
 
-def test_default_runs_play_and_shows_summary():
+def test_default_runs_play_and_shows_summary_and_loops_until_quit():
     # No subcommand: default executes multi-street play. Answer 4 prompts.
-    out = run_cli(["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"], input_text="2\n2\n2\n2\n")
+    # First session answers 4 prompts, then second session quits immediately.
+    out = run_cli(
+        ["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"],
+        input_text="2\n2\n2\n2\nq\n",
+    )
     assert "GTO Trainer – Live" in out
     assert "PREFLOP" in out and "FLOP" in out and "TURN" in out and "RIVER" in out
     assert "Session Summary" in out
+    # Should have started a new session after the first summary
+    assert out.count("Hand 1/1") >= 2
 
 
 def test_play_with_solver_csv_runs_and_summarizes(tmp_path: Path):

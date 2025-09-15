@@ -3,10 +3,10 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from gto_trainer.core.engine_core import run_core
-from gto_trainer.core.interfaces import EpisodeGenerator, OptionProvider, Presenter
-from gto_trainer.core.models import Option
-from gto_trainer.dynamic.generator import Episode, Node
+from gto_poker_trainer_cli.core.engine_core import run_core
+from gto_poker_trainer_cli.core.interfaces import EpisodeGenerator, OptionProvider, Presenter
+from gto_poker_trainer_cli.core.models import Option
+from gto_poker_trainer_cli.dynamic.generator import Episode, Node
 
 
 @dataclass
@@ -91,4 +91,3 @@ def test_run_core_records_and_quit_mid_episode():
     assert len(records) == 1
     assert records[0]["chosen_key"] in {"A", "B"}
     assert "best_key" in records[0]
-
