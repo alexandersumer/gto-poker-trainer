@@ -1,27 +1,31 @@
-# Prefer Python 3.12 for this project; fall back to `python3` if unavailable.
-PYTHON ?= $(shell command -v python3.12 >/dev/null 2>&1 && echo python3.12 || echo python3)
+# Enforce Python 3.12.11 exactly for all tasks.
+PYTHON := python3.12
+
+.PHONY: ensure-python
+ensure-python:
+	@$(PYTHON) -c "import sys; assert sys.version_info[:3]==(3,12,11), 'Expected 3.12.11, got %s' % sys.version.split()[0]; print('Using Python %s' % sys.version.split()[0])"
 
 .PHONY: venv install-dev test lint fix format check clean
 
 venv:
 	$(PYTHON) -m venv .venv && . .venv/bin/activate && $(PYTHON) -m pip install -U pip
 
-install-dev:
+install-dev: ensure-python
 	$(PYTHON) -m pip install -e .[dev]
 
-test:
+test: ensure-python
 	$(PYTHON) -m pytest -q
 
-lint:
+lint: ensure-python
 	$(PYTHON) -m ruff check .
 
-fix:
+fix: ensure-python
 	$(PYTHON) -m ruff check . --fix
 
-format:
+format: ensure-python
 	$(PYTHON) -m ruff format .
 
-check: lint test
+check: ensure-python lint test
 
 clean:
 	find . -name "__pycache__" -type d -prune -exec rm -rf {} +
