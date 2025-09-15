@@ -6,6 +6,9 @@ __pycache__/
 .Python
 *.egg-info/
 .venv/
+# any local virtualenvs such as .venv-ci
+.venv-*/
+.venv*/
 venv/
 env/
 .tox/
