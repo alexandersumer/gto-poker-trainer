@@ -1,4 +1,4 @@
-# GTO Trainer (Multi‑Street Only)
+# GTO Poker Trainer CLI
 
 Interactive CLI trainer that generates fresh hands on the fly and quizzes you from preflop through river in a single hand. Each decision is graded by EV (in big blinds), with step‑by‑step feedback and an end‑of‑session summary of top leaks.
 
