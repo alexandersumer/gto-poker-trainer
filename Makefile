@@ -1,4 +1,5 @@
-PYTHON := python3
+# Prefer Python 3.12 for this project; fall back to `python3` if unavailable.
+PYTHON ?= $(shell command -v python3.12 >/dev/null 2>&1 && echo python3.12 || echo python3)
 
 .PHONY: venv install-dev test lint fix format check clean
 

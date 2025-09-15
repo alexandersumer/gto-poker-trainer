@@ -4,13 +4,13 @@ import csv
 from pathlib import Path
 
 from gto_poker_trainer_cli.core.models import Option
-from gto_poker_trainer_cli.solver.oracle import CSVStrategyOracle, CompositeOptionProvider
 from gto_poker_trainer_cli.dynamic.cards import str_to_int
 from gto_poker_trainer_cli.dynamic.generator import Node
+from gto_poker_trainer_cli.solver.oracle import CompositeOptionProvider, CSVStrategyOracle
 
 
 class _FallbackProvider:
-    def options(self, node, rng, mc_trials):  # noqa: D401 - protocol-compatible stub
+    def options(self, _node, _rng, _mc_trials):  # noqa: D401 - protocol-compatible stub
         return [Option("Fallback", 0.0, "used fallback")]
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from .cards import Dealt, card_int_to_str, deal_hand_and_board, format_cards_spaced, format_card_ascii
+from .cards import Dealt, deal_hand_and_board, format_card_ascii, format_cards_spaced
 
 
 @dataclass
@@ -71,7 +71,6 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
     )
 
     # Turn node (villain bets half pot; hero to act)
-    turn_card = board[3]
     pot_turn = pot_flop * 1.0  # assume flop checked through for storyline
     bet_turn = round(0.5 * pot_turn, 2)
     board_turn_str = " ".join(format_card_ascii(c, upper=True) for c in board[:4])
@@ -88,7 +87,6 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
     )
 
     # River node (hero in position, chooses bet size)
-    river_card = board[4]
     pot_river = pot_turn + bet_turn  # assume call on turn
     river_str = " ".join(format_card_ascii(c, upper=True) for c in board)
     desc_river = f"Board {river_str}. Choose your bet size."
