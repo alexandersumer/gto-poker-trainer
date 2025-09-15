@@ -37,11 +37,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
     # Preflop node: SB opens to s in {2.0, 2.5, 3.0}, hero is BB when villain opens
     open_sizes = [2.0, 2.5, 3.0]
     sz = rng.choice(open_sizes)
-    desc_pf = (
-        f"SB opens {sz:.1f}bb. You're BB with "
-        f"{format_cards_spaced(hero_cards)}, "
-        f"{int(stacks_bb)}bb."
-    )
+    desc_pf = f"SB opens {sz:.1f}bb. You're BB with {format_cards_spaced(hero_cards)}, {int(stacks_bb)}bb."
     pot_after_open = pot + (sz - sb)  # SB adds (sz - sb)
     n_preflop = Node(
         street="preflop",

@@ -32,17 +32,19 @@ def test_composite_falls_back_when_csv_does_not_support_street(tmp_path: Path):
     p = tmp_path / "solver.csv"
     with p.open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
-        w.writerow([
-            "street",
-            "hero_position",
-            "context_action",
-            "context_size",
-            "hero_hand",
-            "option_key",
-            "option_ev",
-            "option_why",
-            "gto_freq",
-        ])
+        w.writerow(
+            [
+                "street",
+                "hero_position",
+                "context_action",
+                "context_size",
+                "hero_hand",
+                "option_key",
+                "option_ev",
+                "option_why",
+                "gto_freq",
+            ]
+        )
         w.writerow(["preflop", "BB", "open", "2.0bb", "AKo", "Fold", -1.0, "", 0.0])
 
     primary = CSVStrategyOracle(str(p))

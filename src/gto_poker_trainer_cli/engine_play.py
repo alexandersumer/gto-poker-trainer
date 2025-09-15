@@ -45,9 +45,7 @@ def run_play(
 
     while True:
         presenter.quit_requested = False
-        actual_seed = (
-            session_rng.getrandbits(32) if session_rng is not None else secrets.randbits(32)
-        )
+        actual_seed = session_rng.getrandbits(32) if session_rng is not None else secrets.randbits(32)
         run_core(
             generator=_DynamicGenerator(),
             option_provider=option_provider,

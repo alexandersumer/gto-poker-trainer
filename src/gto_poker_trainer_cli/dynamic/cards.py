@@ -31,6 +31,7 @@ def ints_to_str(cards: list[int]) -> str:
 
 # --- Formatting helpers for consistent UI (letters only) ---
 
+
 def format_card_ascii(c: int, upper: bool = True) -> str:
     rs = card_int_to_str(c)
     return rs.upper() if upper else rs
