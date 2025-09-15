@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = PROJECT_ROOT / "src"
+
+
+def run_cli(args: list[str], input_text: str | None = None) -> subprocess.CompletedProcess:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(SRC_DIR)
+    cmd = [sys.executable, "-m", "gto_trainer", "play", *args]
+    return subprocess.run(
+        cmd,
+        input=(input_text or "").encode(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        cwd=PROJECT_ROOT,
+        env=env,
+        check=False,
+    )
+
+
+def test_play_shows_all_streets_and_summary():
+    # Deterministic run with no color for stable assertions; answer 4 times then end
+    cp = run_cli(["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"], input_text="2\n2\n2\n2\n")
+    out = cp.stdout.decode()
+    assert cp.returncode == 0, out
+    assert "GTO Trainer – Live" in out
+    assert "PREFLOP" in out
+    assert "FLOP" in out
+    assert "TURN" in out
+    assert "RIVER" in out
+    assert "Session Summary" in out
+    assert "Hands answered:" in out
+    assert "Top EV leaks" in out
+
+
+def test_play_can_force_color_and_prints_ansi():
+    cp = run_cli(["--hands", "1", "--seed", "321", "--mc", "20", "--force-color"], input_text="q\n")
+    out = cp.stdout.decode()
+    assert cp.returncode == 0
+    # Expect some ANSI sequences in output when forcing color
+    assert "\x1b[" in out
