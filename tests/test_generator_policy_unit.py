@@ -25,6 +25,23 @@ def test_generate_episode_structure_and_contexts():
     assert ep.nodes[2].context.get("facing") == "bet"
     assert ep.nodes[3].context.get("facing") == "oop-check"
 
+    # Pot arithmetic consistency across streets
+    n_pf, n_flop, n_turn, n_river = ep.nodes
+    # Extract open size from description, formatted like "SB opens X.Xbb"
+    import re
+
+    m = re.search(r"opens\s+([0-9]+\.[0-9])bb", n_pf.description)
+    assert m, f"could not parse open size from: {n_pf.description}"
+    open_sz = float(m.group(1))
+    # Flop pot should equal preflop pot-after-open plus BB call amount (open_sz - 1)
+    assert abs(n_flop.pot_bb - (n_pf.pot_bb + (open_sz - 1.0))) < 1e-6
+    # If flop checks through, turn pot remains the same
+    assert abs(n_turn.pot_bb - n_flop.pot_bb) < 1e-6
+    # Turn bet is 50% pot
+    assert abs(float(n_turn.context["bet"]) - round(0.5 * n_turn.pot_bb, 2)) < 1e-9
+    # River pot after a turn call increases by 2× the bet
+    assert abs(n_river.pot_bb - (n_turn.pot_bb + 2 * float(n_turn.context["bet"]))) < 1e-6
+
 
 def _assert_options_signature(opts: list[Option]):
     assert opts, "options list should not be empty"

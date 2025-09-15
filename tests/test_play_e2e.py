@@ -27,7 +27,11 @@ def run_cli(args: list[str], input_text: str | None = None) -> subprocess.Comple
 def test_play_shows_all_streets_and_summary_then_loops_until_quit():
     # Deterministic run with no color for stable assertions; answer 4 times then end
     # First session completes; on next session's first prompt, quit.
-    cp = run_cli(["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"], input_text="2\n2\n2\n2\nq\n")
+    # After summary, confirm starting a new game, then quit on the first prompt of the next game.
+    cp = run_cli(
+        ["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"],
+        input_text="2\n2\n2\n2\ny\nq\n",
+    )
     out = cp.stdout.decode()
     assert cp.returncode == 0, out
     assert "GTO Trainer – Live" in out

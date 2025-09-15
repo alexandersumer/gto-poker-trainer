@@ -45,7 +45,7 @@ def test_default_runs_play_and_shows_summary_and_loops_until_quit():
     # First session answers 4 prompts, then second session quits immediately.
     out = run_cli(
         ["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"],
-        input_text="2\n2\n2\n2\nq\n",
+        input_text="2\n2\n2\n2\ny\nq\n",
     )
     assert "GTO Trainer – Live" in out
     assert "PREFLOP" in out and "FLOP" in out and "TURN" in out and "RIVER" in out

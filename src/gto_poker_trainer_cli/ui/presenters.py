@@ -13,6 +13,7 @@ class RichPresenter(Presenter):
     def __init__(self, *, no_color: bool = False, force_color: bool = False):
         self.console = Console(force_terminal=force_color, color_system=None if no_color else "auto")
         self.quit_requested = False
+        self._last_meta: str | None = None
 
     def start_session(self, total_hands: int) -> None:
         pass
@@ -22,6 +23,18 @@ class RichPresenter(Presenter):
 
     def show_node(self, node: Node, options: list[str]) -> None:
         self.console.print(f"[bold magenta]{node.street.upper()}[/]  [dim]- {node.description}[/]")
+        # Pot/SPR and sizing context for clarity
+        P = float(node.pot_bb)
+        spr = (node.effective_bb / P) if P > 0 else float("inf")
+        meta = f"Pot: {P:.2f}bb | SPR: {spr:.1f}"
+        # Bet details when facing a bet
+        bet = node.context.get("bet")
+        if isinstance(bet, (int, float)):
+            pct = 100.0 * float(bet) / max(1e-9, P)
+            meta += f" | OOP bet: {float(bet):.2f}bb ({pct:.0f}% pot)"
+        self._last_meta = meta
+        self.console.print(f"[dim]{meta}[/]")
+        self.console.print("[dim]Controls: 1–{n} to act • h=help • ?=pot • q=quit[/]".format(n=len(options)))
         table = Table(show_header=True, header_style="bold blue")
         table.add_column("#", justify="right")
         table.add_column("Action")
@@ -36,6 +49,12 @@ class RichPresenter(Presenter):
             if raw == "q":
                 self.quit_requested = True
                 return -1
+            if raw in {"h", "help"}:
+                self._print_help(n)
+                continue
+            if raw in {"?"}:
+                self.console.print(f"[dim]{self._last_meta or 'No pot info yet.'}[/]")
+                continue
             if raw.isdigit():
                 v = int(raw)
                 if 1 <= v <= n:
@@ -90,3 +109,12 @@ class RichPresenter(Presenter):
         for i, r in enumerate(leaks[:3], 1):
             leak_table.add_row(str(i), r["street"], r["chosen_key"], r["best_key"], f"{r['ev_loss']:.2f}")
         self.console.print(leak_table)
+
+    # --- helpers ---
+    def _print_help(self, n: int) -> None:
+        table = Table(show_header=False)
+        table.add_row("Choose action:", f"1–{n}")
+        table.add_row("Show pot math:", "?")
+        table.add_row("Help:", "h")
+        table.add_row("Quit:", "q")
+        self.console.print(Panel.fit(table, title="Controls", style="dim"))

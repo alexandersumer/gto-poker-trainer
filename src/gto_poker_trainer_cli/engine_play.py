@@ -54,5 +54,17 @@ def run_play(
             hands=hands,
             mc_trials=mc_trials,
         )
+        # If the user quit mid-session, exit without prompting for a new game.
         if presenter.quit_requested:
             break
+
+        # Smooth UX: ask whether to start a new game rather than auto-starting.
+        # Accept Enter/"y"/"yes" as affirmative; "n"/"no"/"q"/"quit" will exit.
+        while True:
+            reply = _input_fn("Start a new game? [Y/n]: ").strip().lower()
+            if reply in {"", "y", "yes"}:
+                break  # start another loop iteration (new game)
+            if reply in {"n", "no", "q", "quit", "exit"}:
+                return
+            # Invalid input; reprompt briefly.
+            print("Please answer 'y' to continue or 'n' to quit.")
