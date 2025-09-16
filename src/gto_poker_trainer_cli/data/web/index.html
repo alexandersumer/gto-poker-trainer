@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GTO Poker Trainer</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 16px; }
+      .cards { font-weight: 700; letter-spacing: 0.5px; }
+      .meta { color: #666; }
+      .btn { display: block; width: 100%; padding: 12px; margin: 8px 0; font-size: 16px; }
+      .ok { color: #2e7d32; }
+      .warn { color: #ef6c00; }
+      .err { color: #c62828; }
+      .panel { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 12px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>GTO Poker Trainer</h1>
+    <div id="app" class="panel">
+      <button id="start" class="btn">Start Session</button>
+      <div id="node" style="display:none">
+        <div class="meta" id="headline"></div>
+        <div class="cards" id="hand"></div>
+        <div class="cards" id="board"></div>
+        <div id="options"></div>
+      </div>
+      <div id="feedback" class="panel" style="display:none"></div>
+      <div id="summary" class="panel" style="display:none"></div>
+    </div>
+    <script>
+      const el = (id) => document.getElementById(id);
+      let sid = null;
+      let pending = false;
+      async function api(path, opts) {
+        const r = await fetch(path, opts);
+        if (!r.ok) throw new Error(await r.text());
+        return await r.json();
+      }
+      async function start() {
+        el('feedback').style.display='none';
+        el('summary').style.display='none';
+        const data = await api('/api/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands:1, mc:120})});
+        sid = data.session;
+        await showNode();
+      }
+      async function showNode() {
+        const data = await api(`/api/session/${sid}/node`);
+        if (data.done) { await showSummary(); return; }
+        const n = data.node;
+        el('node').style.display='block';
+        el('headline').textContent = `${n.street.toUpperCase()} — ${n.description}`;
+        el('hand').textContent = `Your hand: ${n.hero}`;
+        el('board').textContent = n.board ? `Board: ${n.board}` : '';
+        const opts = el('options');
+        opts.innerHTML = '';
+        data.options.forEach((k, i) => {
+          const b = document.createElement('button');
+          b.className = 'btn'; b.textContent = `${i+1}. ${k}`;
+          b.onclick = () => choose(i);
+          opts.appendChild(b);
+        });
+      }
+      async function choose(i) {
+        if (pending) return; pending = true;
+        try {
+          const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:i})});
+          const f = data.feedback;
+          const fb = el('feedback');
+          fb.style.display='block';
+          fb.innerHTML = `<div>${f.correct ? '<span class="ok">✓ Best choice</span>' : '<span class="warn">✗ Better was</span>'}: ${f.best.key}</div>`+
+            `<div>You chose: ${f.chosen.key} — EV lost: <b>${f.ev_loss.toFixed(2)} bb</b></div>`+
+            `<div><i>Why (yours)</i>: ${f.chosen.why || ''}</div>`+
+            (!f.correct ? `<div><i>Why (best)</i>: ${f.best.why || ''}</div>` : '');
+          await showNode();
+        } finally { pending = false; }
+      }
+      async function showSummary() {
+        const s = await api(`/api/session/${sid}/summary`);
+        const sum = el('summary');
+        sum.style.display='block';
+        sum.innerHTML = `<div>Hands answered: ${s.hands}</div>`+
+          `<div>Best choices hit: ${s.hits}</div>`+
+          `<div>Score: ${s.score.toFixed(0)}</div>`;
+      }
+      el('start').onclick = start;
+    </script>
+  </body>
+  </html>
+

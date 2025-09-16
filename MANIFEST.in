@@ -1,1 +1,1 @@
-recursive-include src/gto_poker_trainer_cli/data *.json
+recursive-include src/gto_poker_trainer_cli/data *
