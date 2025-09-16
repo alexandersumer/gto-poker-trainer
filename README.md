@@ -1,10 +1,6 @@
 # GTO Poker Trainer CLI
 
-Train heads‑up no‑limit hold’em decisions with instant EV feedback.
-
-- Deals random hands across all streets.
-- After each action, shows EV vs. best action plus a short note.
-- Session summary totals EV, averages, hit rate, and biggest leaks.
+Command‑line trainer for heads‑up no‑limit hold’em. It deals random hands, shows the EV difference from the best action after each decision with a brief note, then summarizes total/average EV, hit rate, and biggest leaks.
 
 ## Requirements
 
