@@ -27,7 +27,12 @@ def main() -> None:
 
     # Serve the Textual app via shell command; one process per browser session
     cmd = f"gto-poker-trainer-textual --hands {args.hands} --mc {args.mc}"
-    server = Server(command=cmd, host=args.host, port=args.port, title="GTO Poker Trainer")
+    public_url = os.environ.get("RENDER_EXTERNAL_URL")
+    if not public_url:
+        host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+        if host:
+            public_url = f"https://{host}"
+    server = Server(command=cmd, host=args.host, port=args.port, title="GTO Poker Trainer", public_url=public_url)
     print(f"Serving at http://{args.host}:{args.port} …")
     # textual-serve uses .serve(); keep default (debug=False)
     server.serve()
