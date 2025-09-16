@@ -22,6 +22,7 @@ def run_core(
     for h in range(hands):
         presenter.start_hand(h + 1, hands)
         ep = generator.generate(rng)
+        hand_ended = False
         for node in ep.nodes:
             opts = option_provider.options(node, rng, mc_trials)
             best_idx = max(range(len(opts)), key=lambda i: opts[i].ev)
@@ -43,6 +44,13 @@ def run_core(
                     "ev_loss": best.ev - chosen.ev,
                 }
             )
+            # If the chosen action ends the hand (e.g., Fold), stop traversing further nodes.
+            if getattr(chosen, "ends_hand", False):
+                hand_ended = True
+                break
+        if hand_ended:
+            # Proceed to next hand (or summary if this was the last hand)
+            continue
 
     presenter.summary(records)
     return records

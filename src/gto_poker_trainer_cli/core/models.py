@@ -10,3 +10,5 @@ class Option:
     why: str
     # Optional: solver frequency signal for grading/UX
     gto_freq: float | None = None
+    # If True, selecting this option ends the current hand immediately
+    ends_hand: bool = False

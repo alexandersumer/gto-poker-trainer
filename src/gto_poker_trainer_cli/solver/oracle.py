@@ -51,10 +51,12 @@ class CSVStrategyOracle(OptionProvider):
                     context_size=row["context_size"],
                     hero_hand=row["hero_hand"],
                 )
+                key = (row["option_key"] or "").strip()
                 opt = Option(
-                    key=row["option_key"],
+                    key=key,
                     ev=float(row["option_ev"]),
                     why=(row.get("option_why") or "").strip(),
+                    ends_hand=key.lower().startswith("fold"),
                 )
                 freq = row.get("gto_freq")
                 if freq not in (None, ""):

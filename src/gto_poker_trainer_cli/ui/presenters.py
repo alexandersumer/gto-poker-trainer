@@ -103,6 +103,8 @@ class RichPresenter(Presenter):
         self.console.print(f"Why (your action): {chosen.why}")
         if not correct:
             self.console.print(f"Why (best action):  {best.why}")
+        if getattr(chosen, "ends_hand", False):
+            self.console.print("[dim]Hand ends on this action.[/]")
         self.console.print("[dim]—[/]\n")
 
     def summary(self, records: list[dict]) -> None:

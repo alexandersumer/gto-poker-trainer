@@ -30,7 +30,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     # 3-bet sizes with conservative FE model, and clear pot math
     sizes = [8.0, 9.0, 10.0]
     opts: list[Option] = [
-        Option("Fold", ev_fold, "Give up preflop (baseline EV = 0.0)."),
+        Option("Fold", ev_fold, "Give up preflop (baseline EV = 0.0).", ends_hand=True),
         Option(
             "Call",
             ev_call,
@@ -108,7 +108,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     fe_break_even = R / (R + (P + B)) if (R + (P + B)) > 0 else 1.0
 
     return [
-        Option("Fold", ev_fold, "Weak hand/no blockers → fold vs turn stab."),
+        Option("Fold", ev_fold, "Weak hand/no blockers → fold vs turn stab.", ends_hand=True),
         Option(
             "Call",
             ev_call,
