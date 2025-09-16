@@ -6,7 +6,7 @@ from rich.table import Table
 
 from ..core.interfaces import Presenter
 from ..core.models import Option
-from ..dynamic.cards import canonical_hand_abbrev, format_card_ascii, format_cards_spaced
+from ..dynamic.cards import canonical_hand_abbrev, format_card_ascii
 from ..dynamic.generator import Node
 
 
@@ -45,9 +45,11 @@ class RichPresenter(Presenter):
             headline += f"  [dim]- {desc}[/]"
         self.console.print(headline)
         # Always show hero's hole cards on every street for continuity
-        hand_str = format_cards_spaced(node.hero_cards)
+        # Render hole cards with suit-aware colors (sorted by rank for readability)
+        hand_sorted = self._sort_cards_by_rank(node.hero_cards)
+        hand_str_colored = self._format_cards_colored(hand_sorted)
         hand_abbrev = canonical_hand_abbrev(node.hero_cards)
-        self.console.print(f"Your hand: [bold white]{hand_str}[/] [dim]({hand_abbrev})[/]")
+        self.console.print(f"Your hand: {hand_str_colored} [dim]({hand_abbrev})[/]")
         # Community board (with suit-aware colors) for quick scanning
         if node.board:
             board_str = self._format_cards_colored(node.board)
@@ -152,6 +154,10 @@ class RichPresenter(Presenter):
         self.console.print(Panel.fit(table, title="Controls", style="dim"))
 
     # --- card rendering helpers ---
+    def _sort_cards_by_rank(self, cards: list[int]) -> list[int]:
+        # Rank is encoded as integer division by 4; higher rank first
+        return sorted(cards, key=lambda ci: ci // 4, reverse=True)
+
     def _format_cards_colored(self, cards: list[int]) -> str:
         # Suits: 0=spades, 1=hearts, 2=diamonds, 3=clubs
         colors = {

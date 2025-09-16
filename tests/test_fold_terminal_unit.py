@@ -72,4 +72,3 @@ def test_fold_ends_hand_early_and_summarizes_single_hand():
     assert len(records) == 1
     assert presenter.shown == 1
     assert records[0]["chosen_key"] == "Fold"
-
