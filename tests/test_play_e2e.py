@@ -27,7 +27,7 @@ def run_cli(args: list[str], input_text: str | None = None) -> subprocess.Comple
 def test_play_shows_all_streets_and_summary_then_loops_until_quit():
     # Deterministic run with no color for stable assertions; answer 4 times then end
     # First session completes; on next session's first prompt, quit.
-    # After summary, confirm starting a new game, then quit on the first prompt of the next game.
+    # After summary, confirm starting a new session, then quit on the first prompt of the next session.
     cp = run_cli(
         ["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"],
         input_text="2\n2\n2\n2\ny\nq\n",
@@ -46,8 +46,8 @@ def test_play_shows_all_streets_and_summary_then_loops_until_quit():
     assert "Top EV leaks" in out
 
 
-def test_play_can_force_color_and_prints_ansi():
-    cp = run_cli(["--hands", "1", "--seed", "321", "--mc", "20", "--force-color"], input_text="q\n")
+def test_default_prints_ansi_when_color_enabled():
+    cp = run_cli(["--hands", "1", "--seed", "321", "--mc", "20"], input_text="q\n")
     out = cp.stdout.decode()
     assert cp.returncode == 0
     # Expect some ANSI sequences in output when forcing color

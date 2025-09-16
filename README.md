@@ -12,7 +12,7 @@ Install and run:
 
 ```
 pip install -e .
-gto-poker-trainer-cli --hands 10
+gto-poker-trainer-cli
 ```
 
 Run without installing (from project root):
@@ -26,7 +26,7 @@ PYTHONPATH=src python -m gto_poker_trainer_cli
 Single mode only; optional `play` subcommand is accepted.
 
 ```
-gto-poker-trainer-cli [--hands N] [--seed N] [--mc N] [--no-color|--force-color] [--solver-csv PATH]
+gto-poker-trainer-cli [--hands N] [--seed N] [--mc N] [--no-color] [--solver-csv PATH]
 ```
 
 Options:
@@ -35,8 +35,7 @@ Options:
 - `--seed N` RNG seed (omit for randomness).
 - `--mc N` Monte Carlo trials per node (default: 200).
 - `--solver-csv PATH` Preflop strategy CSV (falls back to heuristics).
-- `--no-color` Disable color.
-- `--force-color` Force color even if not a TTY.
+- `--no-color` Disable colored output (color is ON by default).
 
 Controls:
 

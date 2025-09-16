@@ -11,8 +11,7 @@ def _add_play_args(p: argparse.ArgumentParser) -> None:
     # If omitted, runs with a random seed for variety. Pass an int to reproduce.
     p.add_argument("--seed", type=int, default=None, help="RNG seed (random if omitted)")
     p.add_argument("--mc", type=int, default=200, help="Monte Carlo trials per node")
-    p.add_argument("--no-color", action="store_true", help="Disable colored output")
-    p.add_argument("--force-color", action="store_true", help="Force color even if not a TTY")
+    p.add_argument("--no-color", action="store_true", help="Disable colored output (default is colored)")
     p.add_argument("--solver-csv", type=str, default=None, help="Use preflop solver CSV before heuristics")
 
 
@@ -38,7 +37,6 @@ def main() -> None:
         hands=args.hands,
         mc_trials=args.mc,
         no_color=args.no_color,
-        force_color=args.force_color,
         solver_csv=args.solver_csv,
     )
 

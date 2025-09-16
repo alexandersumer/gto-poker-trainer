@@ -11,8 +11,12 @@ from ..dynamic.generator import Node
 
 
 class RichPresenter(Presenter):
-    def __init__(self, *, no_color: bool = False, force_color: bool = False):
-        self.console = Console(force_terminal=force_color, color_system=None if no_color else "auto")
+    def __init__(self, *, no_color: bool = False):
+        # Default: color ON (forced), unless explicitly disabled via --no-color.
+        if no_color:
+            self.console = Console(force_terminal=False, color_system=None)
+        else:
+            self.console = Console(force_terminal=True, color_system="auto")
         self.quit_requested = False
         self._last_meta: str | None = None
 
@@ -77,9 +81,9 @@ class RichPresenter(Presenter):
         ev_loss = best.ev - chosen.ev
         self.console.print("\n[bold]Step feedback[/]")
         if correct:
-            self.console.print(f"✅ [green]Best choice[/]: {best.key} (EV {best.ev:.2f} bb)")
+            self.console.print(f"✓ [green]Best choice[/]: {best.key} (EV {best.ev:.2f} bb)")
         else:
-            self.console.print(f"❌ [yellow]Better was[/]: {best.key} (EV {best.ev:.2f} bb)")
+            self.console.print(f"✗ [yellow]Better was[/]: {best.key} (EV {best.ev:.2f} bb)")
             self.console.print(f"You chose: {chosen.key} (EV {chosen.ev:.2f} bb) → EV lost: [red]{ev_loss:.2f} bb[/]")
         self.console.print(f"Why (your action): {chosen.why}")
         if not correct:

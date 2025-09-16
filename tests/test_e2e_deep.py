@@ -66,10 +66,16 @@ def test_play_with_solver_csv_runs_and_summarizes(tmp_path: Path):
     ]
     csv_path.write_text("".join(rows), encoding="utf-8")
 
-    cp = run_cli_play(
-        ["--hands", "1", "--seed", "321", "--mc", "10", "--solver-csv", str(csv_path)],
-        input_text="2\nq\n",
-    )
+    cp = run_cli_play([
+        "--hands",
+        "1",
+        "--seed",
+        "321",
+        "--mc",
+        "10",
+        "--solver-csv",
+        str(csv_path),
+    ], input_text="2\nq\n")
     out = cp.stdout.decode()
     assert cp.returncode == 0, out
     assert "GTO Poker Trainer CLI" in out
