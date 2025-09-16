@@ -6,7 +6,7 @@ from rich.table import Table
 
 from ..core.interfaces import Presenter
 from ..core.models import Option
-from ..dynamic.cards import canonical_hand_abbrev, format_cards_spaced
+from ..dynamic.cards import canonical_hand_abbrev, format_card_ascii, format_cards_spaced
 from ..dynamic.generator import Node
 
 
@@ -33,11 +33,26 @@ class RichPresenter(Presenter):
         )
 
     def show_node(self, node: Node, options: list[str]) -> None:
-        self.console.print(f"[bold magenta]{node.street.upper()}[/]  [dim]- {node.description}[/]")
+        # Headline (strip duplicated Board prefix from description if present)
+        desc = node.description
+        if node.board and desc.startswith("Board "):
+            # keep text after the first period+space, e.g. "Board KQJ. SB checks." -> "SB checks."
+            dot = desc.find(". ")
+            desc = desc[dot + 2 :] if dot != -1 else ""
+
+        headline = f"[bold magenta]{node.street.upper()}[/]"
+        if desc:
+            headline += f"  [dim]- {desc}[/]"
+        self.console.print(headline)
         # Always show hero's hole cards on every street for continuity
         hand_str = format_cards_spaced(node.hero_cards)
         hand_abbrev = canonical_hand_abbrev(node.hero_cards)
         self.console.print(f"Your hand: [bold white]{hand_str}[/] [dim]({hand_abbrev})[/]")
+        # Community board (with suit-aware colors) for quick scanning
+        if node.board:
+            board_str = self._format_cards_colored(node.board)
+            self.console.print(f"Board: {board_str}")
+
         # Pot/SPR and sizing context for clarity
         P = float(node.pot_bb)
         spr = (node.effective_bb / P) if P > 0 else float("inf")
@@ -133,3 +148,21 @@ class RichPresenter(Presenter):
         table.add_row("Help:", "h")
         table.add_row("Quit:", "q")
         self.console.print(Panel.fit(table, title="Controls", style="dim"))
+
+    # --- card rendering helpers ---
+    def _format_cards_colored(self, cards: list[int]) -> str:
+        # Suits: 0=spades, 1=hearts, 2=diamonds, 3=clubs
+        colors = {
+            0: "white",  # spades
+            1: "bright_red",  # hearts
+            2: "bright_cyan",  # diamonds
+            3: "green",  # clubs
+        }
+        # Keep original order for streets (flop/turn/river)
+        parts: list[str] = []
+        for c in cards:
+            suit = c % 4
+            color = colors.get(suit, "white")
+            txt = format_card_ascii(c, upper=True)
+            parts.append(f"[bold {color}]{txt}[/]")
+        return " ".join(parts)
