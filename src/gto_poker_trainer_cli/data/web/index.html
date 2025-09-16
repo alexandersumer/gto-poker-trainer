@@ -1,90 +1,137 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>GTO Poker Trainer</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 16px; }
-      .cards { font-weight: 700; letter-spacing: 0.5px; }
-      .meta { color: #666; }
-      .btn { display: block; width: 100%; padding: 12px; margin: 8px 0; font-size: 16px; }
-      .ok { color: #2e7d32; }
-      .warn { color: #ef6c00; }
-      .err { color: #c62828; }
-      .panel { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 12px 0; }
+      .card { display:inline-flex; align-items:center; justify-content:center; border-radius:0.375rem; border:1px solid #e5e7eb; padding:0.25rem 0.5rem; font-weight:700; letter-spacing:0.5px; margin:0 0.25rem; }
+      .s { color:#111; }
+      .h { color:#d32f2f; }
+      .d { color:#0288d1; }
+      .c { color:#2e7d32; }
+      .glass { backdrop-filter: blur(8px); background: rgba(255,255,255,0.75); }
     </style>
   </head>
-  <body>
-    <h1>GTO Poker Trainer</h1>
-    <div id="app" class="panel">
-      <button id="start" class="btn">Start Session</button>
-      <div id="node" style="display:none">
-        <div class="meta" id="headline"></div>
-        <div class="cards" id="hand"></div>
-        <div class="cards" id="board"></div>
-        <div id="options"></div>
+  <body class="min-h-screen bg-slate-100">
+    <header class="sticky top-0 z-10 glass shadow-sm">
+      <div class="max-w-2xl mx-auto flex items-center justify-between p-3">
+        <h1 class="text-xl font-bold">GTO Poker Trainer</h1>
+        <div id="stats" class="text-sm text-slate-600"></div>
       </div>
-      <div id="feedback" class="panel" style="display:none"></div>
-      <div id="summary" class="panel" style="display:none"></div>
-    </div>
+    </header>
+
+    <main class="max-w-2xl mx-auto p-4">
+      <section id="panel-start" class="space-y-4">
+        <div class="rounded-lg bg-white shadow p-4">
+          <h2 class="font-semibold mb-2">Start a Session</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <label class="block text-sm">Hands
+              <input id="inp-hands" type="number" min="1" value="3" class="mt-1 w-full" />
+            </label>
+            <label class="block text-sm">MC trials
+              <input id="inp-mc" type="number" min="40" step="10" value="120" class="mt-1 w-full" />
+            </label>
+          </div>
+          <button id="btn-start" class="mt-4 w-full rounded-md bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700">Start</button>
+        </div>
+      </section>
+
+      <section id="panel-play" class="hidden space-y-4">
+        <div class="rounded-lg bg-white shadow p-4">
+          <div id="headline" class="text-slate-700 text-sm"></div>
+          <div class="mt-2 flex items-center gap-2">
+            <div class="text-lg font-bold" id="hand"></div>
+            <div class="text-slate-500" id="board"></div>
+          </div>
+          <div class="text-slate-500 text-sm mt-1" id="meta"></div>
+        </div>
+
+        <div id="options" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+
+        <div id="feedback" class="hidden rounded-lg bg-white shadow p-4"></div>
+      </section>
+
+      <section id="panel-summary" class="hidden space-y-3">
+        <div class="rounded-lg bg-white shadow p-4" id="summary"></div>
+        <button id="btn-new" class="w-full rounded-md bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700">New Session</button>
+      </section>
+    </main>
+
     <script>
-      const el = (id) => document.getElementById(id);
-      let sid = null;
-      let pending = false;
-      async function api(path, opts) {
-        const r = await fetch(path, opts);
-        if (!r.ok) throw new Error(await r.text());
-        return await r.json();
-      }
-      async function start() {
-        el('feedback').style.display='none';
-        el('summary').style.display='none';
-        const data = await api('/api/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands:1, mc:120})});
-        sid = data.session;
+      const $ = (sel) => document.querySelector(sel);
+      const fmt = (n) => Number(n).toFixed(2);
+      let sid = null; let pending = false; let answered = 0;
+      function show(id){$('#panel-start').classList.add('hidden');$('#panel-play').classList.add('hidden');$('#panel-summary').classList.add('hidden');$(id).classList.remove('hidden');}
+      async function api(path, opts){ const r = await fetch(path, opts); if(!r.ok) throw new Error(await r.text()); return r.headers.get('content-type')?.includes('json') ? r.json() : r.text(); }
+      function suit(sym){ return {S:'s',H:'h',D:'d',C:'c'}[sym]||'s'; }
+      function suitIcon(sym){ return {S:'\u2660', H:'\u2665', D:'\u2666', C:'\u2663'}[sym]||'\u2660'; }
+      function renderCards(spaceStr){ if(!spaceStr) return ''; return spaceStr.split(/\s+/).map(c=>{const r=c[0]; const s=suit(c[1]); return `<span class="card ${s}">${r}${suitIcon(c[1])}</span>`}).join(' '); }
+
+      async function start(){
+        const hands = Math.max(1, parseInt($('#inp-hands').value||'1',10));
+        const mc = Math.max(40, parseInt($('#inp-mc').value||'120',10));
+        const data = await api('/api/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands, mc})});
+        sid = data.session; answered = 0; updateStats();
+        show('#panel-play');
         await showNode();
       }
-      async function showNode() {
+
+      async function showNode(){
         const data = await api(`/api/session/${sid}/node`);
-        if (data.done) { await showSummary(); return; }
+        if(data.done){ await showSummary(); return; }
         const n = data.node;
-        el('node').style.display='block';
-        el('headline').textContent = `${n.street.toUpperCase()} — ${n.description}`;
-        el('hand').textContent = `Your hand: ${n.hero}`;
-        el('board').textContent = n.board ? `Board: ${n.board}` : '';
-        const opts = el('options');
-        opts.innerHTML = '';
-        data.options.forEach((k, i) => {
+        $('#headline').textContent = `${n.street.toUpperCase()} — ${n.description}`;
+        $('#hand').innerHTML = renderCards(n.hero);
+        $('#board').innerHTML = renderCards(n.board);
+        const spr = n.pot_bb > 0 ? (n.effective_bb / n.pot_bb) : Infinity;
+        $('#meta').textContent = `Pot: ${fmt(n.pot_bb)} bb • SPR: ${spr.toFixed(1)}`;
+        const area = $('#options'); area.innerHTML='';
+        const palette = { Fold:'bg-rose-600 hover:bg-rose-700', Call:'bg-sky-600 hover:bg-sky-700' };
+        data.options.forEach((k,i)=>{
           const b = document.createElement('button');
-          b.className = 'btn'; b.textContent = `${i+1}. ${k}`;
-          b.onclick = () => choose(i);
-          opts.appendChild(b);
+          const base = 'w-full rounded-lg px-4 py-3 text-white font-semibold';
+          const color = palette[k] || 'bg-emerald-600 hover:bg-emerald-700';
+          b.className = base + ' ' + color; b.textContent = `${i+1}. ${k}`; b.onclick=()=>choose(i);
+          area.appendChild(b);
         });
+        $('#feedback').classList.add('hidden');
       }
-      async function choose(i) {
-        if (pending) return; pending = true;
-        try {
-          const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:i})});
-          const f = data.feedback;
-          const fb = el('feedback');
-          fb.style.display='block';
-          fb.innerHTML = `<div>${f.correct ? '<span class="ok">✓ Best choice</span>' : '<span class="warn">✗ Better was</span>'}: ${f.best.key}</div>`+
-            `<div>You chose: ${f.chosen.key} — EV lost: <b>${f.ev_loss.toFixed(2)} bb</b></div>`+
-            `<div><i>Why (yours)</i>: ${f.chosen.why || ''}</div>`+
-            (!f.correct ? `<div><i>Why (best)</i>: ${f.best.why || ''}</div>` : '');
-          await showNode();
-        } finally { pending = false; }
-      }
-      async function showSummary() {
+
+      async function choose(i){ if(pending) return; pending=true; try{
+        const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:i})});
+        const f = data.feedback; answered += 1; updateStats();
+        const fb = $('#feedback'); fb.classList.remove('hidden');
+        fb.innerHTML = `
+          <div class="text-lg font-bold ${f.correct?'text-emerald-700':'text-amber-700'}">${f.correct?'✓ Best choice':'✗ Better was'}: ${f.best.key}</div>
+          <div class="mt-2">You chose: <b>${f.chosen.key}</b> — EV lost: <b>${fmt(f.ev_loss)} bb</b></div>
+          ${f.chosen.why?`<div class=\"mt-1 text-slate-600\"><i>Why (yours):</i> ${f.chosen.why}</div>`:''}
+          ${!f.correct && f.best.why?`<div class=\"text-slate-600\"><i>Why (best):</i> ${f.best.why}</div>`:''}
+        `;
+        await showNode();
+      } finally { pending=false; } }
+
+      async function showSummary(){
         const s = await api(`/api/session/${sid}/summary`);
-        const sum = el('summary');
-        sum.style.display='block';
-        sum.innerHTML = `<div>Hands answered: ${s.hands}</div>`+
-          `<div>Best choices hit: ${s.hits}</div>`+
-          `<div>Score: ${s.score.toFixed(0)}</div>`;
+        const sum = $('#summary');
+        sum.innerHTML = `
+          <div class="text-xl font-bold mb-2">Session Summary</div>
+          <div>Hands answered: <b>${s.hands}</b></div>
+          <div>Best choices hit: <b>${s.hits}</b></div>
+          <div>Total EV lost: <b>${fmt(s.ev_lost)} bb</b></div>
+          <div>Score: <b>${s.score.toFixed(0)}</b></div>
+        `;
+        show('#panel-summary');
       }
-      el('start').onclick = start;
+
+      function updateStats(){ $('#stats').textContent = answered?`Answered: ${answered}`:''; }
+      $('#btn-start').onclick = start; $('#btn-new').onclick = ()=>{ show('#panel-start'); };
+
+      window.addEventListener('keydown', (e)=>{
+        if(!$('#panel-play') || $('#panel-play').classList.contains('hidden')) return;
+        if(e.key>='1'&& e.key<='9'){ const idx = parseInt(e.key,10)-1; const btns = Array.from(document.querySelectorAll('#options button')); if(btns[idx]) btns[idx].click(); }
+      });
     </script>
   </body>
   </html>
-

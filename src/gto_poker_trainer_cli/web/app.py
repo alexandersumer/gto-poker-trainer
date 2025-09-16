@@ -9,7 +9,6 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from ..core.models import Option
@@ -27,8 +26,9 @@ def _sid(n: int = 8) -> str:
 class Session:
     hands: int
     mc_trials: int
-    episode: Episode
-    current_index: int = 0
+    episodes: list[Episode] = field(default_factory=list)
+    hand_index: int = 0  # 0-based index of current hand
+    current_index: int = 0  # index into nodes of current episode
     records: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -40,7 +40,7 @@ def _best_index(opts: list[Option]) -> int:
     return max(range(len(opts)), key=lambda i: opts[i].ev)
 
 
-def _format_node(node: Node) -> dict[str, Any]:
+def _format_node(node: Node, *, hand_no: int, total_hands: int) -> dict[str, Any]:
     return {
         "street": node.street,
         "description": node.description,
@@ -49,6 +49,8 @@ def _format_node(node: Node) -> dict[str, Any]:
         "hero": format_cards_spaced(node.hero_cards),
         "board": " ".join(format_card_ascii(c) for c in node.board),
         "actor": node.actor,
+        "hand_no": hand_no,
+        "total_hands": total_hands,
     }
 
 
@@ -62,6 +64,11 @@ class ChoiceRequest(BaseModel):
 
 
 app = FastAPI(title="GTO Poker Trainer")
+
+
+@app.get("/healthz")
+def healthz() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -79,9 +86,10 @@ def index() -> str:
 
 @app.post("/api/session")
 def create_session(body: CreateSessionRequest) -> JSONResponse:
-    ep = generate_episode(secrets.SystemRandom())
+    rng = secrets.SystemRandom()
+    first = generate_episode(rng)
     sid = _sid()
-    sess = Session(hands=max(1, body.hands), mc_trials=max(10, body.mc), episode=ep)
+    sess = Session(hands=max(1, body.hands), mc_trials=max(10, body.mc), episodes=[first])
     with LOCK:
         SESSIONS[sid] = sess
     return JSONResponse({"session": sid})
@@ -93,14 +101,28 @@ def get_node(sid: str) -> JSONResponse:
         sess = SESSIONS.get(sid)
         if not sess:
             raise HTTPException(404, "no such session")
-        if sess.current_index >= len(sess.episode.nodes):
-            return JSONResponse({"done": True})
-        node = sess.episode.nodes[sess.current_index]
+        # If current hand finished, advance or create next hand
+        while True:
+            ep = sess.episodes[sess.hand_index]
+            if sess.current_index < len(ep.nodes):
+                node = ep.nodes[sess.current_index]
+                break
+            # Current episode done; move to next hand
+            if sess.hand_index + 1 >= sess.hands:
+                return JSONResponse({"done": True})
+            sess.hand_index += 1
+            sess.current_index = 0
+            # Ensure we have an episode for the next hand
+            if sess.hand_index >= len(sess.episodes):
+                sess.episodes.append(generate_episode(secrets.SystemRandom()))
+            ep = sess.episodes[sess.hand_index]
+            node = ep.nodes[sess.current_index]
+            break
     opts = options_for(node, secrets.SystemRandom(), sess.mc_trials)
     return JSONResponse(
         {
             "done": False,
-            "node": _format_node(node),
+            "node": _format_node(node, hand_no=sess.hand_index + 1, total_hands=sess.hands),
             "options": [o.key for o in opts],
         }
     )
@@ -112,9 +134,11 @@ def post_choice(sid: str, body: ChoiceRequest) -> JSONResponse:
         sess = SESSIONS.get(sid)
         if not sess:
             raise HTTPException(404, "no such session")
-        if sess.current_index >= len(sess.episode.nodes):
+        # Determine current node
+        ep = sess.episodes[sess.hand_index]
+        if sess.current_index >= len(ep.nodes):
             return JSONResponse({"done": True})
-        node = sess.episode.nodes[sess.current_index]
+        node = ep.nodes[sess.current_index]
 
     opts = options_for(node, secrets.SystemRandom(), sess.mc_trials)
     if not (0 <= body.choice < len(opts)):
@@ -132,7 +156,7 @@ def post_choice(sid: str, body: ChoiceRequest) -> JSONResponse:
     with LOCK:
         sess.records.append(record)
         ends = getattr(chosen, "ends_hand", False)
-        sess.current_index += 1 if not ends else len(sess.episode.nodes)
+        sess.current_index += 1 if not ends else len(ep.nodes)
 
     return JSONResponse(
         {
@@ -182,4 +206,3 @@ def main() -> None:  # pragma: no cover - runner
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-
