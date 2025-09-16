@@ -13,5 +13,5 @@ RUN python -m pip install -U pip \
 
 EXPOSE 8000
 
-# Use shell form so env vars expand on Render and elsewhere.
-CMD sh -c 'python -m gto_poker_trainer_cli.ui.textual_serve_main --host 0.0.0.0 --port ${PORT:-8000} --hands ${HANDS:-1} --mc ${MC:-200}'
+# Run via Textual's built-in web server to load the app directly (no landing page).
+CMD sh -c 'textual serve "python -m gto_poker_trainer_cli.ui.textual_main --hands ${HANDS:-1} --mc ${MC:-200}" --host 0.0.0.0 --port ${PORT:-8000}'

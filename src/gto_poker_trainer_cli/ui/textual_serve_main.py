@@ -26,7 +26,8 @@ def main() -> None:
     args = p.parse_args()
 
     # Serve the Textual app via shell command; one process per browser session
-    cmd = f"gto-poker-trainer-textual --hands {args.hands} --mc {args.mc}"
+    # Avoid relying on console scripts (PATH issues in some containers)
+    cmd = f"python -m gto_poker_trainer_cli.ui.textual_main --hands {args.hands} --mc {args.mc}"
     public_url = os.environ.get("RENDER_EXTERNAL_URL")
     if not public_url:
         host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
