@@ -1,36 +1,33 @@
 # GTO Poker Trainer CLI
 
-A command-line trainer for heads-up no‑limit hold’em decisions across all streets.
+Train heads‑up no‑limit hold’em decisions with instant EV feedback.
 
-It deals a random hand, shows your hole cards on every street, and asks you to
-pick an action. After each choice, you see the EV comparison and a short
-explanation. A session summary at the end totals results and highlights the
-largest EV losses.
+- Deals random hands across all streets.
+- After each action, shows EV vs. best action plus a short note.
+- Session summary totals EV, averages, hit rate, and biggest leaks.
 
 ## Requirements
 
-- Python 3.12.11 exactly (see `.python-version`).
+- Python 3.12.11 exactly.
 
-## Install and run
+## Quick Start
 
-Editable install (recommended):
+Install and run:
 
 ```
 pip install -e .
-gto-poker-trainer-cli
+gto-poker-trainer-cli --hands 10
 ```
 
-Run in place without installing (from the project root):
+Run without installing (from project root):
 
 ```
 PYTHONPATH=src python -m gto_poker_trainer_cli
-# or
-cd src && python -m gto_poker_trainer_cli
 ```
 
 ## Usage
 
-Single mode: multi‑street play. The optional word `play` is accepted but not required.
+Single mode only; optional `play` subcommand is accepted.
 
 ```
 gto-poker-trainer-cli [--hands N] [--seed N] [--mc N] [--no-color|--force-color] [--solver-csv PATH]
@@ -38,42 +35,36 @@ gto-poker-trainer-cli [--hands N] [--seed N] [--mc N] [--no-color|--force-color]
 
 Options:
 
-- `--hands N` Number of random hands per session (default: 1).
-- `--seed N` RNG seed for reproducible sessions (omit for randomness).
-- `--mc N` Monte Carlo trials per node for EV estimates (default: 200).
-- `--no-color` Disable color output.
-- `--force-color` Force color output even if not a TTY.
-- `--solver-csv PATH` Use a preflop strategy CSV before falling back to heuristics.
+- `--hands N` Hands to play (default: 1).
+- `--seed N` RNG seed (omit for randomness).
+- `--mc N` Monte Carlo trials per node (default: 200).
+- `--solver-csv PATH` Preflop strategy CSV (falls back to heuristics).
+- `--no-color` Disable color.
+- `--force-color` Force color even if not a TTY.
 
-Controls during play:
+Controls:
 
 - `1–9` choose an action
 - `h` help
-- `?` show pot and SPR info
-- `q` quit the current session
+- `?` pot + SPR
+- `q` quit session
 
 ## Development
 
-- Ensure Python 3.12.11 is active (pyenv users: `.python-version` is provided).
-- Install dev dependencies and run tests:
+Ensure Python 3.12.11, then:
 
 ```
 make install-dev
 make test
-```
-
-Linting and formatting (Ruff):
-
-```
-make lint     # check
-make fix      # auto-fix
-make format   # apply formatting
+make lint
+make fix
+make format
 ```
 
 ## Notes
 
-- Per-step scoring: `ev_loss = best_ev - chosen_ev`.
-- Session stats include total/average EV lost, hit rate, and a 0–100 score.
+- Per step: `ev_loss = best_ev - chosen_ev`.
+- Score uses total/avg EV lost and hit rate.
 
 ## License
 
