@@ -47,7 +47,7 @@ def test_default_runs_play_and_shows_summary_and_loops_until_quit():
         ["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"],
         input_text="2\n2\n2\n2\ny\nq\n",
     )
-    assert "GTO Trainer – Live" in out
+    assert "GTO Poker Trainer CLI" in out
     assert "PREFLOP" in out and "FLOP" in out and "TURN" in out and "RIVER" in out
     assert "Session Summary" in out
     # Should have started a new session after the first summary
@@ -72,5 +72,5 @@ def test_play_with_solver_csv_runs_and_summarizes(tmp_path: Path):
     )
     out = cp.stdout.decode()
     assert cp.returncode == 0, out
-    assert "GTO Trainer – Live" in out
+    assert "GTO Poker Trainer CLI" in out
     assert ("Session Summary" in out) or ("No hands answered." in out)

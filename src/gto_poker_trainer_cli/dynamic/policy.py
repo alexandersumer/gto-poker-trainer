@@ -49,10 +49,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         # Conservative FE estimate increases mildly with size
         fe = max(0.05, min(0.55, 0.20 + 0.05 * (total_to - 8)))
         ev_bet = fe * win_when_fold + (1 - fe) * (eq3 * pot_when_called - risk)
-        why = (
-            f"Wins {P:.2f} when folds; if called plays pot≈{pot_when_called:.1f}. "
-            f"Est. FE≈{_fmt_pct(fe)}."
-        )
+        why = f"Wins {P:.2f} when folds; if called plays pot≈{pot_when_called:.1f}. Est. FE≈{_fmt_pct(fe)}."
         opts.append(Option(f"3-bet to {total_to:.0f}bb", ev_bet, why))
     return opts
 

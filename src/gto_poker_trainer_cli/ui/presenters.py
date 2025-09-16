@@ -6,6 +6,7 @@ from rich.table import Table
 
 from ..core.interfaces import Presenter
 from ..core.models import Option
+from ..dynamic.cards import canonical_hand_abbrev, format_cards_spaced
 from ..dynamic.generator import Node
 
 
@@ -19,10 +20,20 @@ class RichPresenter(Presenter):
         pass
 
     def start_hand(self, hand_index: int, total_hands: int) -> None:
-        self.console.print(Panel.fit(f"Hand {hand_index}/{total_hands}", title="GTO Trainer – Live", style="bold cyan"))
+        self.console.print(
+            Panel.fit(
+                f"Hand {hand_index}/{total_hands}",
+                title="GTO Poker Trainer CLI",
+                style="bold cyan",
+            )
+        )
 
     def show_node(self, node: Node, options: list[str]) -> None:
         self.console.print(f"[bold magenta]{node.street.upper()}[/]  [dim]- {node.description}[/]")
+        # Always show hero's hole cards on every street for continuity
+        hand_str = format_cards_spaced(node.hero_cards)
+        hand_abbrev = canonical_hand_abbrev(node.hero_cards)
+        self.console.print(f"Your hand: [bold white]{hand_str}[/] [dim]({hand_abbrev})[/]")
         # Pot/SPR and sizing context for clarity
         P = float(node.pot_bb)
         spr = (node.effective_bb / P) if P > 0 else float("inf")
@@ -34,7 +45,7 @@ class RichPresenter(Presenter):
             meta += f" | OOP bet: {float(bet):.2f}bb ({pct:.0f}% pot)"
         self._last_meta = meta
         self.console.print(f"[dim]{meta}[/]")
-        self.console.print("[dim]Controls: 1–{n} to act • h=help • ?=pot • q=quit[/]".format(n=len(options)))
+        self.console.print(f"[dim]Controls: 1–{len(options)} to act • h=help • ?=pot • q=quit[/]")
         table = Table(show_header=True, header_style="bold blue")
         table.add_column("#", justify="right")
         table.add_column("Action")

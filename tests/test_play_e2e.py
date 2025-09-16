@@ -34,7 +34,7 @@ def test_play_shows_all_streets_and_summary_then_loops_until_quit():
     )
     out = cp.stdout.decode()
     assert cp.returncode == 0, out
-    assert "GTO Trainer – Live" in out
+    assert "GTO Poker Trainer CLI" in out
     assert "PREFLOP" in out
     assert "FLOP" in out
     assert "TURN" in out

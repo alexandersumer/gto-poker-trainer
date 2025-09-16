@@ -1,41 +1,80 @@
 # GTO Poker Trainer CLI
 
-Interactive CLI trainer that generates fresh hands on the fly and quizzes you from preflop through river in a single hand. Each decision is graded by EV (in big blinds), with step‑by‑step feedback and an end‑of‑session summary of top leaks.
+A command-line trainer for heads-up no‑limit hold’em decisions across all streets.
 
-## Quick start
+It deals a random hand, shows your hole cards on every street, and asks you to
+pick an action. After each choice, you see the EV comparison and a short
+explanation. A session summary at the end totals results and highlights the
+largest EV losses.
 
-- Install editable (recommended) then run the entry point:
-  - `pip install -e .`
-  - `gto-poker-trainer-cli`
-- Or run in-place without installing:
-  - `PYTHONPATH=src python -m gto_poker_trainer_cli` (from the project root), or
-  - `cd src && python -m gto_poker_trainer_cli`
+## Requirements
 
-## Development (Python 3.12.11)
+- Python 3.12.11 exactly (see `.python-version`).
 
-- This project requires exactly Python 3.12.11 (see `.python-version`).
+## Install and run
+
+Editable install (recommended):
+
+```
+pip install -e .
+gto-poker-trainer-cli
+```
+
+Run in place without installing (from the project root):
+
+```
+PYTHONPATH=src python -m gto_poker_trainer_cli
+# or
+cd src && python -m gto_poker_trainer_cli
+```
+
+## Usage
+
+Single mode: multi‑street play. The optional word `play` is accepted but not required.
+
+```
+gto-poker-trainer-cli [--hands N] [--seed N] [--mc N] [--no-color|--force-color] [--solver-csv PATH]
+```
+
+Options:
+
+- `--hands N` Number of random hands per session (default: 1).
+- `--seed N` RNG seed for reproducible sessions (omit for randomness).
+- `--mc N` Monte Carlo trials per node for EV estimates (default: 200).
+- `--no-color` Disable color output.
+- `--force-color` Force color output even if not a TTY.
+- `--solver-csv PATH` Use a preflop strategy CSV before falling back to heuristics.
+
+Controls during play:
+
+- `1–9` choose an action
+- `h` help
+- `?` show pot and SPR info
+- `q` quit the current session
+
+## Development
+
 - Ensure Python 3.12.11 is active (pyenv users: `.python-version` is provided).
-- Install dev deps and run tests:
-  - `make install-dev`
-  - `make test`
+- Install dev dependencies and run tests:
 
-### Linting and formatting
+```
+make install-dev
+make test
+```
 
-- Ruff is configured for linting, import sorting, and formatting.
-- Common tasks:
-  - `make lint` – check lint
-  - `make fix` – auto-fix lint (incl. unused imports, sort imports)
-  - `make format` – apply code formatting
+Linting and formatting (Ruff):
 
-The test suite includes end-to-end CLI tests that feed interactive input, validate per-step EV math, final summaries, leak ordering, color/TTY behavior, and optional preflop solver CSV integration.
-
-## CLI usage
-
-Single mode only (multi‑street play). The optional `play` word is accepted for compatibility but not required.
-
-- `gto-poker-trainer-cli [--hands N] [--seed N] [--mc N] [--no-color|--force-color] [--solver-csv PATH]`
+```
+make lint     # check
+make fix      # auto-fix
+make format   # apply formatting
+```
 
 ## Notes
 
 - Per-step scoring: `ev_loss = best_ev - chosen_ev`.
-- Session stats: total/average EV lost, hit rate, and a normalized 0–100 score.
+- Session stats include total/average EV lost, hit rate, and a 0–100 score.
+
+## License
+
+Proprietary (see `pyproject.toml`).
