@@ -38,11 +38,12 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         ),
     ]
     for total_to in sizes:
-        # Risk: as BB we've posted 1bb; raising to X costs (X - 1)
+        # Risk is the additional chips we put in now beyond folding.
+        # As BB we already posted 1bb, so raising to X costs (X - 1).
         risk = total_to - 1.0
         # Win when folds: we win the current pot after the open
         win_when_fold = P
-        # When called heads-up: each player has total_to in the middle → pot = 2 * total_to
+        # When called HU: each player has put in `total_to` preflop → pot = 2 * total_to
         pot_when_called = 2.0 * total_to
         # Slight realization discount for 3-bet pots without a range model
         eq3 = max(0.0, min(1.0, eq * 0.96))
@@ -74,7 +75,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         # Simple FE model: increases with size and with holding equity a touch
         fe = min(0.60, max(0.05, 0.10 + 0.25 * (pct / 0.75) + 0.15 * max(0.0, eq - 0.4)))
         win_when_fold = P
-        # Called pot includes both our bet and their call: P + 2*bet
+        # If called, final pot becomes P + 2*bet; our cost is bet (relative to checking/folding baseline)
         pot_when_called = P + 2 * bet
         eq_post = max(0.0, min(1.0, eq + 0.02))
         ev = fe * win_when_fold + (1 - fe) * (eq_post * pot_when_called - bet)

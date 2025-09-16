@@ -57,6 +57,10 @@ extend-exclude = [
   ".pytest_cache",
   "src/*.egg-info",
   "src/gtotrainer",  # legacy package kept out of lint until removed
+  "build",
+  "build/**",
+  "dist",
+  "dist/**",
 ]
 
 [tool.ruff.format]

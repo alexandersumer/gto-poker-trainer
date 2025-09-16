@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: gto-poker-trainer
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: HANDS
+        value: "1"
+      - key: MC
+        value: "200"
+    healthCheckPath: /
