@@ -25,11 +25,12 @@ def main() -> None:
     p.add_argument("--mc", type=int, default=int(os.environ.get("MC", "200")))
     args = p.parse_args()
 
-    # Serve the console script command; textual-serve runs the process per session
+    # Serve the Textual app via shell command; one process per browser session
     cmd = f"gto-poker-trainer-textual --hands {args.hands} --mc {args.mc}"
-    server = Server(apps={"trainer": cmd}, host=args.host, port=args.port)
+    server = Server(command=cmd, host=args.host, port=args.port, title="GTO Poker Trainer")
     print(f"Serving at http://{args.host}:{args.port} …")
-    server.run()
+    # textual-serve uses .serve(); keep default (debug=False)
+    server.serve()
 
 
 if __name__ == "__main__":
