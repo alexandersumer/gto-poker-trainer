@@ -1,151 +1,217 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Iterable
 
 from ..core.models import Option
-from .equity import estimate_equity
+from .equity import hero_equity_vs_combo, hero_equity_vs_range
 from .generator import Node
+from .range_model import tighten_range, villain_sb_open_range
 
 
 def _fmt_pct(x: float) -> str:
     return f"{100.0 * x:.0f}%"
 
 
+def _blocked_cards(hero: Iterable[int], board: Iterable[int]) -> set[int]:
+    return set(hero) | set(board)
+
+
+def _fold_continue_stats(hero_equities: Iterable[float], villain_threshold: float) -> tuple[float, float, float]:
+    hero_list = list(hero_equities)
+    if not hero_list:
+        return 0.0, 0.0, 0.0
+    folds = 0
+    continue_eq = 0.0
+    for eq in hero_list:
+        if 1.0 - eq < villain_threshold:
+            folds += 1
+        else:
+            continue_eq += eq
+    total = len(hero_list)
+    continue_count = total - folds
+    fe = folds / total
+    avg_eq = continue_eq / continue_count if continue_count else 0.0
+    continue_ratio = continue_count / total
+    return fe, avg_eq, continue_ratio
+
+
+def _range_trials(mc_trials: int) -> int:
+    return max(400, int(mc_trials * 1.2))
+
+
+def _combo_trials(mc_trials: int) -> int:
+    return max(500, int(mc_trials * 1.5))
+
+
+def _default_open_size(node: Node) -> float:
+    return float(node.context.get("open_size") or 2.5)
+
+
 def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
-    # Actions: Fold, Call, 3-bet sizes (BB facing SB open)
-    sz = float(node.context["open_size"])  # villain opened to sz
-    P = node.pot_bb  # pot after open (e.g., 3.0 when SB opens to 2.0)
-    call_amt = sz - 1.0  # BB has posted 1bb already
+    del rng  # Monte Carlo handled via deterministic caching in equity helpers.
+    hero = node.hero_cards
+    open_size = float(node.context["open_size"])
+    pot_after_open = node.pot_bb
+    call_cost = open_size - 1.0
+    blocked = _blocked_cards(hero, [])
+    open_range = villain_sb_open_range(open_size, blocked)
+    combo_trials = _combo_trials(mc_trials)
+    equities = {combo: hero_equity_vs_combo(hero, [], combo, combo_trials) for combo in open_range}
+    range_trials = _range_trials(mc_trials)
+    avg_range_eq = hero_equity_vs_range(hero, [], open_range, range_trials)
 
-    # Equity vs random (heuristic). We do not assume a solver range here.
-    eq = estimate_equity(node.hero_cards, [], None, rng, trials=mc_trials)
+    options: list[Option] = [
+        Option("Fold", 0.0, "Fold now and lose nothing extra.", ends_hand=True),
+    ]
 
-    # Baseline: EV measured from this node; folding EV = 0.0
-    ev_fold = 0.0
-
-    # Call EV (approx): eq * (P + call) - call
-    ev_call = eq * (P + call_amt) - call_amt
-    be_call_eq = call_amt / (P + call_amt) if (P + call_amt) > 0 else 1.0
-
-    # 3-bet sizes with conservative FE model, and clear pot math
-    sizes = [8.0, 9.0, 10.0]
-    opts: list[Option] = [
-        Option("Fold", ev_fold, "Give up preflop (baseline EV = 0.0).", ends_hand=True),
+    final_pot_call = pot_after_open + call_cost
+    be_call_eq = call_cost / final_pot_call if final_pot_call > 0 else 1.0
+    options.append(
         Option(
             "Call",
-            ev_call,
-            f"Pot odds: call {call_amt:.2f} to win {P:.2f} (BE eq≈{be_call_eq:.2f}).",
-        ),
-    ]
-    for total_to in sizes:
-        # Risk: as BB we've posted 1bb; raising to X costs (X - 1)
-        risk = total_to - 1.0
-        # Win when folds: we win the current pot after the open
-        win_when_fold = P
-        # When called heads-up: each player has total_to in the middle → pot = 2 * total_to
-        pot_when_called = 2.0 * total_to
-        # Slight realization discount for 3-bet pots without a range model
-        eq3 = max(0.0, min(1.0, eq * 0.96))
-        # Conservative FE estimate increases mildly with size
-        fe = max(0.05, min(0.55, 0.20 + 0.05 * (total_to - 8)))
-        ev_bet = fe * win_when_fold + (1 - fe) * (eq3 * pot_when_called - risk)
-        why = (
-            f"Wins {P:.2f} when folds; if called plays pot≈{pot_when_called:.1f}. "
-            f"Cost now {risk:.2f}bb. Est. FE≈{_fmt_pct(fe)}."
+            avg_range_eq * final_pot_call - call_cost,
+            (
+                f"Pot odds: call {call_cost:.2f} to win {final_pot_call:.2f}. "
+                f"Need ≈{be_call_eq:.2f} equity, hand has {avg_range_eq:.2f}."
+            ),
         )
-        opts.append(Option(f"3-bet to {total_to:.0f}bb", ev_bet, why))
-    return opts
+    )
+
+    for raise_to in (8.0, 9.0, 10.0):
+        risk = raise_to - 1.0
+        pot_after_raise = pot_after_open + risk
+        villain_call_cost = raise_to - open_size
+        final_pot = pot_after_raise + villain_call_cost
+        be_threshold = villain_call_cost / final_pot if final_pot > 0 else 1.0
+        fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        ev_called = avg_eq_when_called * final_pot - risk if continue_ratio else -risk
+        ev = fe * pot_after_open + (1 - fe) * ev_called
+        why = (
+            f"Villain folds {_fmt_pct(fe)} needing eq {be_threshold:.2f}. "
+            f"When called (≈{_fmt_pct(continue_ratio)}) you have {avg_eq_when_called:.2f} equity → EV {ev_called:.2f}."
+        )
+        options.append(Option(f"3-bet to {raise_to:.0f}bb", ev, why))
+
+    return options
 
 
 def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
-    # Facing check; options: check, bet 33/50/75% pot
-    P = node.pot_bb
+    del rng
+    hero = node.hero_cards
     board = node.board
-    eq = estimate_equity(node.hero_cards, board, None, rng, trials=mc_trials)
-    opts: list[Option] = [
-        Option(
-            "Check",
-            eq * P,
-            "Low equity or range disadvantage → check back often; realize equity.",
-        )
+    pot = node.pot_bb
+    open_size = _default_open_size(node)
+    blocked = _blocked_cards(hero, board)
+    open_range = villain_sb_open_range(open_size, blocked)
+    combo_trials = _combo_trials(mc_trials)
+    equities = {combo: hero_equity_vs_combo(hero, board, combo, combo_trials) for combo in open_range}
+    avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
+
+    options: list[Option] = [
+        Option("Check", avg_eq * pot, f"Realize equity {avg_eq:.2f} in-position."),
     ]
+
     for pct in (0.33, 0.5, 0.75):
-        bet = round(P * pct, 2)
-        # Simple FE model: increases with size and with holding equity a touch
-        fe = min(0.60, max(0.05, 0.10 + 0.25 * (pct / 0.75) + 0.15 * max(0.0, eq - 0.4)))
-        win_when_fold = P
-        # Called pot includes both our bet and their call: P + 2*bet
-        pot_when_called = P + 2 * bet
-        eq_post = max(0.0, min(1.0, eq + 0.02))
-        ev = fe * win_when_fold + (1 - fe) * (eq_post * pot_when_called - bet)
+        bet = round(pot * pct, 2)
+        if bet <= 0:
+            continue
+        final_pot = pot + 2 * bet
+        be_threshold = bet / final_pot
+        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        ev_called = eq_call * final_pot - bet if continue_ratio else -bet
+        ev = fe * pot + (1 - fe) * ev_called
         why = (
-            f"{int(pct * 100)}% pot: wins {P:.2f} when folds; if called plays pot≈{pot_when_called:.2f}. "
-            f"Est. FE≈{_fmt_pct(fe)}."
+            f"{int(pct * 100)}% pot: villain folds {_fmt_pct(fe)} (needs eq {be_threshold:.2f}). "
+            f"Continuing range (~{_fmt_pct(continue_ratio)}) gives you {eq_call:.2f} equity → EV {ev_called:.2f}."
         )
-        opts.append(Option(f"Bet {int(pct * 100)}% pot", ev, why))
-    return opts
+        options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why))
+
+    return options
 
 
 def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
-    # Facing a bet; options: fold, call, raise-to 2.5x (all EVs from node baseline; fold=0)
-    P = node.pot_bb  # pot at start of turn before facing bet
-    B = float(node.context["bet"])  # villain bet amount
+    del rng
+    hero = node.hero_cards
     board = node.board
-    eq = estimate_equity(node.hero_cards, board, None, rng, trials=mc_trials)
+    pot_start = node.pot_bb
+    villain_bet = float(node.context["bet"])
+    pot_before_action = pot_start + villain_bet
+    open_size = _default_open_size(node)
+    blocked = _blocked_cards(hero, board)
+    base_range = villain_sb_open_range(open_size, blocked)
+    # Villain betting range is tightened to the stronger half of their holdings.
+    bet_range = tighten_range(base_range, 0.55)
+    combo_trials = _combo_trials(mc_trials)
+    equities = {combo: hero_equity_vs_combo(hero, board, combo, combo_trials) for combo in bet_range}
+    avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
-    # Fold
-    ev_fold = 0.0
+    options = [Option("Fold", 0.0, "Release the hand and wait for better spot.", ends_hand=True)]
 
-    # Call: final pot if called is P + 2B; cost is B
-    ev_call = eq * (P + 2 * B) - B
-    be_call_eq = B / (P + 2 * B) if (P + 2 * B) > 0 else 1.0
-
-    # Raise-to 2.5x the bet (total the IP puts in on turn)
-    R = round(B * 2.5, 2)
-    # Win when folds: villain forfeits the bet; pot award is P + B
-    win_when_fold = P + B
-    # When called: final pot P + 2R; our cost is R (relative to fold baseline)
-    pot_when_called = P + 2 * R
-    # Modest equity bump when called is unrealistic here; keep conservative
-    eq_post = max(0.0, min(1.0, eq + 0.01))
-    # Conservative FE estimate: depends on size relative to (P+B) and holding equity
-    fe_est = max(0.05, min(0.55, 0.10 + 0.15 * (R / max(1e-9, P + B)) + 0.20 * max(0.0, eq - 0.35)))
-    ev_raise = fe_est * win_when_fold + (1 - fe_est) * (eq_post * pot_when_called - R)
-    # Break-even FE for raise ignoring equity
-    fe_break_even = R / (R + (P + B)) if (R + (P + B)) > 0 else 1.0
-
-    return [
-        Option("Fold", ev_fold, "Weak hand/no blockers → fold vs turn stab.", ends_hand=True),
+    final_pot_call = pot_start + 2 * villain_bet
+    be_call_eq = villain_bet / final_pot_call if final_pot_call > 0 else 1.0
+    options.append(
         Option(
             "Call",
-            ev_call,
-            f"Pot odds: call {B:.2f} to win {(P + 2 * B):.2f} (BE eq≈{be_call_eq:.2f}).",
-        ),
-        Option(
-            f"Raise to {R:.2f}bb",
-            ev_raise,
-            f"Needs FE≥{_fmt_pct(fe_break_even)} to break even; est. FE≈{_fmt_pct(fe_est)}.",
-        ),
-    ]
+            avg_eq * final_pot_call - villain_bet,
+            (
+                f"Pot odds: call {villain_bet:.2f} to win {final_pot_call:.2f}. "
+                f"Need {be_call_eq:.2f}, hand has {avg_eq:.2f}."
+            ),
+        )
+    )
+
+    raise_to = round(villain_bet * 2.5, 2)
+    risk = raise_to
+    final_pot = pot_start + 2 * raise_to
+    villain_call_cost = raise_to - villain_bet
+    be_threshold = villain_call_cost / final_pot if final_pot > 0 else 1.0
+    fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+    ev_called = eq_call * final_pot - risk if continue_ratio else -risk
+    ev = fe * pot_before_action + (1 - fe) * ev_called
+    fe_break_even = risk / (risk + pot_before_action) if (risk + pot_before_action) > 0 else 1.0
+    why_raise = (
+        f"Villain folds {_fmt_pct(fe)} (needs eq {be_threshold:.2f}); break-even FE { _fmt_pct(fe_break_even) }. "
+        f"Continuing (~{_fmt_pct(continue_ratio)}) you have {eq_call:.2f} → EV {ev_called:.2f}."
+    )
+    options.append(Option(f"Raise to {raise_to:.2f}bb", ev, why_raise))
+
+    return options
 
 
 def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
-    # In position, OOP checks; options: check, 50% pot, 100% pot
-    pot = node.pot_bb
+    del rng
+    hero = node.hero_cards
     board = node.board
-    eq = estimate_equity(node.hero_cards, board, None, rng, trials=mc_trials)
-    opts: list[Option] = [Option("Check", eq * pot, f"Showdown value with equity {eq:.2f}.")]
+    pot = node.pot_bb
+    open_size = _default_open_size(node)
+    blocked = _blocked_cards(hero, board)
+    base_range = villain_sb_open_range(open_size, blocked)
+    # After checking river, assume villain keeps medium-strength holdings.
+    check_range = tighten_range(base_range, 0.65)
+    combo_trials = _combo_trials(mc_trials)
+    equities = {combo: hero_equity_vs_combo(hero, board, combo, combo_trials) for combo in check_range}
+    avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
+
+    options: list[Option] = [Option("Check", avg_eq * pot, f"Showdown equity {avg_eq:.2f} vs check range.")]
+
     for pct in (0.5, 1.0):
         bet = round(pot * pct, 2)
-        # River FE: driven by board texture and sizing; approximate via equity and size
-        fe = min(0.75, max(0.05, 0.2 + 0.5 * (pct - 0.5) + 0.3 * (eq - 0.5)))
-        win_when_fold = pot
-        # When called: either win full pot+bet or lose bet
-        # EV approx: FE*pot + (1-FE)*(eq*(pot+bet) - (1-eq)*bet)
-        ev = fe * win_when_fold + (1 - fe) * (eq * (pot + bet) - (1 - eq) * bet)
-        why = f"Bet {int(pct * 100)}%: FE≈{fe:.2f}, equity≈{eq:.2f} if called."
-        opts.append(Option(f"Bet {int(pct * 100)}% pot", ev, why))
-    return opts
+        if bet <= 0:
+            continue
+        final_pot = pot + 2 * bet
+        be_threshold = bet / final_pot
+        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        # River when called: win final pot with probability eq_call, otherwise lose bet.
+        ev_called = eq_call * final_pot - (1 - eq_call) * bet if continue_ratio else -bet
+        ev = fe * pot + (1 - fe) * ev_called
+        why = (
+            f"Bet {int(pct * 100)}%: villain folds {_fmt_pct(fe)} (needs eq {be_threshold:.2f}). "
+            f"Calls (~{_fmt_pct(continue_ratio)}) give you {eq_call:.2f} equity → EV {ev_called:.2f}."
+        )
+        options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why))
+
+    return options
 
 
 def options_for(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:

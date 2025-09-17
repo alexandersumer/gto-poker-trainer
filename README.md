@@ -54,6 +54,8 @@ make test
 make lint
 make fix
 make format
+make check        # lint + tests (same combo used in CI)
+make render-smoke # build the Docker image and hit /healthz like Render does
 ```
 
 ## Notes

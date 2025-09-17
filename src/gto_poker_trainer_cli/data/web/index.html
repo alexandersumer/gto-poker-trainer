@@ -6,12 +6,36 @@
     <title>GTO Poker Trainer</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <style>
-      .card { display:inline-flex; align-items:center; justify-content:center; border-radius:0.375rem; border:1px solid #e5e7eb; padding:0.25rem 0.5rem; font-weight:700; letter-spacing:0.5px; margin:0 0.25rem; }
-      .s { color:#111; }
-      .h { color:#d32f2f; }
-      .d { color:#0288d1; }
-      .c { color:#2e7d32; }
-      .glass { backdrop-filter: blur(8px); background: rgba(255,255,255,0.75); }
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        background: radial-gradient(circle at top, #f8fafc 0%, #e2e8f0 40%, #cbd5f5 100%);
+      }
+      .card {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        padding: 0.3rem 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        margin: 0 0.3rem;
+        background: rgba(255, 255, 255, 0.85);
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      }
+      .card.s { color: #111827; }
+      .card.h { color: #ef4444; }
+      .card.d { color: #2563eb; }
+      .card.c { color: #10b981; }
+      .glass { backdrop-filter: blur(14px); background: rgba(255,255,255,0.7); box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08); }
+      #options button {
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+      }
+      #options button:focus-visible {
+        outline: none;
+      }
     </style>
   </head>
   <body class="min-h-screen bg-slate-100">
@@ -88,12 +112,19 @@
         const spr = n.pot_bb > 0 ? (n.effective_bb / n.pot_bb) : Infinity;
         $('#meta').textContent = `Pot: ${fmt(n.pot_bb)} bb • SPR: ${spr.toFixed(1)}`;
         const area = $('#options'); area.innerHTML='';
-        const palette = { Fold:'bg-rose-600 hover:bg-rose-700', Call:'bg-sky-600 hover:bg-sky-700' };
+        const palette = {
+          Fold: 'bg-rose-500 hover:bg-rose-600 focus:ring-2 focus:ring-rose-200',
+          Call: 'bg-sky-500 hover:bg-sky-600 focus:ring-2 focus:ring-sky-200',
+          Check: 'bg-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-slate-200',
+          'Check back': 'bg-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-slate-200',
+        };
         data.options.forEach((k,i)=>{
           const b = document.createElement('button');
-          const base = 'w-full rounded-lg px-4 py-3 text-white font-semibold';
-          const color = palette[k] || 'bg-emerald-600 hover:bg-emerald-700';
-          b.className = base + ' ' + color; b.textContent = `${i+1}. ${k}`; b.onclick=()=>choose(i);
+          const base = 'w-full rounded-xl px-4 py-3 text-white font-semibold transition-all duration-150 focus-visible:outline-none';
+          const color = palette[k] || 'bg-emerald-500 hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-200';
+          b.className = `${base} ${color}`;
+          b.textContent = `${i+1}. ${k}`;
+          b.onclick = () => choose(i);
           area.appendChild(b);
         });
         $('#feedback').classList.add('hidden');

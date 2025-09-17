@@ -5,7 +5,7 @@ PYTHON := python3.12
 ensure-python:
 	@$(PYTHON) -c "import sys; assert sys.version_info[:3]==(3,12,11), 'Expected 3.12.11, got %s' % sys.version.split()[0]; print('Using Python %s' % sys.version.split()[0])"
 
-.PHONY: venv install-dev test lint fix format check clean
+.PHONY: venv install-dev test lint fix format check render-smoke clean
 
 venv:
 	$(PYTHON) -m venv .venv && . .venv/bin/activate && $(PYTHON) -m pip install -U pip
@@ -26,6 +26,9 @@ format: ensure-python
 	$(PYTHON) -m ruff format .
 
 check: ensure-python lint test
+
+render-smoke: ensure-python
+	$(PYTHON) scripts/check_render.py
 
 clean:
 	find . -name "__pycache__" -type d -prune -exec rm -rf {} +

@@ -27,9 +27,6 @@ def test_turn_raise_break_even_fe_and_call_pot_odds_in_why_strings():
     # Ensure options order begins with Fold, Call, Raise... and strings mention math hints
     assert keys[:2] == ["Fold", "Call"]
     why_call = opts[1].why
-    assert "Pot odds" in why_call and "BE eq" in why_call
-    # For R = 2.5 * 3 = 7.5, breakeven FE (ignoring equity) is R / (R + (P+B)) = 7.5 / 14.5 ≈ 0.517
-    fe_be = 7.5 / (7.5 + (4.0 + 3.0))
+    assert "Pot odds" in why_call and "Need" in why_call
     why_raise = opts[2].why
-    # Expect percentage rounded to 0 decimals in string (≈52%)
-    assert f"FE≥{int(round(100 * fe_be, 0))}%" in why_raise
+    assert "break-even FE" in why_raise

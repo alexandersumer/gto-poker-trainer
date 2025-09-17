@@ -67,7 +67,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         hero_cards=hero_cards,
         board=flop_cards,
         actor="BB",
-        context={"facing": "check"},
+        context={"facing": "check", "open_size": sz},
     )
 
     # Turn node (villain bets half pot; hero to act)
@@ -84,7 +84,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         hero_cards=hero_cards,
         board=board[:4],
         actor="BB",
-        context={"facing": "bet", "bet": bet_turn},
+        context={"facing": "bet", "bet": bet_turn, "open_size": sz},
     )
 
     # River node (hero in position, chooses bet size)
@@ -100,7 +100,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         hero_cards=hero_cards,
         board=board,
         actor="BB",
-        context={"facing": "oop-check"},
+        context={"facing": "oop-check", "open_size": sz},
     )
 
     return Episode(nodes=[n_preflop, n_flop, n_turn, n_river])

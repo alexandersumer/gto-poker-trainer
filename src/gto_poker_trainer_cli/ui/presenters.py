@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -19,18 +20,36 @@ class RichPresenter(Presenter):
             self.console = Console(force_terminal=True, color_system="auto")
         self.quit_requested = False
         self._last_meta: str | None = None
+        self._hand_index: int = 0
+        self._hand_total: int = 0
 
     def start_session(self, total_hands: int) -> None:
-        pass
+        self._hand_total = total_hands
+        guide = (
+            "[bold]Welcome![/] This trainer deals one decision at a time.\n"
+            "- Read the situation banner for board, pot, and action context.\n"
+            "- Type the number next to your chosen play.\n"
+            "- After each choice you'll see why it wins or loses EV.\n\n"
+            "[bold]Controls[/]: numbers = act • h = help • ? = pot math • q = quit"
+        )
+        panel = Panel(guide, title="Session Guide", border_style="green")
+        self.console.print(panel)
+        self.console.print()
 
     def start_hand(self, hand_index: int, total_hands: int) -> None:
+        self._hand_index = hand_index
+        self._hand_total = total_hands
+        remaining = total_hands - hand_index
+        hand_header = f"Hand {hand_index}/{total_hands}\nRemaining: {remaining}"
         self.console.print(
-            Panel.fit(
-                f"Hand {hand_index}/{total_hands}",
+            Panel(
+                hand_header,
                 title="GTO Poker Trainer CLI",
-                style="bold cyan",
+                border_style="bold cyan",
+                expand=False,
             )
         )
+        self.console.print()
 
     def show_node(self, node: Node, options: list[str]) -> None:
         # Headline (strip duplicated Board prefix from description if present)
@@ -40,20 +59,25 @@ class RichPresenter(Presenter):
             dot = desc.find(". ")
             desc = desc[dot + 2 :] if dot != -1 else ""
 
-        headline = f"[bold magenta]{node.street.upper()}[/]"
+        headline = f"{node.street.upper()}"
         if desc:
-            headline += f"  [dim]- {desc}[/]"
-        self.console.print(headline)
+            headline += f" — {desc}"
+        self.console.rule(headline)
+
         # Always show hero's hole cards on every street for continuity
         # Render hole cards with suit-aware colors (sorted by rank for readability)
         hand_sorted = self._sort_cards_by_rank(node.hero_cards)
         hand_str_colored = self._format_cards_colored(hand_sorted)
         hand_abbrev = canonical_hand_abbrev(node.hero_cards)
-        self.console.print(f"Your hand: {hand_str_colored} [dim]({hand_abbrev})[/]")
-        # Community board (with suit-aware colors) for quick scanning
+
+        info = Table.grid(padding=(0, 1))
+        info.add_column(style="bold cyan", justify="right")
+        info.add_column(justify="left")
+        info.add_row("Hand", f"{self._hand_index}/{self._hand_total}")
+        info.add_row("Your hand", f"{hand_str_colored} [dim]({hand_abbrev})[/]")
         if node.board:
             board_str = self._format_cards_colored(node.board)
-            self.console.print(f"Board: {board_str}")
+            info.add_row("Board", board_str)
 
         # Pot/SPR and sizing context for clarity
         P = float(node.pot_bb)
@@ -65,15 +89,25 @@ class RichPresenter(Presenter):
             pct = 100.0 * float(bet) / max(1e-9, P)
             meta += f" | OOP bet: {float(bet):.2f}bb ({pct:.0f}% pot)"
         self._last_meta = meta
-        self.console.print(f"[dim]{meta}[/]")
-        self.console.print(f"[dim]Controls: 1–{len(options)} to act • h=help • ?=pot • q=quit[/]")
-        table = Table(show_header=True, header_style="bold blue")
-        table.add_column("#", justify="right")
-        table.add_column("Action")
-        table.add_column("Hint", style="dim")
+        info.add_row("Pot / SPR", f"{P:.2f}bb (SPR {spr:.1f})")
+        if isinstance(bet, (int, float)):
+            info.add_row("Facing", f"Bet {float(bet):.2f}bb ({pct:.0f}% pot)")
+        if desc:
+            info.add_row("Situation", desc)
+        self.console.print(Panel(info, title="Table Status", border_style="magenta", expand=False))
+
+        self.console.print("Choose an action:")
+        table = Table(show_header=True, header_style="bold blue", box=box.SIMPLE_HEAVY)
+        table.add_column("#", justify="right", style="cyan", no_wrap=True)
+        table.add_column("Action", style="bold")
+        table.add_column("What it means", overflow="fold")
         for i, k in enumerate(options, 1):
-            table.add_row(str(i), k, "EV hidden")
+            hint = self._hint_for_action(k)
+            table.add_row(str(i), k, hint)
         self.console.print(table)
+        self.console.print(
+            f"[dim]Controls: 1–{len(options)} to act • h=help • ?=pot • q=quit[/]"
+        )
 
     def prompt_choice(self, n: int) -> int:
         while True:
@@ -154,23 +188,45 @@ class RichPresenter(Presenter):
         self.console.print(Panel.fit(table, title="Controls", style="dim"))
 
     # --- card rendering helpers ---
+    def _hint_for_action(self, action: str) -> str:
+        text = action.lower()
+        if text.startswith("fold"):
+            return "Let the hand go and move to the next decision."
+        if text.startswith("call"):
+            return "Match the wager to continue in the hand."
+        if text.startswith("check"):
+            return "Stay in the hand without adding more chips."
+        if text.startswith("bet"):
+            tail = action.split(" ", 1)[1] if " " in action else ""
+            if "%" in text and tail:
+                return f"Bet {tail} to apply pressure."
+            return "Lead out and put chips in the pot."
+        if text.startswith("raise"):
+            tail = action.split(" ", 1)[1] if " " in action else ""
+            return f"Increase the bet {tail} to apply pressure.".strip()
+        if "3-bet" in text:
+            tail = action.split(" ", 2)[-1] if " " in action else ""
+            return f"Re-raise preflop to {tail} and seize initiative.".strip()
+        return "Select to see more feedback after the action."
+
     def _sort_cards_by_rank(self, cards: list[int]) -> list[int]:
         # Rank is encoded as integer division by 4; higher rank first
         return sorted(cards, key=lambda ci: ci // 4, reverse=True)
 
     def _format_cards_colored(self, cards: list[int]) -> str:
         # Suits: 0=spades, 1=hearts, 2=diamonds, 3=clubs
+        # Tailored four-color deck palette tuned for readability on both light/dark terminals.
         colors = {
-            0: "white",  # spades
-            1: "bright_red",  # hearts
-            2: "bright_cyan",  # diamonds
-            3: "green",  # clubs
+            0: "bold #111827",  # spades (slate 900)
+            1: "bold #ef4444",  # hearts (red 500)
+            2: "bold #2563eb",  # diamonds (blue 600)
+            3: "bold #10b981",  # clubs (emerald 500)
         }
         # Keep original order for streets (flop/turn/river)
         parts: list[str] = []
         for c in cards:
             suit = c % 4
-            color = colors.get(suit, "white")
+            color = colors.get(suit, "bold #f9fafb")
             txt = format_card_ascii(c, upper=True)
-            parts.append(f"[bold {color}]{txt}[/]")
+            parts.append(f"[{color}]{txt}[/]")
         return " ".join(parts)

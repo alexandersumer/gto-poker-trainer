@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Iterable
+from functools import lru_cache
 
 from .cards import card_int_to_str, str_to_treys
 
@@ -49,3 +51,39 @@ def estimate_equity(
             ties += 1
 
     return (wins + 0.5 * ties) / max(1, trials)
+
+
+def _sorted_tuple(cards: Iterable[int]) -> tuple[int, ...]:
+    return tuple(sorted(cards))
+
+
+@lru_cache(maxsize=50000)
+def _cached_equity(hero: tuple[int, ...], board: tuple[int, ...], villain: tuple[int, ...], trials: int) -> float:
+    seed = hash((hero, board, villain, trials)) & 0xFFFFFFFF
+    rng = random.Random(seed)
+    hero_list = list(hero)
+    board_list = list(board)
+    villain_list = list(villain) if villain else None
+    return estimate_equity(hero_list, board_list, villain_list, rng, trials)
+
+
+def hero_equity_vs_combo(hero: list[int], board: list[int], combo: tuple[int, int], trials: int) -> float:
+    hero_t = _sorted_tuple(hero)
+    board_t = _sorted_tuple(board)
+    villain_t = _sorted_tuple(combo)
+    return _cached_equity(hero_t, board_t, villain_t, trials)
+
+
+def hero_equity_vs_range(
+    hero: list[int],
+    board: list[int],
+    combos: Iterable[tuple[int, int]],
+    trials: int,
+) -> float:
+    combos_list = list(combos)
+    if not combos_list:
+        return 0.0
+    total = 0.0
+    for combo in combos_list:
+        total += hero_equity_vs_combo(hero, board, combo, trials)
+    return total / len(combos_list)

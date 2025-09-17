@@ -175,12 +175,18 @@ class TrainerApp(App[None]):
         self.query_one("#options", Vertical).remove_children()
 
     def _format_cards_colored(self, cards: list[int]) -> str:
-        colors = {0: "white", 1: "red", 2: "cyan", 3: "green"}
+        colors = {
+            0: "#111827",  # spades (slate 900)
+            1: "#ef4444",  # hearts (red 500)
+            2: "#2563eb",  # diamonds (blue 600)
+            3: "#10b981",  # clubs (emerald 500)
+        }
         parts = []
         for c in cards:
             suit = c % 4
             txt = format_card_ascii(c, upper=True)
-            parts.append(f"[bold {colors.get(suit, 'white')}]" + txt + "[/]")
+            style = colors.get(suit, "#f9fafb")
+            parts.append(f"[bold {style}]" + txt + "[/]")
         return " ".join(parts)
 
     def show_node(self, node: Node, options: list[str]) -> None:
