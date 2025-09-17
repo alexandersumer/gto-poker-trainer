@@ -176,10 +176,10 @@ class TrainerApp(App[None]):
 
     def _format_cards_colored(self, cards: list[int]) -> str:
         colors = {
-            0: "#111827",  # spades (slate 900)
-            1: "#ef4444",  # hearts (red 500)
-            2: "#2563eb",  # diamonds (blue 600)
-            3: "#10b981",  # clubs (emerald 500)
+            0: "white",  # spades – bright neutral
+            1: "bright_red",  # hearts – vivid red
+            2: "bright_cyan",  # diamonds – high-contrast cyan
+            3: "bright_green",  # clubs – lively green
         }
         parts = []
         for c in cards:

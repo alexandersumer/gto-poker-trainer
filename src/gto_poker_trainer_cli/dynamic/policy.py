@@ -4,7 +4,7 @@ import random
 from collections.abc import Iterable
 
 from ..core.models import Option
-from .equity import hero_equity_vs_combo
+from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_vs_range
 from .generator import Node
 from .range_model import tighten_range, villain_sb_open_range
 
@@ -68,6 +68,10 @@ def _sample_range(
 
 def _default_open_size(node: Node) -> float:
     return float(node.context.get("open_size") or 2.5)
+
+
+# Public alias preserved for tests that monkeypatch hero_equity_vs_range.
+hero_equity_vs_range = _hero_equity_vs_range
 
 
 def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
@@ -195,7 +199,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     ev = fe * pot_before_action + (1 - fe) * ev_called
     fe_break_even = risk / (risk + pot_before_action) if (risk + pot_before_action) > 0 else 1.0
     why_raise = (
-        f"Villain folds {_fmt_pct(fe)} (needs eq {be_threshold:.2f}); break-even FE { _fmt_pct(fe_break_even) }. "
+        f"Villain folds {_fmt_pct(fe)} (needs eq {be_threshold:.2f}); break-even FE {_fmt_pct(fe_break_even)}. "
         f"Continuing (~{_fmt_pct(continue_ratio)}) you have {eq_call:.2f} → EV {ev_called:.2f}."
     )
     options.append(Option(f"Raise to {raise_to:.2f}bb", ev, why_raise))

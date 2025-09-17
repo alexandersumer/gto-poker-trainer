@@ -38,4 +38,3 @@ def test_web_endpoints_session_flow():
     assert r.status_code == 200
     js = r.json()
     assert js["hands"] >= 1
-

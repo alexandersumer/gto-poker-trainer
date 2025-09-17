@@ -105,9 +105,7 @@ class RichPresenter(Presenter):
             hint = self._hint_for_action(k)
             table.add_row(str(i), k, hint)
         self.console.print(table)
-        self.console.print(
-            f"[dim]Controls: 1–{len(options)} to act • h=help • ?=pot • q=quit[/]"
-        )
+        self.console.print(f"[dim]Controls: 1–{len(options)} to act • h=help • ?=pot • q=quit[/]")
 
     def prompt_choice(self, n: int) -> int:
         while True:
@@ -217,10 +215,10 @@ class RichPresenter(Presenter):
         # Suits: 0=spades, 1=hearts, 2=diamonds, 3=clubs
         # Tailored four-color deck palette tuned for readability on both light/dark terminals.
         colors = {
-            0: "bold #111827",  # spades (slate 900)
-            1: "bold #ef4444",  # hearts (red 500)
-            2: "bold #2563eb",  # diamonds (blue 600)
-            3: "bold #10b981",  # clubs (emerald 500)
+            0: "bold white",  # spades – bright neutral
+            1: "bold bright_red",  # hearts – vivid red
+            2: "bold bright_cyan",  # diamonds – high-contrast cyan
+            3: "bold bright_green",  # clubs – lively green
         }
         # Keep original order for streets (flop/turn/river)
         parts: list[str] = []
