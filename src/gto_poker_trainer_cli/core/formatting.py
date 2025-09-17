@@ -48,6 +48,9 @@ def format_option_label(node: Node, option: Option) -> str:
         pct = _safe_pct(raise_to, pot_before)
         return f"3-bet {_fmt_pct(pct)}"
 
+    if action in {"jam", "allin", "all-in"}:
+        return "Jam 100%"
+
     if action == "call":
         amount = float(meta.get("call_cost", meta.get("villain_bet", 0.0)))
         pct = _safe_pct(amount, pot)
@@ -69,6 +72,8 @@ _BB_PATTERN = re.compile(r"([0-9]+(?:\.[0-9]+)?)\s*bb", re.IGNORECASE)
 
 def _fallback_percent_label(key: str, node: Node) -> str:
     key_lower = key.lower()
+    if "all-in" in key_lower or "jam" in key_lower:
+        return "Jam 100%"
     if "%" in key_lower or "all-in" in key_lower:
         return key
 

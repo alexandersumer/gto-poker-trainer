@@ -99,6 +99,7 @@ def test_policy_preflop_flop_turn_river_option_shapes():
     )
     fl = flop_options(n_flop, rng, mc_trials=15)
     assert [o.key for o in fl][0] == "Check"
+    assert any("Jam" in o.key for o in fl)
     _assert_options_signature(fl)
 
     n_turn = Node(
@@ -127,6 +128,7 @@ def test_policy_preflop_flop_turn_river_option_shapes():
     )
     rv = river_options(n_river, rng, mc_trials=10)
     assert [o.key for o in rv][0] == "Check"
+    assert any("Jam" in o.key for o in rv)
     _assert_options_signature(rv)
 
 

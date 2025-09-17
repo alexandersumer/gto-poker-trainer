@@ -284,6 +284,31 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             )
         )
 
+    # All-in shove option for maximum pressure
+    risk = round(node.effective_bb, 2)
+    if risk > 0:
+        final_pot = pot + 2 * risk
+        be_threshold = risk / final_pot if final_pot > 0 else 1.0
+        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        ev_called = eq_call * final_pot - risk if continue_ratio else -risk
+        ev = fe * pot + (1 - fe) * ev_called
+        options.append(
+            Option(
+                "Jam (all-in)",
+                ev,
+                (
+                    f"Full stack shove: villain folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
+                    f"When called you have {_fmt_pct(eq_call, 1)} → EV {ev_called:.2f} bb."
+                ),
+                meta={
+                    "street": "flop",
+                    "action": "jam",
+                    "risk": risk,
+                    "combo_trials": combo_trials,
+                },
+            )
+        )
+
     return options
 
 
@@ -422,6 +447,30 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
                     "action": "bet",
                     "bet": bet,
                     "villain_threshold": be_threshold,
+                    "combo_trials": combo_trials,
+                },
+            )
+        )
+
+    risk = round(node.effective_bb, 2)
+    if risk > 0:
+        final_pot = pot + 2 * risk
+        be_threshold = risk / final_pot if final_pot > 0 else 1.0
+        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        ev_called = eq_call * final_pot - risk if continue_ratio else -risk
+        ev = fe * pot + (1 - fe) * ev_called
+        options.append(
+            Option(
+                "Jam (all-in)",
+                ev,
+                (
+                    f"Jam: villain folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
+                    f"Calls (~{_fmt_pct(continue_ratio)}) give you {_fmt_pct(eq_call, 1)} → EV {ev_called:.2f} bb."
+                ),
+                meta={
+                    "street": "river",
+                    "action": "jam",
+                    "risk": risk,
                     "combo_trials": combo_trials,
                 },
             )

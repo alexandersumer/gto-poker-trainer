@@ -51,3 +51,16 @@ def test_format_option_label_call_without_cost_is_literal():
     opt = Option("Call", 0.0, "", meta={"action": "call"})
     label = format_option_label(_node(pot=5.0), opt)
     assert label == "Call"
+
+
+def test_format_option_label_uppercase_bb_text():
+    opt = Option("3-bet to 10 BB", 0.0, "")
+    label = format_option_label(_node(pot=12.0), opt)
+    assert label.startswith("3-bet")
+    assert "%" in label
+
+
+def test_format_option_label_all_in_text():
+    opt = Option("All-in for 100bb", 0.0, "")
+    label = format_option_label(_node(pot=15.0), opt)
+    assert label == "Jam 100%"
