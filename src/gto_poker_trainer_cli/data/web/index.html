@@ -26,7 +26,7 @@
         min-height: 100vh;
         margin: 0;
         font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: linear-gradient(145deg, #f7f8fd 0%, #eff2f9 45%, #f6f8ff 100%);
+        background: #f5f7fb;
         color: var(--text-primary);
         display: flex;
         flex-direction: column;
@@ -46,7 +46,7 @@
         left: 0;
         width: 100%;
         height: 3px;
-        background: linear-gradient(90deg, rgba(108, 131, 245, 0.85), rgba(126, 199, 194, 0.85));
+        background: #6c83f5;
         transform: scaleX(0);
         transform-origin: left;
         opacity: 0;
@@ -137,12 +137,12 @@
       }
       #feedback.hidden { opacity: 0; transform: translateY(6px); }
       #feedback[data-state="correct"] {
-        background: linear-gradient(135deg, rgba(130, 201, 181, 0.22), rgba(181, 220, 206, 0.22));
-        border-left: 4px solid rgba(111, 191, 163, 0.68);
+        background: #e3f3ed;
+        border-left: 4px solid rgba(111, 191, 163, 0.65);
       }
       #feedback[data-state="incorrect"] {
-        background: linear-gradient(135deg, rgba(240, 195, 177, 0.22), rgba(245, 207, 203, 0.22));
-        border-left: 4px solid rgba(210, 150, 120, 0.62);
+        background: #f6e9e4;
+        border-left: 4px solid rgba(210, 150, 120, 0.6);
       }
       @media (max-width: 640px) {
         header { position: sticky; top: 0; }
@@ -172,7 +172,7 @@
               <span class="mt-2 block text-xs text-muted leading-relaxed">Higher trials = more precise equities, but each hand takes longer to compute.</span>
             </label>
           </div>
-          <button id="btn-start" class="mt-6 w-full rounded-xl bg-gradient-to-r from-[#dee4ff] via-[#e4efff] to-[#ddf4f0] px-4 py-2.5 font-semibold text-[#1f2740] shadow-lg shadow-[#1f2740]/10 transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-[#f5f7fb]">Start</button>
+          <button id="btn-start" class="mt-6 w-full rounded-xl bg-[#dee4ff] px-4 py-2.5 font-semibold text-[#1f2740] shadow-lg shadow-[#1f2740]/10 transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-[#f5f7fb]">Start</button>
         </div>
       </section>
 
@@ -293,13 +293,25 @@
         }
       }
 
+      function readInt(selector, {fallback, min}){
+        const el = $(selector);
+        if(!el) return fallback;
+        const raw = parseInt(el.value || '', 10);
+        if(Number.isNaN(raw)) return fallback;
+        return Math.max(min, raw);
+      }
+
       async function start(){
         if(startBusy) return;
         startBusy = true;
         setStartButtonState(true);
         try{
-          const hands = Math.max(1, parseInt($('#inp-hands').value||'1',10));
-          const mc = Math.max(40, parseInt($('#inp-mc').value||'120',10));
+          const hands = readInt('#inp-hands', {fallback: 1, min: 1});
+          const handsInput = $('#inp-hands');
+          if(handsInput) handsInput.value = String(hands);
+          const mc = readInt('#inp-mc', {fallback: 120, min: 40});
+          const mcInput = $('#inp-mc');
+          if(mcInput) mcInput.value = String(mc);
           const data = await api('/api/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands, mc})});
           sid = data.session;
           answered = 0;

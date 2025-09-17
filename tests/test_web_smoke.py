@@ -59,3 +59,29 @@ def test_web_endpoints_session_flow():
     assert r.status_code == 200
     js = r.json()
     assert js["hands"] >= 1
+
+
+def test_create_session_with_missing_or_invalid_inputs():
+    client = TestClient(app)
+    # Simulate empty form fields posting nulls/zeros
+    r = client.post("/api/session", json={"hands": None, "mc": None})
+    assert r.status_code == 200
+    sid = r.json()["session"]
+
+    node = client.get(f"/api/session/{sid}/node")
+    assert node.status_code == 200
+    node_body = node.json()
+    assert node_body.get("node", {}).get("total_hands", 0) >= 1
+
+    summary = client.get(f"/api/session/{sid}/summary")
+    assert summary.status_code == 200
+    payload = summary.json()
+    assert payload["hands"] >= 0
+
+    # Also ensure values are clamped when below minimums
+    r2 = client.post("/api/session", json={"hands": 0, "mc": 10})
+    assert r2.status_code == 200
+    sid2 = r2.json()["session"]
+    summary2 = client.get(f"/api/session/{sid2}/summary")
+    assert summary2.status_code == 200
+    assert summary2.json()["hands"] >= 0

@@ -4,14 +4,26 @@ import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from ..application import SessionConfig, SessionManager
 
 
 class CreateSessionRequest(BaseModel):
-    hands: int = 1
-    mc: int = 120
+    hands: int | None = None
+    mc: int | None = None
+
+    @model_validator(mode="after")
+    def _normalize(self) -> CreateSessionRequest:
+        hands = self.hands if self.hands is not None else 1
+        if hands < 1:
+            hands = 1
+        mc = self.mc if self.mc is not None else 120
+        if mc < 40:
+            mc = 40
+        self.hands = hands
+        self.mc = mc
+        return self
 
 
 class ChoiceRequest(BaseModel):

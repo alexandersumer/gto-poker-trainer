@@ -97,7 +97,7 @@ class TrainerApp(App[None]):
         color: #20283f;
     }
     Header {
-        background: linear-gradient(180deg, #f9faff 0%, #eef1f8 100%);
+        background: #eef1f8;
         color: #1a2240;
         border-bottom: 1px solid #cdd3e2;
     }
