@@ -13,7 +13,7 @@ from textual.widgets import Button, Footer, Header, Label, Static
 
 from ..core.engine_core import run_core
 from ..core.interfaces import EpisodeGenerator, OptionProvider, Presenter
-from ..core.models import Option, OptionResolution
+from ..core.models import Option
 from ..dynamic.cards import canonical_hand_abbrev, format_card_ascii
 from ..dynamic.generator import Node, generate_episode
 from ..dynamic.policy import options_for, resolve_for
@@ -93,13 +93,35 @@ class TrainerApp(App[None]):
     CSS = """
     Screen {
         layout: vertical;
+        background: #0b1220;
+        color: #d5dde9;
     }
-    .section { padding: 1; }
-    #info { width: 100%; }
+    .section {
+        padding: 1;
+        background: #101727;
+        border: 1px solid #1c2940;
+        margin: 0 0 1 0;
+    }
+    #info {
+        width: 100%;
+        background: #0f1625;
+        border: 1px solid #1b273b;
+    }
     #headline-row, #meta-row, #cards-row, #board-row { width: 100%; }
     .headline-col { width: 100%; }
-    .meta-panel { width: 100%; }
-    .card-panel { width: 100%; padding: 0; font-family: monospace; }
+    .meta-panel {
+        width: 100%;
+        background: #131d30;
+        border: 1px solid #1f2c45;
+        padding: 0 1;
+    }
+    .card-panel {
+        width: 100%;
+        padding: 0;
+        font-family: monospace;
+        background: #131d30;
+        border: 1px solid #1f2c45;
+    }
     #options { layout: grid; grid-columns: 1fr; grid-gutter: 0 1; width: 100%; max-width: 48; }
     #controls { column-gap: 1; }
     Button {
@@ -132,8 +154,14 @@ class TrainerApp(App[None]):
     #btn-end:hover { background: #92400e; }
     #btn-quit { background: #7f1d1d; border: 1px solid #7f1d1d; }
     #btn-quit:hover { background: #641616; }
-    Label { text-align: left; width: 100%; }
-    #board { white-space: pre-wrap; }
+    Label { text-align: left; width: 100%; color: #e2e8f0; }
+    Static { color: #d5dde9; }
+    #board { white-space: pre-wrap; background: #131d30; border: 1px solid #1f2c45; }
+    #feedback {
+        background: #131d30;
+        border: 1px solid #1f2c45;
+        padding: 1;
+    }
     #options { grid-size: 3; grid-gutter: 1 1; }
     """
 

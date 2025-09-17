@@ -623,11 +623,26 @@ def _resolve_river(node: Node, option: Option, hand_state: dict[str, Any]) -> Op
             return OptionResolution(hand_ended=True, note=f"Hand checks down. Pot {pot:.2f}bb.")
         outcome = _showdown_outcome(hero_cards, board, villain_cards)
         villain_text = format_cards_spaced(list(villain_cards))
+        win_note = f"Showdown win vs {villain_text}. You take {pot:.2f}bb."
+        lose_note = f"Showdown loss vs {villain_text}."
+        chop_note = f"Showdown chop vs {villain_text}. Pot split."
         if outcome > 0.5:
-            return OptionResolution(hand_ended=True, note=f"Showdown win vs {villain_text}. You take {pot:.2f}bb.", reveal_villain=True)
+            return OptionResolution(
+                hand_ended=True,
+                note=win_note,
+                reveal_villain=True,
+            )
         if outcome < 0.5:
-            return OptionResolution(hand_ended=True, note=f"Showdown loss vs {villain_text}.", reveal_villain=True)
-        return OptionResolution(hand_ended=True, note=f"Showdown chop vs {villain_text}. Pot split.", reveal_villain=True)
+            return OptionResolution(
+                hand_ended=True,
+                note=lose_note,
+                reveal_villain=True,
+            )
+        return OptionResolution(
+            hand_ended=True,
+            note=chop_note,
+            reveal_villain=True,
+        )
 
     if action == "bet":
         bet_size = float(option.meta.get("bet", 0.0))
@@ -651,10 +666,25 @@ def _resolve_river(node: Node, option: Option, hand_state: dict[str, Any]) -> Op
         hand_state["hand_over"] = True
         outcome = _showdown_outcome(hero_cards, board, villain_cards)
         villain_text = format_cards_spaced(list(villain_cards))
+        win_note = f"Villain calls with {villain_text}. You win {final_pot:.2f}bb."
+        lose_note = f"Villain calls with {villain_text}. You lose."
+        chop_note = f"Villain calls with {villain_text}. Pot split."
         if outcome > 0.5:
-            return OptionResolution(hand_ended=True, note=f"Villain calls with {villain_text}. You win {final_pot:.2f}bb.", reveal_villain=True)
+            return OptionResolution(
+                hand_ended=True,
+                note=win_note,
+                reveal_villain=True,
+            )
         if outcome < 0.5:
-            return OptionResolution(hand_ended=True, note=f"Villain calls with {villain_text}. You lose.", reveal_villain=True)
-        return OptionResolution(hand_ended=True, note=f"Villain calls with {villain_text}. Pot split.", reveal_villain=True)
+            return OptionResolution(
+                hand_ended=True,
+                note=lose_note,
+                reveal_villain=True,
+            )
+        return OptionResolution(
+            hand_ended=True,
+            note=chop_note,
+            reveal_villain=True,
+        )
 
     return OptionResolution(hand_ended=getattr(option, "ends_hand", False))
