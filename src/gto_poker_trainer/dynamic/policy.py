@@ -8,7 +8,7 @@ from ..core.models import Option, OptionResolution
 from .cards import format_card_ascii, format_cards_spaced
 from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_vs_range
 from .generator import Node
-from .range_model import tighten_range, villain_sb_open_range
+from .range_model import tighten_range, villain_bb_defend_range, villain_sb_open_range
 
 
 def _fmt_pct(x: float, decimals: int = 0) -> str:
@@ -81,6 +81,26 @@ def _hand_state(node: Node) -> dict[str, Any] | None:
     if isinstance(hand_state, dict):
         return hand_state
     return None
+
+
+def _villain_range_tag(node: Node, default: str = "sb_open") -> str:
+    ctx_val = node.context.get("villain_range")
+    if isinstance(ctx_val, str) and ctx_val:
+        return ctx_val
+    hand_state = _hand_state(node)
+    if hand_state:
+        hs_val = hand_state.get("villain_range")
+        if isinstance(hs_val, str) and hs_val:
+            return hs_val
+    return default
+
+
+def _villain_base_range(node: Node, blocked: Iterable[int]) -> list[tuple[int, int]]:
+    tag = _villain_range_tag(node)
+    open_size = _default_open_size(node)
+    if tag == "bb_defend":
+        return villain_bb_defend_range(open_size, blocked)
+    return villain_sb_open_range(open_size, blocked)
 
 
 def _set_node_pot_from_state(node: Node, hand_state: dict[str, Any] | None) -> float:
@@ -164,7 +184,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     pot_after_open = _set_node_pot_from_state(node, hand_state)
     call_cost = open_size - 1.0
     blocked = _blocked_cards(hero, [])
-    open_range = villain_sb_open_range(open_size, blocked)
+    open_range = _villain_base_range(node, blocked)
     sampled_range = _sample_range(open_range, _sample_cap_preflop(mc_trials)) or open_range
     combo_trials = _combo_trials(mc_trials)
     equities = {combo: hero_equity_vs_combo(hero, [], combo, combo_trials) for combo in sampled_range}
@@ -273,9 +293,8 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     board = node.board
     hand_state = _hand_state(node)
     pot = _set_node_pot_from_state(node, hand_state)
-    open_size = _default_open_size(node)
     blocked = _blocked_cards(hero, board)
-    open_range = villain_sb_open_range(open_size, blocked)
+    open_range = _villain_base_range(node, blocked)
     sampled_range = _sample_range(open_range, _sample_cap_postflop(mc_trials)) or open_range
     combo_trials = _combo_trials(mc_trials)
     equities = {combo: hero_equity_vs_combo(hero, board, combo, combo_trials) for combo in sampled_range}
@@ -360,9 +379,8 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     villain_bet = float(node.context.get("bet") or round(0.5 * pot_start, 2))
     node.context["bet"] = villain_bet
     pot_before_action = pot_start + villain_bet
-    open_size = _default_open_size(node)
     blocked = _blocked_cards(hero, board)
-    base_range = villain_sb_open_range(open_size, blocked)
+    base_range = _villain_base_range(node, blocked)
     # Villain betting range is tightened to the stronger half of their holdings.
     bet_range = tighten_range(base_range, 0.55)
     sampled_range = _sample_range(bet_range, _sample_cap_postflop(mc_trials)) or bet_range
@@ -440,9 +458,8 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     board = node.board
     hand_state = _hand_state(node)
     pot = _set_node_pot_from_state(node, hand_state)
-    open_size = _default_open_size(node)
     blocked = _blocked_cards(hero, board)
-    base_range = villain_sb_open_range(open_size, blocked)
+    base_range = _villain_base_range(node, blocked)
     # After checking river, assume villain keeps medium-strength holdings.
     check_range = tighten_range(base_range, 0.65)
     sampled_range = _sample_range(check_range, _sample_cap_postflop(mc_trials)) or check_range
@@ -561,7 +578,8 @@ def _resolve_preflop(node: Node, option: Option, hand_state: dict[str, Any]) -> 
 
     if action == "fold":
         hand_state["hand_over"] = True
-        return OptionResolution(hand_ended=True, note=f"You fold. SB keeps {pot:.2f}bb.")
+        villain_seat = str(hand_state.get("villain_seat", "SB"))
+        return OptionResolution(hand_ended=True, note=f"You fold. {villain_seat} keeps {pot:.2f}bb.")
 
     if action == "call":
         call_cost = float(option.meta.get("call_cost", open_size - 1.0))

@@ -92,6 +92,26 @@ def villain_sb_open_range(open_size: float, blocked_cards: Iterable[int] | None 
     return top_percent(percent, blocked_cards)
 
 
+def villain_bb_defend_range(open_size: float, blocked_cards: Iterable[int] | None = None) -> list[tuple[int, int]]:
+    """Approximate BB defend range versus SB open sizing.
+
+    The thresholds roughly match contemporary HU recommendations where the BB
+    continues with ~70–75% versus a 2.0x open and gradually tightens as the SB
+    chooses larger sizes. This keep-logic mirrors the open range helper so both
+    positions share a consistent strength ordering.
+    """
+
+    if open_size <= 2.0:
+        percent = 0.74
+    elif open_size <= 2.3:
+        percent = 0.7
+    elif open_size <= 2.7:
+        percent = 0.62
+    else:
+        percent = 0.56
+    return top_percent(percent, blocked_cards)
+
+
 def tighten_range(combos: Iterable[tuple[int, int]], fraction: float) -> list[tuple[int, int]]:
     """Return the strongest subset of an existing range."""
 

@@ -188,7 +188,7 @@ class SessionManager:
     def create_session(self, config: SessionConfig) -> str:
         seed = config.seed or secrets.SystemRandom().getrandbits(32)
         rng = random.Random(seed)
-        first_episode = generate_episode(rng)
+        first_episode = generate_episode(rng, hero_seat=_hero_seat_for_hand(0))
         session_id = _sid()
         state = SessionState(
             config=SessionConfig(hands=max(1, config.hands), mc_trials=max(10, config.mc_trials), seed=seed),
@@ -285,7 +285,9 @@ def _sid(length: int = 10) -> str:
 
 def _ensure_episode(state: SessionState) -> None:
     if state.hand_index >= len(state.episodes):
-        state.episodes.append(generate_episode(state.rng))
+        next_index = len(state.episodes)
+        seat = _hero_seat_for_hand(next_index)
+        state.episodes.append(generate_episode(state.rng, hero_seat=seat))
 
 
 def _ensure_active_node(state: SessionState) -> Node | None:
@@ -358,3 +360,7 @@ def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
         ev_lost=stats.total_ev_lost,
         score=stats.score_pct,
     )
+
+
+def _hero_seat_for_hand(index: int) -> str:
+    return "BB" if index % 2 == 0 else "SB"

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import random
 
+import pytest
+
 from gto_poker_trainer.core.models import Option
 from gto_poker_trainer.dynamic.cards import str_to_int
 from gto_poker_trainer.dynamic.generator import Node, generate_episode
@@ -15,8 +17,8 @@ from gto_poker_trainer.dynamic.policy import (
 )
 
 
-def test_generate_episode_structure_and_contexts():
-    ep = generate_episode(random.Random(123))
+def test_generate_episode_structure_and_contexts_bb_defense():
+    ep = generate_episode(random.Random(123), hero_seat="BB")
     assert len(ep.nodes) == 4
     streets = [n.street for n in ep.nodes]
     assert streets == ["preflop", "flop", "turn", "river"]
@@ -29,6 +31,7 @@ def test_generate_episode_structure_and_contexts():
         assert isinstance(hs, dict)
         hand_states.append(hs)
         assert node.actor == ep.hero_seat
+        assert node.context.get("villain_range") == "sb_open"
     # Basic sanity of contexts
     assert "open_size" in ep.nodes[0].context
     assert ep.nodes[1].context.get("facing") == "check"
@@ -57,6 +60,36 @@ def test_generate_episode_structure_and_contexts():
     assert isinstance(villain_cards, tuple) and len(villain_cards) == 2
     hero_cards = ep.nodes[0].hero_cards
     board_cards = ep.nodes[-1].board
+    all_cards = set(hero_cards) | set(villain_cards) | set(board_cards)
+    assert len(all_cards) == len(hero_cards) + len(villain_cards) + len(board_cards)
+
+
+def test_generate_episode_structure_and_contexts_sb_ip():
+    ep = generate_episode(random.Random(321), hero_seat="SB")
+    assert len(ep.nodes) == 3
+    streets = [n.street for n in ep.nodes]
+    assert streets == ["flop", "turn", "river"]
+    assert ep.hero_seat == "SB"
+    assert ep.villain_seat == "BB"
+
+    for node in ep.nodes:
+        assert node.actor == ep.hero_seat
+        assert node.context.get("villain_range") == "bb_defend"
+        assert node.context.get("hand_state")
+
+    n_flop, n_turn, n_river = ep.nodes
+    open_sz = float(n_flop.context["open_size"])
+    assert n_flop.pot_bb == pytest.approx(2 * open_sz)
+    assert n_turn.pot_bb == pytest.approx(n_flop.pot_bb)
+    bet_turn = float(n_turn.context["bet"])
+    assert bet_turn == pytest.approx(round(0.5 * n_turn.pot_bb, 2))
+    assert n_river.pot_bb == pytest.approx(n_turn.pot_bb + 2 * bet_turn)
+
+    hand_state = n_flop.context["hand_state"]
+    villain_cards = hand_state["villain_cards"]
+    assert isinstance(villain_cards, tuple)
+    hero_cards = n_flop.hero_cards
+    board_cards = n_river.board
     all_cards = set(hero_cards) | set(villain_cards) | set(board_cards)
     assert len(all_cards) == len(hero_cards) + len(villain_cards) + len(board_cards)
 

@@ -49,6 +49,33 @@ def test_session_manager_basic_flow():
     assert summary_direct == summary
 
 
+def test_session_manager_alternates_blinds():
+    manager = SessionManager()
+    session_id = manager.create_session(SessionConfig(hands=2, mc_trials=40, seed=99))
+
+    first = manager.get_node(session_id)
+    assert not first.done
+    assert first.node is not None
+    first_actor = first.node.actor
+
+    payload = first
+    second_payload: NodeResponse | None = None
+    guard = 0
+    while second_payload is None:
+        choice = manager.choose(session_id, 0)
+        payload = choice.next_payload
+        if payload.done:
+            pytest.fail("session ended before reaching second hand")
+        guard += 1
+        assert guard < 32, "unexpectedly long hand progression"
+        if payload.node is not None and payload.node.hand_no == 2:
+            second_payload = payload
+
+    assert second_payload and second_payload.node is not None
+    assert second_payload.node.actor in {"SB", "BB"}
+    assert second_payload.node.actor != first_actor
+
+
 def test_invalid_session_errors():
     manager = SessionManager()
     with pytest.raises(KeyError):
