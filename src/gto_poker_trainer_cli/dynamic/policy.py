@@ -115,7 +115,8 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         ev = fe * pot_after_open + (1 - fe) * ev_called
         why = (
             f"Villain folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
-            f"When called (≈{_fmt_pct(continue_ratio)}) you have {_fmt_pct(avg_eq_when_called, 1)} equity → EV {ev_called:.2f} bb."
+            f"When called (≈{_fmt_pct(continue_ratio)}) you have {_fmt_pct(avg_eq_when_called, 1)} equity "
+            f"→ EV {ev_called:.2f} bb."
         )
         options.append(Option(f"3-bet to {raise_to:.0f}bb", ev, why))
 
@@ -150,7 +151,8 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         ev = fe * pot + (1 - fe) * ev_called
         why = (
             f"{int(pct * 100)}% pot: villain folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
-            f"Continuing range (~{_fmt_pct(continue_ratio)}) gives you {_fmt_pct(eq_call, 1)} equity → EV {ev_called:.2f} bb."
+            f"Continuing range (~{_fmt_pct(continue_ratio)}) gives you {_fmt_pct(eq_call, 1)} equity "
+            f"→ EV {ev_called:.2f} bb."
         )
         options.append(Option(f"Bet {int(pct * 100)}% pot ({bet:.2f} bb)", ev, why))
 
@@ -199,8 +201,10 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     ev = fe * pot_before_action + (1 - fe) * ev_called
     fe_break_even = risk / (risk + pot_before_action) if (risk + pot_before_action) > 0 else 1.0
     why_raise = (
-        f"Villain folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}); break-even FE {_fmt_pct(fe_break_even)}. "
-        f"Continuing (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(eq_call, 1)} equity → EV {ev_called:.2f} bb."
+        f"Villain folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
+        f"break-even FE {_fmt_pct(fe_break_even)}. "
+        f"Continuing (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(eq_call, 1)} equity → "
+        f"EV {ev_called:.2f} bb."
     )
     options.append(Option(f"Raise to {raise_to:.2f} bb", ev, why_raise))
 
