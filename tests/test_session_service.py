@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from gto_poker_trainer_cli.application import ChoiceResult, NodeResponse, SessionConfig, SessionManager
+from gto_poker_trainer.application import ChoiceResult, NodeResponse, SessionConfig, SessionManager
 
 
 def test_session_manager_basic_flow():
@@ -60,8 +60,8 @@ def test_invalid_session_errors():
 
 
 def test_summary_scoring_matches_decision_scores():
-    from gto_poker_trainer_cli.application.session_service import _summary_payload
-    from gto_poker_trainer_cli.core.scoring import decision_score
+    from gto_poker_trainer.application.session_service import _summary_payload
+    from gto_poker_trainer.core.scoring import decision_score
 
     records = [
         {
@@ -105,7 +105,7 @@ def test_summary_scoring_matches_decision_scores():
 
 
 def test_summary_counts_unique_hands():
-    from gto_poker_trainer_cli.application.session_service import _summary_payload
+    from gto_poker_trainer.application.session_service import _summary_payload
 
     records = [
         {

@@ -28,7 +28,7 @@ def main() -> int:
         [
             "from textual_serve.server import Server",
             "server = Server(",
-            "    command='python -m gto_poker_trainer_cli.ui.textual_main --hands 1 --mc 5',",
+            "    command='python -m gto_poker_trainer.ui.textual_main --hands 1 --mc 5',",
             "    host='127.0.0.1',",
             f"    port={port},",
             "    title='GTO Poker Trainer',",

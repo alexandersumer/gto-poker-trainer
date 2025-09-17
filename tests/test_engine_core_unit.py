@@ -3,10 +3,10 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from gto_poker_trainer_cli.core.engine_core import run_core
-from gto_poker_trainer_cli.core.interfaces import EpisodeGenerator, OptionProvider, Presenter
-from gto_poker_trainer_cli.core.models import Option, OptionResolution
-from gto_poker_trainer_cli.dynamic.generator import Episode, Node
+from gto_poker_trainer.core.engine_core import run_core
+from gto_poker_trainer.core.interfaces import EpisodeGenerator, OptionProvider, Presenter
+from gto_poker_trainer.core.models import Option, OptionResolution
+from gto_poker_trainer.dynamic.generator import Episode, Node
 
 
 @dataclass

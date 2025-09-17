@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import random
 
-from gto_poker_trainer_cli.core.models import Option
-from gto_poker_trainer_cli.dynamic.cards import str_to_int
-from gto_poker_trainer_cli.dynamic.generator import Node, generate_episode
-from gto_poker_trainer_cli.dynamic.policy import (
+from gto_poker_trainer.core.models import Option
+from gto_poker_trainer.dynamic.cards import str_to_int
+from gto_poker_trainer.dynamic.generator import Node, generate_episode
+from gto_poker_trainer.dynamic.policy import (
     flop_options,
     options_for,
     preflop_options,

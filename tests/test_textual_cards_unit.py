@@ -6,7 +6,7 @@ import pytest
 
 pytest.importorskip("textual")
 
-from gto_poker_trainer_cli.ui.textual_app import TrainerApp
+from gto_poker_trainer.ui.textual_app import TrainerApp
 
 
 def _split_rows(board_markup: str) -> tuple[str, str]:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from gto_poker_trainer_cli.web.app import app
+from gto_poker_trainer.web.app import app
 
 
 def test_web_endpoints_session_flow():

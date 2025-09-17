@@ -1,4 +1,4 @@
-# GTO Poker Trainer CLI
+# GTO Poker Trainer
 
 Heads-up no-limit hold’em trainer with both a terminal flow and a minimal browser UI. Every scenario deals a full villain hand (never overlapping with yours or the board), lets them react street by street, and shows the EV swing behind each choice.
 
@@ -16,19 +16,19 @@ source .venv/bin/activate
 pip install -e .
 
 # Play a handful of random hands
-gto-poker-trainer-cli --hands 5
+gto-poker-trainer --hands 5
 ```
 
 Running in-place without installing:
 
 ```bash
-PYTHONPATH=src python -m gto_poker_trainer_cli
+PYTHONPATH=src python -m gto_poker_trainer
 ```
 
 ### CLI options
 
 ```
-gto-poker-trainer-cli [--hands N] [--seed N] [--mc N] [--no-color] [--solver-csv PATH]
+gto-poker-trainer [--hands N] [--seed N] [--mc N] [--no-color] [--solver-csv PATH]
 ```
 
 - `--hands N` hands to play (default 1).
@@ -46,7 +46,7 @@ Controls: `1–9` choose an action, `h` help, `?` pot + SPR, `q` quit. Feedback 
 
 ```bash
 pip install -e .[dev]
-uvicorn gto_poker_trainer_cli.web.app:app --reload
+uvicorn gto_poker_trainer.web.app:app --reload
 ```
 
 Environment overrides: `HANDS` and `MC` mirror the CLI flags when set before launch.

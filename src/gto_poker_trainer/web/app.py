@@ -62,7 +62,7 @@ def index() -> str:
     try:
         from importlib.resources import files
 
-        data_dir = files("gto_poker_trainer_cli.data")
+        data_dir = files("gto_poker_trainer.data")
         html = (data_dir / "web" / "index.html").read_text(encoding="utf-8")
         return html
     except Exception as exc:  # pragma: no cover - packaging edge
@@ -109,7 +109,7 @@ def main() -> None:  # pragma: no cover - runner
 
     host = os.environ.get("BIND", "0.0.0.0")
     port = int(os.environ.get("PORT", "8000"))
-    uvicorn.run("gto_poker_trainer_cli.web.app:app", host=host, port=port, factory=False)
+    uvicorn.run("gto_poker_trainer.web.app:app", host=host, port=port, factory=False)
 
 
 if __name__ == "__main__":  # pragma: no cover

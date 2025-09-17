@@ -12,7 +12,7 @@ SRC_DIR = PROJECT_ROOT / "src"
 def run_cli(args: list[str], input_text: str | None = None) -> subprocess.CompletedProcess:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(SRC_DIR)
-    cmd = [sys.executable, "-m", "gto_poker_trainer_cli", "play", *args]
+    cmd = [sys.executable, "-m", "gto_poker_trainer", "play", *args]
     return subprocess.run(
         cmd,
         input=(input_text or "").encode(),

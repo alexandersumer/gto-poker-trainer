@@ -12,7 +12,7 @@ SRC_DIR = PROJECT_ROOT / "src"
 def run_cli(args: list[str], input_text: str | None = None, cwd: Path | None = None) -> str:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(SRC_DIR)
-    cmd = [sys.executable, "-m", "gto_poker_trainer_cli", *args]
+    cmd = [sys.executable, "-m", "gto_poker_trainer", *args]
     proc = subprocess.run(
         cmd,
         input=(input_text or "").encode(),
@@ -28,7 +28,7 @@ def run_cli(args: list[str], input_text: str | None = None, cwd: Path | None = N
 def run_cli_play(args: list[str], input_text: str | None = None) -> subprocess.CompletedProcess:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(SRC_DIR)
-    cmd = [sys.executable, "-m", "gto_poker_trainer_cli", "play", *args]
+    cmd = [sys.executable, "-m", "gto_poker_trainer", "play", *args]
     return subprocess.run(
         cmd,
         input=(input_text or "").encode(),
@@ -47,7 +47,7 @@ def test_default_runs_play_and_shows_summary_and_loops_until_quit():
         ["--hands", "1", "--seed", "123", "--mc", "40", "--no-color"],
         input_text="2\n2\n2\n2\ny\nq\n",
     )
-    assert "GTO Poker Trainer CLI" in out
+    assert "GTO Poker Trainer" in out
     assert "PREFLOP" in out
     assert "FLOP" in out or "TURN" in out or "RIVER" in out or "Villain" in out
     assert "Session Summary" in out
@@ -82,5 +82,5 @@ def test_play_with_solver_csv_runs_and_summarizes(tmp_path: Path):
     )
     out = cp.stdout.decode()
     assert cp.returncode == 0, out
-    assert "GTO Poker Trainer CLI" in out
+    assert "GTO Poker Trainer" in out
     assert ("Session Summary" in out) or ("No hands answered." in out)

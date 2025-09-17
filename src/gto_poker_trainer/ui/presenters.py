@@ -45,7 +45,7 @@ class RichPresenter(Presenter):
         self.console.print(
             Panel(
                 hand_header,
-                title="GTO Poker Trainer CLI",
+                title="GTO Poker Trainer",
                 border_style="bold cyan",
                 expand=False,
             )
