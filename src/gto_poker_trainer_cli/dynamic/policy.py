@@ -130,7 +130,8 @@ def _rebuild_turn_node(hand_state: dict[str, Any], pot: float) -> None:
     turn_node.context["bet"] = bet_turn
     board_turn = turn_node.board
     board_str = " ".join(format_card_ascii(c, upper=True) for c in board_turn)
-    turn_node.description = f"Board {board_str}. SB bets {bet_turn:.2f}bb into {pot:.2f}bb."
+    villain_seat = str(hand_state.get("villain_seat", "SB"))
+    turn_node.description = f"{board_str}; {villain_seat} bets {bet_turn:.2f}bb into {pot:.2f}bb."
 
 
 def _rebuild_river_node(hand_state: dict[str, Any], pot: float) -> None:
@@ -143,7 +144,7 @@ def _rebuild_river_node(hand_state: dict[str, Any], pot: float) -> None:
     river_node.pot_bb = pot
     board_river = river_node.board
     board_str = " ".join(format_card_ascii(c, upper=True) for c in board_river)
-    river_node.description = f"Board {board_str}. Choose your bet size."
+    river_node.description = f"{board_str}; choose your bet."
 
 
 def _showdown_outcome(hero: list[int], board: list[int], villain: tuple[int, int]) -> float:

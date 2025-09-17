@@ -172,6 +172,7 @@ class SessionState:
     config: SessionConfig
     episodes: list[Episode]
     rng: random.Random
+    next_hero_seat: str
     hand_index: int = 0
     current_index: int = 0
     records: list[dict[str, Any]] = field(default_factory=list)
@@ -190,10 +191,12 @@ class SessionManager:
         rng = random.Random(seed)
         first_episode = generate_episode(rng)
         session_id = _sid()
+        next_seat = "BB" if first_episode.hero_seat == "SB" else "SB"
         state = SessionState(
             config=SessionConfig(hands=max(1, config.hands), mc_trials=max(10, config.mc_trials), seed=seed),
             episodes=[first_episode],
             rng=rng,
+            next_hero_seat=next_seat,
         )
         with self._lock:
             self._sessions[session_id] = state
@@ -285,7 +288,9 @@ def _sid(length: int = 10) -> str:
 
 def _ensure_episode(state: SessionState) -> None:
     if state.hand_index >= len(state.episodes):
-        state.episodes.append(generate_episode(state.rng))
+        episode = generate_episode(state.rng, hero_seat=state.next_hero_seat)
+        state.episodes.append(episode)
+        state.next_hero_seat = "BB" if episode.hero_seat == "SB" else "SB"
 
 
 def _ensure_active_node(state: SessionState) -> Node | None:

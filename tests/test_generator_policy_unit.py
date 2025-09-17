@@ -16,16 +16,19 @@ from gto_poker_trainer_cli.dynamic.policy import (
 
 
 def test_generate_episode_structure_and_contexts():
-    ep = generate_episode(random.Random(123))
+    ep = generate_episode(random.Random(123), hero_seat="BB")
     assert len(ep.nodes) == 4
     streets = [n.street for n in ep.nodes]
     assert streets == ["preflop", "flop", "turn", "river"]
+    assert ep.hero_seat == "BB"
+    assert ep.villain_seat == "SB"
     hand_states = []
     for node in ep.nodes:
         assert "hand_state" in node.context
         hs = node.context["hand_state"]
         assert isinstance(hs, dict)
         hand_states.append(hs)
+        assert node.actor == ep.hero_seat
     # Basic sanity of contexts
     assert "open_size" in ep.nodes[0].context
     assert ep.nodes[1].context.get("facing") == "check"
@@ -56,6 +59,16 @@ def test_generate_episode_structure_and_contexts():
     board_cards = ep.nodes[-1].board
     all_cards = set(hero_cards) | set(villain_cards) | set(board_cards)
     assert len(all_cards) == len(hero_cards) + len(villain_cards) + len(board_cards)
+
+
+def test_generate_episode_respects_explicit_seat():
+    ep = generate_episode(random.Random(321), hero_seat="SB")
+    assert ep.hero_seat == "SB"
+    assert ep.villain_seat == "BB"
+    assert all(node.actor == "SB" for node in ep.nodes)
+    preflop_desc = ep.nodes[0].description
+    assert "BB opens" in preflop_desc
+    assert "You're SB" in preflop_desc
 
 
 def _assert_options_signature(opts: list[Option]):

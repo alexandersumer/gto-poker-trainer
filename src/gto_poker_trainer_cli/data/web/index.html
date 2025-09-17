@@ -377,14 +377,24 @@
         setSummaryAvailability(false);
         const n = payload.node;
         const headline = $('#headline');
-        if(headline) headline.textContent = `${n.street.toUpperCase()} — ${n.description}`;
+        if(headline){
+          let descriptor = n.description || '';
+          if ((Array.isArray(n.board_cards) && n.board_cards.length > 0) && descriptor.includes('; ')){
+            descriptor = descriptor.split('; ')[1];
+          } else if ((Array.isArray(n.board_cards) && n.board_cards.length > 0) && descriptor.startsWith('Board ')){
+            const idx = descriptor.indexOf('. ');
+            descriptor = idx >= 0 ? descriptor.slice(idx + 2) : descriptor;
+          }
+          headline.textContent = `${n.street.toUpperCase()} — ${descriptor}`;
+        }
         const hero = renderCards(n.hero_cards);
         const heroEl = $('#hand'); if(heroEl) heroEl.innerHTML = hero || '<span class="text-sm text-muted">Dealing…</span>';
         const board = renderCards(n.board_cards);
         const boardEl = $('#board'); if(boardEl) boardEl.innerHTML = board || '<span class="text-sm text-muted">Board not yet revealed</span>';
         const meta = $('#meta');
         if(meta){
-          const parts = [`Hand ${n.hand_no}/${n.total_hands}`];
+          const parts = [`Seat: ${n.actor}`];
+          parts.push(`Hand ${n.hand_no}/${n.total_hands}`);
           const spr = n.pot_bb > 0 ? (n.effective_bb / n.pot_bb) : Infinity;
           parts.push(`Pot: ${fmt(n.pot_bb)} bb`);
           parts.push(`SPR: ${spr.toFixed(1)}`);

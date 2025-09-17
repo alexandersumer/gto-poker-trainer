@@ -21,11 +21,22 @@ class Node:
 @dataclass
 class Episode:
     nodes: list[Node]
+    hero_seat: str
+    villain_seat: str
 
 
-def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0.5, bb: float = 1.0) -> Episode:
-    # Heads-up only. Hero randomly SB or BB.
-    rng.random()  # randomness placeholder; seating not yet used in storyline
+def generate_episode(
+    rng: random.Random,
+    stacks_bb: float = 100.0,
+    sb: float = 0.5,
+    bb: float = 1.0,
+    hero_seat: str | None = None,
+) -> Episode:
+    # Heads-up only. Hero randomly SB or BB unless overridden (used in tests).
+    if hero_seat is not None and hero_seat not in {"SB", "BB"}:
+        raise ValueError("hero_seat must be 'SB', 'BB', or None")
+    hero_pos = hero_seat or ("SB" if rng.random() < 0.5 else "BB")
+    villain_pos = "BB" if hero_pos == "SB" else "SB"
     dealt: Dealt = deal_hand_and_board(rng)
     hero_cards = dealt.hero
     villain_cards = dealt.villain
@@ -35,10 +46,12 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
     pot = sb + bb
     eff = stacks_bb
 
-    # Preflop node: SB opens to s in {2.0, 2.5, 3.0}, hero is BB when villain opens
+    # Preflop node: Villain opens to s in {2.0, 2.5, 3.0}; hero defends from the opposite seat.
     open_sizes = [2.0, 2.5, 3.0]
     sz = rng.choice(open_sizes)
-    desc_pf = f"SB opens {sz:.1f}bb. You're BB with {format_cards_spaced(hero_cards)}, {int(stacks_bb)}bb."
+    desc_pf = (
+        f"{villain_pos} opens {sz:.1f}bb. You're {hero_pos} with {format_cards_spaced(hero_cards)}, {int(stacks_bb)}bb."
+    )
     # Pot after SB opens to sz: add only the incremental chips beyond the posted SB
     # Example: pot=1.5 (0.5 SB + 1 BB); SB opens to 2.0 → adds 1.5; pot becomes 3.0
     pot_after_open = pot + (sz - sb)
@@ -50,6 +63,8 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         "street": "preflop",
         "history": [],
         "board_index": 0,
+        "hero_seat": hero_pos,
+        "villain_seat": villain_pos,
     }
 
     n_preflop = Node(
@@ -59,8 +74,13 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         effective_bb=eff,
         hero_cards=hero_cards,
         board=[],
-        actor="BB",
-        context={"open_size": sz, "hand_state": hand_state},
+        actor=hero_pos,
+        context={
+            "open_size": sz,
+            "hand_state": hand_state,
+            "hero_seat": hero_pos,
+            "villain_seat": villain_pos,
+        },
     )
 
     # Flop node (hero BB facing check from SB)
@@ -69,7 +89,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
     pot_flop = pot_after_open + (sz - 1.0)
     flop_cards = board[:3]
     flop_str = " ".join(format_card_ascii(c, upper=True) for c in flop_cards)
-    desc_flop = f"Board {flop_str}. SB checks."
+    desc_flop = f"{flop_str}; {villain_pos} checks."
     n_flop = Node(
         street="flop",
         description=desc_flop,
@@ -77,8 +97,14 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         effective_bb=eff,
         hero_cards=hero_cards,
         board=flop_cards,
-        actor="BB",
-        context={"facing": "check", "open_size": sz, "hand_state": hand_state},
+        actor=hero_pos,
+        context={
+            "facing": "check",
+            "open_size": sz,
+            "hand_state": hand_state,
+            "hero_seat": hero_pos,
+            "villain_seat": villain_pos,
+        },
     )
 
     # Turn node (villain bets half pot; hero to act)
@@ -86,7 +112,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
     pot_turn = pot_flop
     bet_turn = round(0.5 * pot_turn, 2)
     board_turn_str = " ".join(format_card_ascii(c, upper=True) for c in board[:4])
-    desc_turn = f"Board {board_turn_str}. SB bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."
+    desc_turn = f"{board_turn_str}; {villain_pos} bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."
     n_turn = Node(
         street="turn",
         description=desc_turn,
@@ -94,15 +120,22 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         effective_bb=eff,
         hero_cards=hero_cards,
         board=board[:4],
-        actor="BB",
-        context={"facing": "bet", "bet": bet_turn, "open_size": sz, "hand_state": hand_state},
+        actor=hero_pos,
+        context={
+            "facing": "bet",
+            "bet": bet_turn,
+            "open_size": sz,
+            "hand_state": hand_state,
+            "hero_seat": hero_pos,
+            "villain_seat": villain_pos,
+        },
     )
 
     # River node (hero in position, chooses bet size)
     # If hero calls the turn bet, both players contribute bet_turn: pot increases by 2× bet_turn
     pot_river = pot_turn + 2 * bet_turn
     river_str = " ".join(format_card_ascii(c, upper=True) for c in board)
-    desc_river = f"Board {river_str}. Choose your bet size."
+    desc_river = f"{river_str}; choose your bet."
     n_river = Node(
         street="river",
         description=desc_river,
@@ -110,8 +143,14 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         effective_bb=eff,
         hero_cards=hero_cards,
         board=board,
-        actor="BB",
-        context={"facing": "oop-check", "open_size": sz, "hand_state": hand_state},
+        actor=hero_pos,
+        context={
+            "facing": "oop-check",
+            "open_size": sz,
+            "hand_state": hand_state,
+            "hero_seat": hero_pos,
+            "villain_seat": villain_pos,
+        },
     )
 
     hand_state["nodes"] = {
@@ -121,4 +160,8 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         "river": n_river,
     }
 
-    return Episode(nodes=[n_preflop, n_flop, n_turn, n_river])
+    return Episode(
+        nodes=[n_preflop, n_flop, n_turn, n_river],
+        hero_seat=hero_pos,
+        villain_seat=villain_pos,
+    )

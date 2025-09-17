@@ -14,7 +14,7 @@ class _StaticGen(EpisodeGenerator):
     nodes: list[Node]
 
     def generate(self, _rng: random.Random) -> Episode:  # type: ignore[override]
-        return Episode(nodes=self.nodes)
+        return Episode(nodes=self.nodes, hero_seat="BB", villain_seat="SB")
 
 
 class _ProviderWithFold(OptionProvider):

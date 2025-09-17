@@ -424,25 +424,34 @@ class TrainerApp(App[None]):
     def show_node(self, node: Node, options: list[str]) -> None:
         # Headline and context
         desc = node.description
-        if node.board and desc.startswith("Board "):
-            dot = desc.find(". ")
-            desc = desc[dot + 2 :] if dot != -1 else ""
+        if node.board:
+            if "; " in desc:
+                desc = desc.split("; ", 1)[1]
+            elif desc.startswith("Board "):
+                dot = desc.find(". ")
+                desc = desc[dot + 2 :] if dot != -1 else ""
         headline = f"[b #2f6bff]{node.street.upper()}[/]"
         if desc:
             headline += f"  [dim]- {desc}[/]"
         if self._headline_label:
             self._headline_label.update(headline)
 
+        hero_seat = node.actor or node.context.get("hero_seat")
         P = float(node.pot_bb)
         spr = (node.effective_bb / P) if P > 0 else float("inf")
         bet = node.context.get("bet")
         if isinstance(bet, (int, float)):
             pct = 100.0 * float(bet) / max(1e-9, P)
         if self._meta_panel:
-            styled_meta = [
-                f"[b #1b2d55]Pot[/]: {P:.2f} bb [dim](SPR {spr:.1f})[/]",
-                f"[b #1b2d55]Effective[/]: {node.effective_bb:.1f} bb",
-            ]
+            styled_meta = []
+            if isinstance(hero_seat, str) and hero_seat:
+                styled_meta.append(f"[b #1b2d55]Seat[/]: {hero_seat}")
+            styled_meta.extend(
+                [
+                    f"[b #1b2d55]Pot[/]: {P:.2f} bb [dim](SPR {spr:.1f})[/]",
+                    f"[b #1b2d55]Effective[/]: {node.effective_bb:.1f} bb",
+                ]
+            )
             if isinstance(bet, (int, float)):
                 styled_meta.append(f"[b #1b2d55]Facing[/]: {float(bet):.2f} bb ({pct:.0f}% pot)")
             self._meta_panel.update("\n".join(styled_meta))
