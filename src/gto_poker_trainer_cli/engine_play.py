@@ -6,7 +6,7 @@ import secrets
 from .core.engine_core import run_core
 from .core.interfaces import EpisodeGenerator, OptionProvider
 from .dynamic.generator import generate_episode
-from .dynamic.policy import options_for
+from .dynamic.policy import options_for, resolve_for
 from .solver.oracle import CompositeOptionProvider, CSVStrategyOracle
 from .ui.presenters import RichPresenter
 
@@ -19,6 +19,9 @@ class _DynamicGenerator(EpisodeGenerator):
 class _DynamicOptions(OptionProvider):
     def options(self, node, rng, mc_trials):
         return options_for(node, rng, mc_trials)
+
+    def resolve(self, node, chosen, rng):
+        return resolve_for(node, chosen, rng)
 
 
 def run_play(

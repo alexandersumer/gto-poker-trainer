@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from gto_poker_trainer_cli.core.engine_core import run_core
 from gto_poker_trainer_cli.core.interfaces import EpisodeGenerator, OptionProvider, Presenter
-from gto_poker_trainer_cli.core.models import Option
+from gto_poker_trainer_cli.core.models import Option, OptionResolution
 from gto_poker_trainer_cli.dynamic.generator import Episode, Node
 
 
@@ -23,6 +23,9 @@ class _OneOptionProvider(OptionProvider):
 
     def options(self, _node, _rng, _mc_trials):  # type: ignore[override]
         return list(self._opts)
+
+    def resolve(self, _node, chosen: Option, _rng) -> OptionResolution:  # type: ignore[override]
+        return OptionResolution(hand_ended=getattr(chosen, "ends_hand", False))
 
 
 class _ScriptedPresenter(Presenter):

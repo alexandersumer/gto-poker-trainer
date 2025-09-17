@@ -4,7 +4,7 @@ import random
 from typing import Protocol
 
 from ..dynamic.generator import Episode, Node
-from .models import Option
+from .models import Option, OptionResolution
 
 
 class EpisodeGenerator(Protocol):
@@ -13,6 +13,7 @@ class EpisodeGenerator(Protocol):
 
 class OptionProvider(Protocol):
     def options(self, node: Node, rng: random.Random, mc_trials: int) -> list[Option]: ...
+    def resolve(self, node: Node, chosen: Option, rng: random.Random) -> OptionResolution: ...
 
 
 class Presenter(Protocol):

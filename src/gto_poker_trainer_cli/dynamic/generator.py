@@ -28,6 +28,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
     rng.random()  # randomness placeholder; seating not yet used in storyline
     dealt: Dealt = deal_hand_and_board(rng)
     hero_cards = dealt.hero
+    villain_cards = dealt.villain
     board = dealt.board
 
     # Preflop pot starts at 1.5bb (SB+BB)
@@ -41,6 +42,16 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
     # Pot after SB opens to sz: add only the incremental chips beyond the posted SB
     # Example: pot=1.5 (0.5 SB + 1 BB); SB opens to 2.0 → adds 1.5; pot becomes 3.0
     pot_after_open = pot + (sz - sb)
+    hand_state: dict[str, object] = {
+        "pot": pot_after_open,
+        "hero_cards": tuple(hero_cards),
+        "villain_cards": tuple(villain_cards),
+        "full_board": tuple(board),
+        "street": "preflop",
+        "history": [],
+        "board_index": 0,
+    }
+
     n_preflop = Node(
         street="preflop",
         description=desc_pf,
@@ -49,7 +60,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         hero_cards=hero_cards,
         board=[],
         actor="BB",
-        context={"open_size": sz},
+        context={"open_size": sz, "hand_state": hand_state},
     )
 
     # Flop node (hero BB facing check from SB)
@@ -67,7 +78,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         hero_cards=hero_cards,
         board=flop_cards,
         actor="BB",
-        context={"facing": "check", "open_size": sz},
+        context={"facing": "check", "open_size": sz, "hand_state": hand_state},
     )
 
     # Turn node (villain bets half pot; hero to act)
@@ -84,7 +95,7 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         hero_cards=hero_cards,
         board=board[:4],
         actor="BB",
-        context={"facing": "bet", "bet": bet_turn, "open_size": sz},
+        context={"facing": "bet", "bet": bet_turn, "open_size": sz, "hand_state": hand_state},
     )
 
     # River node (hero in position, chooses bet size)
@@ -100,7 +111,14 @@ def generate_episode(rng: random.Random, stacks_bb: float = 100.0, sb: float = 0
         hero_cards=hero_cards,
         board=board,
         actor="BB",
-        context={"facing": "oop-check", "open_size": sz},
+        context={"facing": "oop-check", "open_size": sz, "hand_state": hand_state},
     )
+
+    hand_state["nodes"] = {
+        "preflop": n_preflop,
+        "flop": n_flop,
+        "turn": n_turn,
+        "river": n_river,
+    }
 
     return Episode(nodes=[n_preflop, n_flop, n_turn, n_river])

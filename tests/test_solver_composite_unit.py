@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from gto_poker_trainer_cli.core.models import Option
+from gto_poker_trainer_cli.core.models import Option, OptionResolution
 from gto_poker_trainer_cli.dynamic.cards import str_to_int
 from gto_poker_trainer_cli.dynamic.generator import Node
 from gto_poker_trainer_cli.solver.oracle import CompositeOptionProvider, CSVStrategyOracle
@@ -12,6 +12,9 @@ from gto_poker_trainer_cli.solver.oracle import CompositeOptionProvider, CSVStra
 class _FallbackProvider:
     def options(self, _node, _rng, _mc_trials):  # noqa: D401 - protocol-compatible stub
         return [Option("Fallback", 0.0, "used fallback")]
+
+    def resolve(self, _node, chosen: Option, _rng) -> OptionResolution:
+        return OptionResolution(hand_ended=getattr(chosen, "ends_hand", False))
 
 
 def _node(street: str) -> Node:

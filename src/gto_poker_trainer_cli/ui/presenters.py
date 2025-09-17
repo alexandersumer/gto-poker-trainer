@@ -137,6 +137,8 @@ class RichPresenter(Presenter):
         self.console.print(f"Why (your action): {chosen.why}")
         if not correct:
             self.console.print(f"Why (best action):  {best.why}")
+        if getattr(chosen, "resolution_note", None):
+            self.console.print(f"Villain response: {chosen.resolution_note}")
         if getattr(chosen, "ends_hand", False):
             self.console.print("[dim]Hand ends on this action.[/]")
         self.console.print("[dim]—[/]\n")

@@ -1,6 +1,6 @@
 # GTO Poker Trainer CLI
 
-Command‑line trainer for heads‑up no‑limit hold’em. It deals random hands, shows the EV difference from the best action after each decision with a brief note, then summarizes total/average EV, hit rate, and biggest leaks.
+Command‑line trainer for heads‑up no‑limit hold’em. Each scenario now includes a fully dealt villain hand (never overlapping with yours or the board). Actions are resolved against that hand: villains can fold, call, raise, or take you to showdown, and the feedback panel explains both EV and their response.
 
 ## Requirements
 
@@ -34,7 +34,7 @@ Options:
 - `--hands N` Hands to play (default: 1).
 - `--seed N` RNG seed (omit for randomness).
 - `--mc N` Monte Carlo trials per node (default: 200).
-- `--solver-csv PATH` Preflop strategy CSV (falls back to heuristics).
+- `--solver-csv PATH` Preflop strategy CSV (falls back to dynamic villain logic when entries are missing).
 - `--no-color` Disable colored output (color is ON by default).
 
 Controls:
@@ -43,6 +43,8 @@ Controls:
 - `h` help
 - `?` pot + SPR
 - `q` quit session
+
+During feedback you’ll also see a summary line such as “Villain folds…” or “Villain calls with …” that reflects the simulated counterplay.
 
 ## Development
 
@@ -56,6 +58,12 @@ make fix
 make format
 make check        # lint + tests (same combo used in CI)
 make render-smoke # build the Docker image and hit /healthz like Render does
+
+Run the deep regression suite directly when iterating on strategy logic:
+
+```
+pytest -q
+```
 ```
 
 ## Notes

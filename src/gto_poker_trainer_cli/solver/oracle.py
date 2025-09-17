@@ -5,9 +5,10 @@ from contextlib import suppress
 from dataclasses import dataclass
 
 from ..core.interfaces import OptionProvider
-from ..core.models import Option
+from ..core.models import Option, OptionResolution
 from ..dynamic.cards import canonical_hand_abbrev
 from ..dynamic.generator import Node
+from ..dynamic.policy import resolve_for
 
 
 @dataclass
@@ -98,14 +99,26 @@ class CSVStrategyOracle(OptionProvider):
             raise LookupError("No solver entry for key")
         return list(self.by_key[k])
 
+    def resolve(self, node: Node, chosen: Option, rng) -> OptionResolution:  # type: ignore[override]
+        return resolve_for(node, chosen, rng)
+
 
 class CompositeOptionProvider(OptionProvider):
     def __init__(self, primary: OptionProvider, fallback: OptionProvider):
         self.primary = primary
         self.fallback = fallback
+        self._provider_for_node: dict[int, OptionProvider] = {}
 
     def options(self, node: Node, rng, mc_trials: int) -> list[Option]:  # type: ignore[override]
         try:
-            return self.primary.options(node, rng, mc_trials)
+            opts = self.primary.options(node, rng, mc_trials)
+            self._provider_for_node[id(node)] = self.primary
+            return opts
         except Exception:
-            return self.fallback.options(node, rng, mc_trials)
+            opts = self.fallback.options(node, rng, mc_trials)
+            self._provider_for_node[id(node)] = self.fallback
+            return opts
+
+    def resolve(self, node: Node, chosen: Option, rng) -> OptionResolution:  # type: ignore[override]
+        provider = self._provider_for_node.get(id(node), self.fallback)
+        return provider.resolve(node, chosen, rng)

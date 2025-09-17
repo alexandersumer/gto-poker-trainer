@@ -46,7 +46,7 @@ def test_options_css_uses_grid_layout():
     css = TrainerApp.CSS
     assert "#options" in css
     assert "layout: grid" in css
-    assert "grid-columns: 1fr 1fr 1fr" in css
+    assert "grid-columns: 1fr" in css
 
 
 def test_trainer_app_has_end_session_control():

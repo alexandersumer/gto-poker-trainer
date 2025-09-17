@@ -13,10 +13,10 @@ from textual.widgets import Button, Footer, Header, Label, Static
 
 from ..core.engine_core import run_core
 from ..core.interfaces import EpisodeGenerator, OptionProvider, Presenter
-from ..core.models import Option
+from ..core.models import Option, OptionResolution
 from ..dynamic.cards import canonical_hand_abbrev, format_card_ascii
 from ..dynamic.generator import Node, generate_episode
-from ..dynamic.policy import options_for
+from ..dynamic.policy import options_for, resolve_for
 from ..solver.oracle import CompositeOptionProvider, CSVStrategyOracle
 
 # --- Small helpers / adapters ---
@@ -30,6 +30,9 @@ class _DynamicGenerator(EpisodeGenerator):
 class _DynamicOptions(OptionProvider):
     def options(self, node, rng, mc_trials):  # type: ignore[override]
         return options_for(node, rng, mc_trials)
+
+    def resolve(self, node, chosen, rng):  # type: ignore[override]
+        return resolve_for(node, chosen, rng)
 
 
 @dataclass
@@ -97,7 +100,7 @@ class TrainerApp(App[None]):
     .headline-col { width: 100%; }
     .meta-panel { width: 100%; }
     .card-panel { width: 100%; padding: 0; font-family: monospace; }
-    #options { layout: grid; grid-columns: 1fr 1fr 1fr; grid-gutter: 0 1; }
+    #options { layout: grid; grid-columns: 1fr; grid-gutter: 0 1; width: 100%; max-width: 48; }
     #controls { column-gap: 1; }
     Button {
         width: 100%;
@@ -108,6 +111,7 @@ class TrainerApp(App[None]):
         color: #f8fafc;
         border: 1px solid #334155;
         transition: background 0.15s ease, border 0.15s ease;
+        text-align: left;
     }
     Button:hover { background: #273449; }
     Button:focus { border: 1px solid #94a3b8; }

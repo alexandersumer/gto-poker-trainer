@@ -9,6 +9,7 @@ from gto_poker_trainer_cli.dynamic.policy import (
     flop_options,
     options_for,
     preflop_options,
+    resolve_for,
     river_options,
     turn_options,
 )
@@ -19,6 +20,12 @@ def test_generate_episode_structure_and_contexts():
     assert len(ep.nodes) == 4
     streets = [n.street for n in ep.nodes]
     assert streets == ["preflop", "flop", "turn", "river"]
+    hand_states = []
+    for node in ep.nodes:
+        assert "hand_state" in node.context
+        hs = node.context["hand_state"]
+        assert isinstance(hs, dict)
+        hand_states.append(hs)
     # Basic sanity of contexts
     assert "open_size" in ep.nodes[0].context
     assert ep.nodes[1].context.get("facing") == "check"
@@ -41,6 +48,14 @@ def test_generate_episode_structure_and_contexts():
     assert abs(float(n_turn.context["bet"]) - round(0.5 * n_turn.pot_bb, 2)) < 1e-9
     # River pot after a turn call increases by 2× the bet
     assert abs(n_river.pot_bb - (n_turn.pot_bb + 2 * float(n_turn.context["bet"]))) < 1e-6
+
+    # Villain hole cards are unique and never duplicated on board or hero hand.
+    villain_cards = hand_states[0]["villain_cards"]
+    assert isinstance(villain_cards, tuple) and len(villain_cards) == 2
+    hero_cards = ep.nodes[0].hero_cards
+    board_cards = ep.nodes[-1].board
+    all_cards = set(hero_cards) | set(villain_cards) | set(board_cards)
+    assert len(all_cards) == len(hero_cards) + len(villain_cards) + len(board_cards)
 
 
 def _assert_options_signature(opts: list[Option]):
@@ -137,3 +152,68 @@ def test_options_for_dispatches_all_streets():
         )
         opts = options_for(node, rng, mc_trials=10)
         assert isinstance(opts, list) and opts
+
+
+def test_flop_resolution_folds_weak_villain_combo():
+    rng = random.Random(21)
+    hero = [str_to_int("As"), str_to_int("Ad")]
+    villain = (str_to_int("7c"), str_to_int("2d"))
+    full_board = [str_to_int(c) for c in ["Ks", "Qc", "Th", "3s", "8d"]]
+    hand_state = {
+        "pot": 6.0,
+        "hero_cards": tuple(hero),
+        "villain_cards": villain,
+        "full_board": tuple(full_board),
+        "street": "flop",
+        "nodes": {},
+    }
+    flop_board = full_board[:3]
+    node = Node(
+        street="flop",
+        description="Board K Q T. SB checks.",
+        pot_bb=6.0,
+        effective_bb=100.0,
+        hero_cards=hero,
+        board=flop_board,
+        actor="BB",
+        context={"facing": "check", "open_size": 2.5, "hand_state": hand_state},
+    )
+    opts = flop_options(node, rng, mc_trials=40)
+    bet_opt = next(o for o in opts if o.meta and o.meta.get("action") == "bet" and abs(o.meta["bet"] - round(node.pot_bb * 0.75, 2)) < 1e-6)
+    res = resolve_for(node, bet_opt, rng)
+    assert res.hand_ended
+    assert "fold" in res.note.lower()
+    assert hand_state.get("hand_over", False)
+
+
+def test_flop_resolution_continues_when_villain_strong():
+    rng = random.Random(22)
+    hero = [str_to_int("Jh"), str_to_int("Td")]
+    villain = (str_to_int("Qh"), str_to_int("9h"))
+    full_board = [str_to_int(c) for c in ["Kh", "8h", "7c", "2s", "4d"]]
+    hand_state = {
+        "pot": 5.0,
+        "hero_cards": tuple(hero),
+        "villain_cards": villain,
+        "full_board": tuple(full_board),
+        "street": "flop",
+        "nodes": {},
+    }
+    flop_board = full_board[:3]
+    node = Node(
+        street="flop",
+        description="Board K 8 7. SB checks.",
+        pot_bb=5.0,
+        effective_bb=100.0,
+        hero_cards=hero,
+        board=flop_board,
+        actor="BB",
+        context={"facing": "check", "open_size": 2.5, "hand_state": hand_state},
+    )
+    opts = flop_options(node, rng, mc_trials=40)
+    bet_opt = next(o for o in opts if o.meta and o.meta.get("action") == "bet" and abs(o.meta["bet"] - round(node.pot_bb * 0.33, 2)) < 1e-6)
+    prev_pot = hand_state["pot"]
+    res = resolve_for(node, bet_opt, rng)
+    assert not res.hand_ended
+    assert "call" in res.note.lower()
+    assert hand_state["pot"] > prev_pot
