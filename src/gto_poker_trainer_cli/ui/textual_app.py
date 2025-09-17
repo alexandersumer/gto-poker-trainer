@@ -223,8 +223,8 @@ class TrainerApp(App[None]):
     .option-check:hover { background: #d7e0f4; }
     .option-bet { background: #f6edda; border: 1px solid #e4d5bc; color: #6b5230; }
     .option-bet:hover { background: #efe2c8; }
-    .option-raise { background: #ead7f8; border: 1px solid #d3bdf0; color: #5b3d84; }
-    .option-raise:hover { background: #e1caf3; }
+    .option-raise { background: #dfd2e5; border: 1px solid #c6bad6; color: #58446c; }
+    .option-raise:hover { background: #d5c6db; }
     #btn-new { background: #2f6bff; border: 1px solid #2a5de0; color: #ffffff; text-align: center; }
     #btn-new:hover { background: #2657d1; }
     #btn-end { background: #f3f6ff; border: 1px solid #ccd8ff; color: #253260; text-align: center; }
