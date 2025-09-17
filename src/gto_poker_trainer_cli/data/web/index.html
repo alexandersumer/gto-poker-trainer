@@ -197,16 +197,18 @@
           </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-2 sm:justify-end">
+        <div class="flex flex-col sm:flex-row gap-2 sm:justify-end" id="primary-controls">
           <button id="btn-summary" class="hidden rounded-lg border border-[#d7ddea] bg-[#f3f4fa] px-4 py-2 text-sm font-semibold text-[#47516d] transition-colors duration-200 hover:bg-[#eaedf6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">
             View summary
-          </button>
-          <button id="btn-end" class="rounded-lg border border-[#ccd5e6] bg-[#e8ecf6] px-4 py-2 text-sm font-semibold text-[#25304b] transition-colors duration-200 hover:bg-[#dfe4f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">
-            End Session
           </button>
         </div>
 
         <div id="feedback" class="hidden rounded-lg panel-box p-5"></div>
+        <div class="mt-3 flex justify-center" id="end-session-container">
+          <button id="btn-end" class="rounded-lg border border-[#ccd5e6] bg-[#e8ecf6] px-4 py-2 text-sm font-semibold text-[#25304b] transition-colors duration-200 hover:bg-[#dfe4f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">
+            End Session
+          </button>
+        </div>
       </section>
 
       <section id="panel-summary" class="hidden space-y-4">
@@ -402,7 +404,7 @@
         const area = $('#options');
         if(area){
           const toneStyles = {
-            fold: 'bg-[#efe6ec] border-[#dcc8cf] hover:bg-[#e6dbe2] focus-visible:ring-[#cfb6bf]/55 text-[#654550]',
+            fold: 'bg-[#f2d6d9] border-[#dfbcc1] hover:bg-[#ebcacf] focus-visible:ring-[#d7aab3]/55 text-[#684249]',
             passive: 'bg-[#eef2fb] border-[#d9e0f2] hover:bg-[#e5e9f6] focus-visible:ring-[#c6d1ec]/45 text-[#3f4a63]',
             aggressive: 'bg-[#ece6f5] border-[#d6cde8] hover:bg-[#e3dced] focus-visible:ring-[#c4b9df]/45 text-[#4d3d66]'
           };
@@ -439,7 +441,7 @@
             const color = toneStyles[toneKey];
             b.className = `${base} ${color}`;
             b.style.animationDelay = `${i * 40}ms`;
-            b.textContent = `${i + 1}. ${text}`;
+            b.textContent = text;
             if (typeof option === 'object' && option && 'key' in option) {
               b.dataset.optionKey = option.key;
             }

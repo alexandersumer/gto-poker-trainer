@@ -22,10 +22,10 @@ from ..solver.oracle import CompositeOptionProvider, CSVStrategyOracle
 
 _ACTION_PALETTE: dict[str, dict[str, str]] = {
     "fold": {
-        "bg": "#efe6ec",
-        "border": "#dcc8cf",
-        "text": "#654550",
-        "hover": "#e6dbe2",
+        "bg": "#f2d6d9",
+        "border": "#dfbcc1",
+        "text": "#684249",
+        "hover": "#ebcacf",
     },
     "passive": {
         "bg": "#eef2fb",
@@ -168,8 +168,19 @@ _BASE_CSS = """
         font-size: 0.85em;
     }
     #controls {
+        padding: 0;
+    }
+    #primary-controls {
         column-gap: 1.5;
         justify-content: center;
+    }
+    #end-session-container {
+        display: flex;
+        justify-content: center;
+        padding: 0.4 0;
+    }
+    #end-session-container Button {
+        max-width: 24;
     }
     Button {
         width: 100%;
@@ -340,10 +351,14 @@ class TrainerApp(App[None]):
         with Container(classes="section"):
             yield Label("Feedback:")
             yield Static("", id="feedback")
-        with Horizontal(classes="section", id="controls"):
-            yield Button("Start Fresh Hand", id="btn-new", variant="success")
+        with Container(classes="section", id="controls"):
+            yield Horizontal(
+                Button("Start Fresh Hand", id="btn-new", variant="success"),
+                Button("Quit", id="btn-quit", variant="error"),
+                id="primary-controls",
+            )
+        with Container(classes="section", id="end-session-container"):
             yield Button("End Session", id="btn-end", variant="warning")
-            yield Button("Quit", id="btn-quit", variant="error")
         yield Footer()
 
     # --- Engine control ---
@@ -531,7 +546,8 @@ class TrainerApp(App[None]):
                     classes.append("option-bet")
                 else:
                     classes.append("option-bet")
-                btn = Button(f"{i}. {k}", id=f"opt-{i - 1}", classes=" ".join(classes))
+                btn_label = k
+                btn = Button(btn_label, id=f"opt-{i - 1}", classes=" ".join(classes))
                 buttons.append(btn)
             if buttons:
                 self._options_container.mount(*buttons)
