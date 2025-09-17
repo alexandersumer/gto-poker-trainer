@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import inspect
 
+import pytest
+
+pytest.importorskip("textual")
+
 from gto_poker_trainer_cli.ui.textual_app import TrainerApp
 
 

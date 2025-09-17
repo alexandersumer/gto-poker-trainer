@@ -24,4 +24,4 @@ jobs:
           python -m ruff format --check .
           python -m ruff check .
       - name: Test
-        run: pytest -q
+        run: python -m pytest -q
