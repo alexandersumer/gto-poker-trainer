@@ -8,22 +8,23 @@
     <style>
       :root {
         color-scheme: dark;
-        --bg-primary: #0b1627;
-        --bg-secondary: rgba(20, 31, 48, 0.72);
-        --bg-panel: rgba(19, 31, 48, 0.64);
-        --border-panel: rgba(92, 126, 168, 0.28);
-        --card-highlight: rgba(36, 52, 74, 0.78);
-        --accent-indigo: #667eea;
-        --accent-purple: #7f7eff;
-        --text-primary: #e5ecf8;
-        --text-secondary: #bec9dd;
-        --text-muted: #8a96ad;
+        --bg-primary: #0f141b;
+        --bg-secondary: rgba(18, 27, 38, 0.88);
+        --bg-panel: rgba(22, 32, 43, 0.78);
+        --border-panel: rgba(92, 122, 158, 0.26);
+        --card-highlight: rgba(32, 43, 57, 0.72);
+        --accent-iris: #b7c4ff;
+        --accent-aqua: #8fd7ec;
+        --accent-rose: #f5b7c8;
+        --text-primary: #f1f4fb;
+        --text-secondary: #ccd5e4;
+        --text-muted: #96a4b8;
       }
       body {
         min-height: 100vh;
         margin: 0;
         font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: radial-gradient(circle at 18% -10%, rgba(88, 114, 196, 0.28) 0%, rgba(22, 33, 54, 0.54) 32%, var(--bg-primary) 75%);
+        background: radial-gradient(circle at 25% -15%, rgba(127, 157, 204, 0.2) 0%, rgba(22, 32, 44, 0.56) 40%, #0b1118 85%);
         color: var(--text-primary);
         display: flex;
         flex-direction: column;
@@ -39,7 +40,7 @@
         left: 0;
         width: 100%;
         height: 3px;
-        background: linear-gradient(90deg, #4f46e5 0%, #818cf8 100%);
+        background: linear-gradient(90deg, var(--accent-iris), var(--accent-aqua));
         transform: scaleX(0);
         transform-origin: left;
         opacity: 0;
@@ -61,43 +62,43 @@
         align-items: center;
         justify-content: center;
         border-radius: 0.75rem;
-        border: 1px solid rgba(118, 146, 188, 0.3);
+        border: 1px solid rgba(129, 156, 191, 0.26);
         padding: 0.35rem 0.75rem;
         font-weight: 700;
         letter-spacing: 0.4px;
         margin: 0 0.25rem 0.25rem 0;
         background: var(--card-highlight);
-        box-shadow: 0 10px 24px rgba(7, 12, 21, 0.28);
+        box-shadow: 0 8px 20px rgba(6, 10, 16, 0.32);
       }
-      .card.s { color: #111827; }
-      .card.h { color: #ef4444; }
-      .card.d { color: #2563eb; }
-      .card.c { color: #10b981; }
+      .card.s { color: #f1f5ff; }
+      .card.h { color: #f5a6b8; }
+      .card.d { color: #8ec9ff; }
+      .card.c { color: #90e0c6; }
       .glass {
-        backdrop-filter: blur(20px);
-        background: rgba(15, 24, 40, 0.82);
-        box-shadow: 0 24px 42px rgba(6, 10, 18, 0.38);
+        backdrop-filter: blur(18px);
+        background: rgba(17, 25, 36, 0.82);
+        box-shadow: 0 18px 36px rgba(6, 10, 18, 0.32);
       }
       .panel-box {
         background: var(--bg-panel);
         border: 1px solid var(--border-panel);
-        box-shadow: 0 18px 36px rgba(6, 10, 18, 0.38);
+        box-shadow: 0 16px 32px rgba(8, 12, 18, 0.28);
         color: var(--text-primary);
         backdrop-filter: blur(24px);
         border-radius: 1.25rem;
       }
       input, select, textarea {
         color: var(--text-primary);
-        background: rgba(22, 33, 54, 0.78);
+        background: rgba(24, 32, 44, 0.78);
         border-radius: 0.75rem;
-        border: 1px solid rgba(86, 113, 150, 0.45);
+        border: 1px solid rgba(102, 132, 170, 0.32);
         padding: 0.55rem 0.9rem;
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
       }
       input:focus-visible {
         outline: none;
-        border-color: var(--accent-indigo);
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.22);
+        border-color: var(--accent-iris);
+        box-shadow: 0 0 0 3px rgba(183, 196, 255, 0.25);
       }
       button {
         color: inherit;
@@ -109,9 +110,9 @@
         box-shadow: none;
       }
       #options button {
-        box-shadow: 0 18px 34px rgba(4, 8, 15, 0.3);
+        box-shadow: 0 14px 28px rgba(6, 10, 18, 0.28);
       }
-      #options button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4); }
+      #options button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(183, 196, 255, 0.35); }
       .option-card {
         animation: option-in 0.26s ease forwards;
         transform-origin: top center;
@@ -130,12 +131,12 @@
       }
       #feedback.hidden { opacity: 0; transform: translateY(6px); }
       #feedback[data-state="correct"] {
-        background: linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(13, 148, 136, 0.12));
-        border-left: 4px solid rgba(34, 197, 94, 0.85);
+        background: linear-gradient(135deg, rgba(137, 208, 180, 0.18), rgba(115, 201, 178, 0.14));
+        border-left: 4px solid rgba(121, 213, 185, 0.75);
       }
       #feedback[data-state="incorrect"] {
-        background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(253, 224, 71, 0.12));
-        border-left: 4px solid rgba(251, 191, 36, 0.85);
+        background: linear-gradient(135deg, rgba(245, 183, 200, 0.18), rgba(248, 205, 174, 0.14));
+        border-left: 4px solid rgba(245, 183, 200, 0.72);
       }
       @media (max-width: 640px) {
         header { position: sticky; top: 0; }
@@ -165,7 +166,7 @@
               <span class="mt-2 block text-xs text-slate-400 leading-relaxed">Higher trials = more precise equities, but each hand takes longer to compute.</span>
             </label>
           </div>
-          <button id="btn-start" class="mt-6 w-full rounded-xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#4f46e5] px-4 py-2.5 font-semibold text-white shadow-lg shadow-indigo-900/40 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-transparent">Start</button>
+          <button id="btn-start" class="mt-6 w-full rounded-xl bg-gradient-to-r from-[#b7c4ff] via-[#a8d2f3] to-[#8fd7ec] px-4 py-2.5 font-semibold text-[#102132] shadow-lg shadow-[#0b1220]/35 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#b7c4ff] focus-visible:ring-offset-transparent">Start</button>
         </div>
       </section>
 
@@ -188,7 +189,7 @@
         <div id="options" class="grid grid-cols-1 gap-3 max-w-xl mx-auto"></div>
 
         <div class="flex flex-col sm:flex-row gap-2 sm:justify-end">
-          <button id="btn-end" class="rounded-lg border border-[#2f3c52] bg-[#1c2736] px-4 py-2 text-sm font-semibold text-slate-100 transition-colors duration-200 hover:bg-[#24324a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101623]">
+          <button id="btn-end" class="rounded-lg border border-[#314255] bg-[#1a2532] px-4 py-2 text-sm font-semibold text-[#eef2fb] transition-colors duration-200 hover:bg-[#233142] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b7c4ff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f141b]">
             End Session
           </button>
         </div>
@@ -198,7 +199,7 @@
 
       <section id="panel-summary" class="hidden space-y-3">
         <div class="rounded-lg panel-box p-4" id="summary"></div>
-        <button id="btn-new" class="w-full rounded-md bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-500">New Session</button>
+        <button id="btn-new" class="w-full rounded-md bg-[#27344a] px-4 py-2 font-semibold text-[#eff3fb] transition-colors duration-200 hover:bg-[#2f3e55] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b7c4ff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f141b]">New Session</button>
       </section>
     </main>
 
@@ -341,10 +342,10 @@
         const area = $('#options');
         if(area){
           const palette = {
-            Fold: 'bg-[#3b1010] border-[#7f1d1d] hover:bg-[#4c1515] focus-visible:ring-rose-200 text-slate-100',
-            Call: 'bg-[#0f2f52] border-[#1d4ed8] hover:bg-[#153a63] focus-visible:ring-sky-200 text-slate-100',
-            Check: 'bg-[#1f2937] border-[#475569] hover:bg-[#273447] focus-visible:ring-slate-200 text-slate-100',
-            'Check back': 'bg-[#1f2937] border-[#475569] hover:bg-[#273447] focus-visible:ring-slate-200 text-slate-100',
+            Fold: 'bg-[#261b24] border-[#3a2c35] hover:bg-[#2f232d] focus-visible:ring-[#f5b7c8]/55 text-[#f9e3eb]',
+            Call: 'bg-[#1c2939] border-[#2b3f53] hover:bg-[#233345] focus-visible:ring-[#8fd7ec]/55 text-[#ecf5fb]',
+            Check: 'bg-[#1a2532] border-[#2d3c4e] hover:bg-[#222f3d] focus-visible:ring-[#b7c4ff]/50 text-[#edf2fb]',
+            'Check back': 'bg-[#1a2532] border-[#2d3c4e] hover:bg-[#222f3d] focus-visible:ring-[#b7c4ff]/50 text-[#edf2fb]',
           };
           const fragment = document.createDocumentFragment();
           payload.options.forEach((label,i)=>{
@@ -352,8 +353,8 @@
             const toneKey = label.includes('%') ? text : label;
             const b = document.createElement('button');
             b.type = 'button';
-            const base = 'option-card w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-300 border border-slate-700/60 shadow-sm text-slate-100';
-            const color = palette[toneKey] || 'bg-[#0f4c3a] border-[#0f766e] hover:bg-[#135b47] focus-visible:ring-emerald-200';
+            const base = 'option-card w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f141b] border shadow-sm shadow-[#0b1220]/25';
+            const color = palette[toneKey] || 'bg-[#1a3230] border-[#2c4a45] hover:bg-[#22403c] focus-visible:ring-[#89d0b4]/55 text-[#eaf6f1]';
             b.className = `${base} ${color}`;
             b.style.animationDelay = `${i * 40}ms`;
             b.textContent = `${i + 1}. ${text}`;
@@ -393,11 +394,13 @@
           if(fb){
             fb.dataset.state = f.correct ? 'correct' : 'incorrect';
             fb.classList.remove('hidden');
+            const stateTone = f.correct ? 'text-[#6fbfa3]' : 'text-[#d8a25f]';
+            const contextTone = 'text-[#96a4b8]';
             fb.innerHTML = `
-              <div class="text-lg font-bold ${f.correct?'text-emerald-700':'text-amber-700'}">${f.correct?'✓ Best choice':'✗ Better was'}: ${f.best.key}</div>
+              <div class="text-lg font-bold ${stateTone}">${f.correct?'✓ Best choice':'✗ Better was'}: ${f.best.key}</div>
               <div class="mt-2">You chose: <b>${f.chosen.key}</b> — EV lost: <b>${fmt(f.ev_loss)} bb</b></div>
-              ${f.chosen.why?`<div class=\"mt-1 text-slate-600\"><i>Why (yours):</i> ${f.chosen.why}</div>`:''}
-              ${!f.correct && f.best.why?`<div class=\"text-slate-600\"><i>Why (best):</i> ${f.best.why}</div>`:''}
+              ${f.chosen.why?`<div class=\"mt-1 text-sm ${contextTone}\"><i>Why (yours):</i> ${f.chosen.why}</div>`:''}
+              ${!f.correct && f.best.why?`<div class=\"text-sm ${contextTone}\"><i>Why (best):</i> ${f.best.why}</div>`:''}
             `;
           }
           if(data.next){

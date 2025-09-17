@@ -93,44 +93,44 @@ class TrainerApp(App[None]):
     CSS = """
     Screen {
         layout: vertical;
-        background: #101623;
-        color: #d9e2f1;
+        background: #0f141b;
+        color: #ecf1fa;
     }
     Header {
-        background: linear-gradient(90deg, #131d2d, #0e1725);
-        color: #e2e9f5;
-        border-bottom: 1px solid #1f2c42;
+        background: linear-gradient(90deg, #121a26, #0f151f);
+        color: #f6f8fd;
+        border-bottom: 1px solid #1d2735;
     }
     Footer {
-        background: #101a2b;
-        color: #c8d2e4;
-        border-top: 1px solid #1f2c42;
+        background: #101823;
+        color: #cdd7e7;
+        border-top: 1px solid #1d2735;
     }
     .section {
         padding: 1;
-        background: #121b2c;
-        border: 1px solid #1e2a40;
+        background: #151d27;
+        border: 1px solid #233040;
         margin: 0 0 1 0;
     }
     #info {
         width: 100%;
-        background: #141f32;
-        border: 1px solid #1e2c45;
+        background: #16202b;
+        border: 1px solid #233443;
     }
     #headline-row, #meta-row, #cards-row, #board-row { width: 100%; }
     .headline-col { width: 100%; }
     .meta-panel {
         width: 100%;
-        background: #172337;
-        border: 1px solid #23314a;
+        background: #182330;
+        border: 1px solid #253646;
         padding: 0 1;
     }
     .card-panel {
         width: 100%;
         padding: 0;
         font-family: monospace;
-        background: #172337;
-        border: 1px solid #23314a;
+        background: #182330;
+        border: 1px solid #253646;
     }
     #options {
         layout: grid;
@@ -146,37 +146,37 @@ class TrainerApp(App[None]):
         min-height: 2;
         padding: 0 1;
         margin: 0 0 0.5 0;
-        background: #1c2736;
-        color: #f0f4ff;
-        border: 1px solid #2f3c52;
-        transition: background 0.15s ease, border 0.15s ease;
+        background: #1a2532;
+        color: #f3f6fc;
+        border: 1px solid #2b3b4c;
+        transition: background 0.18s ease, border 0.18s ease, color 0.18s ease;
         text-align: left;
     }
-    Button:hover { background: #273449; }
-    Button:focus { border: 1px solid #94a3b8; }
-    .option-button { background: #1c2736; border: 1px solid #2f3c52; color: #f0f4ff; }
-    .option-button:hover { background: #24324a; }
-    .option-button:focus { border: 1px solid #5d6e8b; }
-    .option-fold { background: #3a1c25; border: 1px solid #703444; }
-    .option-fold:hover { background: #492531; }
-    .option-call { background: #14324d; border: 1px solid #2b4f71; }
-    .option-call:hover { background: #1d3f61; }
-    .option-check { background: #1c2736; border: 1px solid #36485f; }
-    .option-check:hover { background: #24324a; }
-    .option-value { background: #163d33; border: 1px solid #2b6351; }
-    .option-value:hover { background: #1d4b3f; }
-    #btn-new { background: #166a5a; border: 1px solid #25806d; }
-    #btn-new:hover { background: #1d7a69; }
-    #btn-end { background: #a45a22; border: 1px solid #c97234; }
-    #btn-end:hover { background: #b6682d; }
-    #btn-quit { background: #7d2f2f; border: 1px solid #a34141; }
-    #btn-quit:hover { background: #8d3a3a; }
-    Label { text-align: left; width: 100%; color: #e0e7f2; }
-    Static { color: #d4deee; }
-    #board { white-space: pre-wrap; background: #172337; border: 1px solid #23314a; }
+    Button:hover { background: #222f3d; }
+    Button:focus { border: 1px solid #8ea8d5; }
+    .option-button { background: #1a2532; border: 1px solid #2b3b4c; color: #f3f6fc; }
+    .option-button:hover { background: #233243; }
+    .option-button:focus { border: 1px solid #8ea8d5; }
+    .option-fold { background: #251d26; border: 1px solid #3a2d39; }
+    .option-fold:hover { background: #2f2631; }
+    .option-call { background: #1c2b3b; border: 1px solid #294058; }
+    .option-call:hover { background: #253547; }
+    .option-check { background: #1a2532; border: 1px solid #314254; }
+    .option-check:hover { background: #233243; }
+    .option-value { background: #19342d; border: 1px solid #2b4f47; }
+    .option-value:hover { background: #224039; }
+    #btn-new { background: #27344a; border: 1px solid #3a4a63; }
+    #btn-new:hover { background: #303e55; }
+    #btn-end { background: #3a2a2a; border: 1px solid #4d3b3b; }
+    #btn-end:hover { background: #443333; }
+    #btn-quit { background: #322637; border: 1px solid #443548; }
+    #btn-quit:hover { background: #3c2f41; }
+    Label { text-align: left; width: 100%; color: #dee6f4; }
+    Static { color: #cfd8e8; }
+    #board { white-space: pre-wrap; background: #182330; border: 1px solid #253646; }
     #feedback {
-        background: #172337;
-        border: 1px solid #23314a;
+        background: #182330;
+        border: 1px solid #253646;
         padding: 1;
     }
     """
@@ -188,10 +188,10 @@ class TrainerApp(App[None]):
     _engine_thread: threading.Thread | None = None
     _config: AppConfig
     CARD_STYLES = {
-        0: "white",  # spades – bright neutral
-        1: "bright_red",  # hearts – vivid red
-        2: "bright_cyan",  # diamonds – high-contrast cyan
-        3: "bright_green",  # clubs – lively green
+        0: "#f3f5ff",  # spades – soft neutral
+        1: "#f6a7b3",  # hearts – muted coral
+        2: "#8ec6ff",  # diamonds – airy blue
+        3: "#96e1c8",  # clubs – cool mint
     }
 
     # Cached widget references populated on mount to avoid hot-path lookups
