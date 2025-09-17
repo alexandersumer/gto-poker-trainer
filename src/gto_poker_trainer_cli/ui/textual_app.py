@@ -93,34 +93,44 @@ class TrainerApp(App[None]):
     CSS = """
     Screen {
         layout: vertical;
-        background: #0b1220;
-        color: #d5dde9;
+        background: #101623;
+        color: #d9e2f1;
+    }
+    Header {
+        background: linear-gradient(90deg, #131d2d, #0e1725);
+        color: #e2e9f5;
+        border-bottom: 1px solid #1f2c42;
+    }
+    Footer {
+        background: #101a2b;
+        color: #c8d2e4;
+        border-top: 1px solid #1f2c42;
     }
     .section {
         padding: 1;
-        background: #101727;
-        border: 1px solid #1c2940;
+        background: #121b2c;
+        border: 1px solid #1e2a40;
         margin: 0 0 1 0;
     }
     #info {
         width: 100%;
-        background: #0f1625;
-        border: 1px solid #1b273b;
+        background: #141f32;
+        border: 1px solid #1e2c45;
     }
     #headline-row, #meta-row, #cards-row, #board-row { width: 100%; }
     .headline-col { width: 100%; }
     .meta-panel {
         width: 100%;
-        background: #131d30;
-        border: 1px solid #1f2c45;
+        background: #172337;
+        border: 1px solid #23314a;
         padding: 0 1;
     }
     .card-panel {
         width: 100%;
         padding: 0;
         font-family: monospace;
-        background: #131d30;
-        border: 1px solid #1f2c45;
+        background: #172337;
+        border: 1px solid #23314a;
     }
     #options {
         layout: grid;
@@ -136,37 +146,37 @@ class TrainerApp(App[None]):
         min-height: 2;
         padding: 0 1;
         margin: 0 0 0.5 0;
-        background: #1f2937;
-        color: #f8fafc;
-        border: 1px solid #334155;
+        background: #1c2736;
+        color: #f0f4ff;
+        border: 1px solid #2f3c52;
         transition: background 0.15s ease, border 0.15s ease;
         text-align: left;
     }
     Button:hover { background: #273449; }
     Button:focus { border: 1px solid #94a3b8; }
-    .option-button { background: #1f2937; border: 1px solid #334155; color: #f8fafc; }
-    .option-button:hover { background: #273449; }
-    .option-button:focus { border: 1px solid #64748b; }
-    .option-fold { background: #3b1010; border: 1px solid #7f1d1d; }
-    .option-fold:hover { background: #4c1515; }
-    .option-call { background: #0f2f52; border: 1px solid #1d4ed8; }
-    .option-call:hover { background: #153a63; }
-    .option-check { background: #1f2937; border: 1px solid #475569; }
-    .option-check:hover { background: #273447; }
-    .option-value { background: #0f4c3a; border: 1px solid #0f766e; }
-    .option-value:hover { background: #135b47; }
-    #btn-new { background: #0f766e; border: 1px solid #0f766e; }
-    #btn-new:hover { background: #0d5f58; }
-    #btn-end { background: #b45309; border: 1px solid #b45309; }
-    #btn-end:hover { background: #92400e; }
-    #btn-quit { background: #7f1d1d; border: 1px solid #7f1d1d; }
-    #btn-quit:hover { background: #641616; }
-    Label { text-align: left; width: 100%; color: #e2e8f0; }
-    Static { color: #d5dde9; }
-    #board { white-space: pre-wrap; background: #131d30; border: 1px solid #1f2c45; }
+    .option-button { background: #1c2736; border: 1px solid #2f3c52; color: #f0f4ff; }
+    .option-button:hover { background: #24324a; }
+    .option-button:focus { border: 1px solid #5d6e8b; }
+    .option-fold { background: #3a1c25; border: 1px solid #703444; }
+    .option-fold:hover { background: #492531; }
+    .option-call { background: #14324d; border: 1px solid #2b4f71; }
+    .option-call:hover { background: #1d3f61; }
+    .option-check { background: #1c2736; border: 1px solid #36485f; }
+    .option-check:hover { background: #24324a; }
+    .option-value { background: #163d33; border: 1px solid #2b6351; }
+    .option-value:hover { background: #1d4b3f; }
+    #btn-new { background: #166a5a; border: 1px solid #25806d; }
+    #btn-new:hover { background: #1d7a69; }
+    #btn-end { background: #a45a22; border: 1px solid #c97234; }
+    #btn-end:hover { background: #b6682d; }
+    #btn-quit { background: #7d2f2f; border: 1px solid #a34141; }
+    #btn-quit:hover { background: #8d3a3a; }
+    Label { text-align: left; width: 100%; color: #e0e7f2; }
+    Static { color: #d4deee; }
+    #board { white-space: pre-wrap; background: #172337; border: 1px solid #23314a; }
     #feedback {
-        background: #131d30;
-        border: 1px solid #1f2c45;
+        background: #172337;
+        border: 1px solid #23314a;
         padding: 1;
     }
     """
