@@ -37,27 +37,33 @@ def _fold_continue_stats(hero_equities: Iterable[float], villain_threshold: floa
 
 
 def _combo_trials(mc_trials: int) -> int:
-    return max(60, int(mc_trials * 0.75))
+    return max(30, int(mc_trials * 0.4))
 
 
 def _sample_cap_preflop(mc_trials: int) -> int:
-    return max(60, min(160, int(mc_trials * 0.6)))
+    return max(35, min(90, int(mc_trials * 0.4)))
 
 
 def _sample_cap_postflop(mc_trials: int) -> int:
-    return max(45, min(120, int(mc_trials * 0.45)))
+    return max(25, min(70, int(mc_trials * 0.3)))
 
 
 def _sample_range(
     combos: Iterable[tuple[int, int]],
-    rng: random.Random,
     limit: int,
 ) -> list[tuple[int, int]]:
     combos_list = list(combos)
     if len(combos_list) <= limit:
         return combos_list
-    # Deterministic sampling per session to keep UX stable while bounding cost.
-    return rng.sample(combos_list, limit)
+    # Take evenly spaced combos across the ordered range to keep a representative mix.
+    step = len(combos_list) / limit
+    sampled: list[tuple[int, int]] = []
+    for i in range(limit):
+        idx = int(i * step)
+        if idx >= len(combos_list):
+            idx = len(combos_list) - 1
+        sampled.append(combos_list[idx])
+    return sampled
 
 
 def _default_open_size(node: Node) -> float:
@@ -65,13 +71,14 @@ def _default_open_size(node: Node) -> float:
 
 
 def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
+    del rng
     hero = node.hero_cards
     open_size = float(node.context["open_size"])
     pot_after_open = node.pot_bb
     call_cost = open_size - 1.0
     blocked = _blocked_cards(hero, [])
     open_range = villain_sb_open_range(open_size, blocked)
-    sampled_range = _sample_range(open_range, rng, _sample_cap_preflop(mc_trials)) or open_range
+    sampled_range = _sample_range(open_range, _sample_cap_preflop(mc_trials)) or open_range
     combo_trials = _combo_trials(mc_trials)
     equities = {combo: hero_equity_vs_combo(hero, [], combo, combo_trials) for combo in sampled_range}
     avg_range_eq = sum(equities.values()) / len(equities) if equities else 0.0
@@ -112,13 +119,14 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
 
 
 def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
+    del rng
     hero = node.hero_cards
     board = node.board
     pot = node.pot_bb
     open_size = _default_open_size(node)
     blocked = _blocked_cards(hero, board)
     open_range = villain_sb_open_range(open_size, blocked)
-    sampled_range = _sample_range(open_range, rng, _sample_cap_postflop(mc_trials)) or open_range
+    sampled_range = _sample_range(open_range, _sample_cap_postflop(mc_trials)) or open_range
     combo_trials = _combo_trials(mc_trials)
     equities = {combo: hero_equity_vs_combo(hero, board, combo, combo_trials) for combo in sampled_range}
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
@@ -146,6 +154,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
 
 
 def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
+    del rng
     hero = node.hero_cards
     board = node.board
     pot_start = node.pot_bb
@@ -156,7 +165,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     base_range = villain_sb_open_range(open_size, blocked)
     # Villain betting range is tightened to the stronger half of their holdings.
     bet_range = tighten_range(base_range, 0.55)
-    sampled_range = _sample_range(bet_range, rng, _sample_cap_postflop(mc_trials)) or bet_range
+    sampled_range = _sample_range(bet_range, _sample_cap_postflop(mc_trials)) or bet_range
     combo_trials = _combo_trials(mc_trials)
     equities = {combo: hero_equity_vs_combo(hero, board, combo, combo_trials) for combo in sampled_range}
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
@@ -195,6 +204,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
 
 
 def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
+    del rng
     hero = node.hero_cards
     board = node.board
     pot = node.pot_bb
@@ -203,7 +213,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     base_range = villain_sb_open_range(open_size, blocked)
     # After checking river, assume villain keeps medium-strength holdings.
     check_range = tighten_range(base_range, 0.65)
-    sampled_range = _sample_range(check_range, rng, _sample_cap_postflop(mc_trials)) or check_range
+    sampled_range = _sample_range(check_range, _sample_cap_postflop(mc_trials)) or check_range
     combo_trials = _combo_trials(mc_trials)
     equities = {combo: hero_equity_vs_combo(hero, board, combo, combo_trials) for combo in sampled_range}
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
