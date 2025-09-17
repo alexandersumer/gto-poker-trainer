@@ -80,6 +80,7 @@ def test_preflop_three_bet_folds_weak_villain():
     assert res.hand_ended
     assert state.get("hand_over", False)
     assert "fold" in (res.note or "").lower()
+    assert "net" in (res.note or "")
 
 
 def test_preflop_three_bet_strong_villain_continues():
@@ -133,6 +134,7 @@ def test_preflop_jam_resolves_and_folds_weak_villain():
     assert res.hand_ended
     assert "fold" in (res.note or "").lower()
     assert state.get("hand_over", False)
+    assert "net" in (res.note or "")
 
 
 def test_turn_raise_can_force_fold():
@@ -158,6 +160,7 @@ def test_turn_raise_can_force_fold():
     assert res.hand_ended
     assert state.get("hand_over", False)
     assert "fold" in (res.note or "").lower()
+    assert "net" in (res.note or "")
 
 
 def test_turn_call_moves_to_river_when_villain_strong():

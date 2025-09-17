@@ -85,6 +85,8 @@ class _TextualPresenter(Presenter):
 
 
 class TrainerApp(App[None]):
+    TITLE = "GTO Poker Trainer"
+    SUB_TITLE = "Solver-calibrated drills for every street"
     BINDINGS = [
         ("ctrl+n", "new_session", "Start Fresh Hand"),
         ("escape", "end_session", "End Session"),
@@ -93,94 +95,135 @@ class TrainerApp(App[None]):
     CSS = """
     Screen {
         layout: vertical;
-        background: #f5f6fb;
-        color: #20283f;
+        background: #f4f6fb;
+        color: #1b233d;
     }
     Header {
-        background: #eef1f8;
-        color: #1a2240;
-        border-bottom: 1px solid #cdd3e2;
+        background: #fdfdff;
+        color: #141c35;
+        border-bottom: 1px solid #d6def3;
     }
     Footer {
-        background: #edf0f7;
-        color: #4c5774;
-        border-top: 1px solid #cdd3e2;
+        background: #fdfdff;
+        color: #4a5678;
+        border-top: 1px solid #d6def3;
     }
     .section {
-        padding: 1;
-        background: #f0f3fa;
-        border: 1px solid #d7ddea;
+        padding: 1.5 2;
+        background: #ffffff;
+        border: 1px solid #d9e2f5;
         margin: 0 0 1 0;
     }
     #info {
         width: 100%;
-        background: #f0f3fa;
-        border: 1px solid #d7ddea;
+        background: #fdfdff;
+        border: 1px solid #d2dcf5;
+        padding: 2 3;
+        margin: 1 0 1 0;
     }
-    #headline-row, #meta-row, #cards-row, #board-row { width: 100%; }
+    #title {
+        text-align: center;
+        color: #111a33;
+        margin: 0 0 0.5 0;
+    }
+    #tagline {
+        text-align: center;
+        color: #46557b;
+        margin: 0 0 1 0;
+    }
+    #session-status {
+        text-align: center;
+        padding: 0.5 2;
+        margin: 0 0 1 0;
+        background: #edf2ff;
+        border: 1px solid #c8d9ff;
+        color: #203261;
+    }
+    #headline-row, #meta-row, #cards-row, #board-row {
+        width: 100%;
+        justify-content: center;
+    }
     .headline-col { width: 100%; }
+    #headline {
+        padding: 0.2 2;
+        background: #e7edff;
+        border: 1px solid #c7d6ff;
+        color: #1b2d55;
+        text-align: center;
+        min-width: 24;
+    }
     .meta-panel {
         width: 100%;
-        background: #f0f2f9;
-        border: 1px solid #d0d7e6;
-        padding: 0 1;
-        color: #3f4865;
+        background: #f6f8ff;
+        border: 1px solid #d3dcf6;
+        padding: 1 2;
+        color: #2d3b62;
     }
     .card-panel {
         width: 100%;
-        padding: 0;
+        padding: 1 2;
         font-family: monospace;
-        background: #f0f2f9;
-        border: 1px solid #d0d7e6;
-        color: #1f2740;
+        background: #ffffff;
+        border: 1px dashed #c8d5f2;
+        color: #1b2d55;
     }
     #options {
         layout: grid;
-        grid-size: 1;
         grid-columns: 1fr;
         grid-gutter: 0 1;
         width: 100%;
-        max-width: 48;
+        max-width: 50;
+        margin: 0 auto;
     }
-    #controls { column-gap: 1; }
+    #controls {
+        column-gap: 1.5;
+        justify-content: center;
+    }
     Button {
         width: 100%;
         min-height: 2;
-        padding: 0 1;
+        padding: 0.5 1.5;
         margin: 0 0 0.5 0;
-        background: #f1f3fb;
-        color: #20283f;
-        border: 1px solid #cdd4e6;
+        background: #ffffff;
+        color: #1b2d55;
+        border: 1px solid #d1daf3;
         transition: background 0.2s ease, border 0.2s ease, color 0.2s ease;
         text-align: left;
     }
-    Button:hover { background: #e7eaf5; }
-    Button:focus { border: 1px solid #6c83f5; }
-    .option-button { background: #f1f3fb; border: 1px solid #cdd4e6; color: #20283f; }
-    .option-button:hover { background: #e7eaf5; }
-    .option-button:focus { border: 1px solid #6c83f5; }
-    .option-fold { background: #f8e4eb; border: 1px solid #e8c2ce; color: #6e2e45; }
-    .option-fold:hover { background: #f3d7e1; }
-    .option-call { background: #dfe9fc; border: 1px solid #bfd0f4; color: #1b3c68; }
-    .option-call:hover { background: #d4e1f9; }
-    .option-check { background: #f3f4fa; border: 1px solid #d4dae9; color: #25304b; }
-    .option-check:hover { background: #eaedf6; }
-    .option-value { background: #f7eddd; border: 1px solid #e6d2b3; color: #5c3e18; }
-    .option-value:hover { background: #f1e2ca; }
-    #btn-new { background: #eef1f8; border: 1px solid #cdd4e6; color: #1f2740; }
-    #btn-new:hover { background: #e2e6f2; }
-    #btn-end { background: #e8ecf6; border: 1px solid #ccd5e6; color: #25304b; }
-    #btn-end:hover { background: #dfe4f2; }
-    #btn-quit { background: #f1f3fb; border: 1px solid #d9dfee; color: #3f4865; }
-    #btn-quit:hover { background: #e5e8f4; }
-    Label { text-align: left; width: 100%; color: #20283f; }
-    Static { color: #3f4865; }
-    #board { white-space: pre-wrap; background: #f0f2f9; border: 1px solid #d0d7e6; color: #1f2740; }
+    Button:hover { background: #eef3ff; border: 1px solid #b8c7f2; }
+    Button:focus { border: 1px solid #5b76f8; }
+    #controls Button {
+        width: auto;
+        min-width: 16;
+        text-align: center;
+        margin: 0;
+    }
+    .option-button { background: #ffffff; border: 1px solid #d1daf3; color: #1b2d55; }
+    .option-button:hover { background: #eef3ff; }
+    .option-button:focus { border: 1px solid #5b76f8; }
+    .option-fold { background: #fff5f6; border: 1px solid #f3cbd3; color: #9f3b56; }
+    .option-fold:hover { background: #ffe9ef; }
+    .option-call { background: #eef6ff; border: 1px solid #c0d8ff; color: #1f4d8f; }
+    .option-call:hover { background: #e1eeff; }
+    .option-check { background: #f8f9ff; border: 1px solid #d8deef; color: #2a3a5f; }
+    .option-check:hover { background: #edf1ff; }
+    .option-value { background: #fdf4e4; border: 1px solid #f1d7aa; color: #7d5115; }
+    .option-value:hover { background: #f8e8cf; }
+    #btn-new { background: #2f6bff; border: 1px solid #2a5de0; color: #ffffff; text-align: center; }
+    #btn-new:hover { background: #2657d1; }
+    #btn-end { background: #f3f6ff; border: 1px solid #ccd8ff; color: #253260; text-align: center; }
+    #btn-end:hover { background: #e6ecff; }
+    #btn-quit { background: #f8fafc; border: 1px solid #d9e0f3; color: #2d3655; text-align: center; }
+    #btn-quit:hover { background: #eef2f9; }
+    Label { text-align: left; width: 100%; color: #1b233d; }
+    Static { color: #2d3b62; }
+    #board { white-space: pre-wrap; background: #ffffff; border: 1px dashed #c8d5f2; color: #1b2d55; }
     #feedback {
-        background: #f0f2f9;
-        border: 1px solid #d0d7e6;
-        padding: 1;
-        color: #3f4865;
+        background: #ffffff;
+        border: 1px solid #d9e0f3;
+        padding: 1 2;
+        color: #2d3b62;
+        min-height: 5;
     }
     """
 
@@ -200,6 +243,8 @@ class TrainerApp(App[None]):
     # Cached widget references populated on mount to avoid hot-path lookups
     _title_label: Label | None = None
     _headline_label: Label | None = None
+    _tagline_panel: Static | None = None
+    _status_panel: Static | None = None
     _meta_panel: Static | None = None
     _hand_panel: Static | None = None
     _board_panel: Static | None = None
@@ -218,6 +263,8 @@ class TrainerApp(App[None]):
         yield Header(show_clock=False)
         with Container(classes="section", id="info"):
             yield Label("GTO Poker Trainer", id="title")
+            yield Static("Sharpen your instincts with solver-backed drills.", id="tagline")
+            yield Static("We're dealing your first scenario…", id="session-status")
             with Horizontal(id="headline-row"):
                 yield Label("", id="headline", classes="headline-col")
             with Horizontal(id="meta-row"):
@@ -242,11 +289,30 @@ class TrainerApp(App[None]):
     def on_mount(self) -> None:  # type: ignore[override]
         self._title_label = self.query_one("#title", Label)
         self._headline_label = self.query_one("#headline", Label)
+        self._tagline_panel = self.query_one("#tagline", Static)
+        self._status_panel = self.query_one("#session-status", Static)
         self._meta_panel = self.query_one("#meta", Static)
         self._hand_panel = self.query_one("#hand", Static)
         self._board_panel = self.query_one("#board", Static)
         self._options_container = self.query_one("#options", Grid)
         self._feedback_panel = self.query_one("#feedback", Static)
+
+        if self._title_label:
+            self._title_label.update("[b #111a33]GTO Poker Trainer[/]")
+        if self._tagline_panel:
+            self._tagline_panel.update("[#3c4f86]Sharpen your instincts with solver-backed drills.[/]")
+        if self._status_panel:
+            self._status_panel.update("[b #1b2d55]Preparing a fresh hand[/]\n[dim]Hang tight—simulations are spinning up.[/]")
+        if self._meta_panel:
+            self._meta_panel.update("[dim]We'll surface pot details the moment action begins.[/]")
+        if self._hand_panel:
+            self._hand_panel.update("[b #1b2d55]Hero[/]: [dim]-- --[/] [dim](awaiting cards)[/]")
+        if self._board_panel:
+            self._board_panel.update("[b #1b2d55]Board[/]\n[dim]-- -- --\n-- --[/]")
+        if self._feedback_panel:
+            self._feedback_panel.update(
+                "[dim]Decision feedback, EV gaps, and coaching notes will land here after each choice.[/]"
+            )
 
         self._presenter = _TextualPresenter(self)
         # Start first session automatically
@@ -296,17 +362,31 @@ class TrainerApp(App[None]):
     # --- Presenter-driven UI updates ---
     def show_session_start(self, total_hands: int) -> None:
         if self._headline_label:
-            self._headline_label.update(f"Session start — {total_hands} hand(s)")
+            plural = "s" if total_hands != 1 else ""
+            self._headline_label.update(
+                f"[b #1b2d55]Session start[/] — {total_hands} hand{plural} queued"
+            )
         if self._meta_panel:
             self._meta_panel.update("")
+        if self._status_panel:
+            plural = "s" if total_hands != 1 else ""
+            self._status_panel.update(
+                f"[b #1b2d55]Session live[/]\n[dim]{total_hands} hand{plural} queued for play.[/]"
+            )
 
     def show_hand_start(self, hand_index: int, total_hands: int) -> None:
         if self._headline_label:
-            self._headline_label.update(f"Hand {hand_index}/{total_hands}")
+            self._headline_label.update(
+                f"[b #1b2d55]Hand {hand_index}/{total_hands}[/]"
+            )
         if self._feedback_panel:
             self._feedback_panel.update("")
         if self._options_container:
             self._options_container.remove_children()
+        if self._status_panel:
+            self._status_panel.update(
+                f"[b #1b2d55]Decision {hand_index}/{total_hands}[/]\n[dim]Trust your instincts and protect EV.[/]"
+            )
 
     def _render_card_token(self, card: int | None, *, placeholder: str = "--") -> str:
         if card is None:
@@ -333,7 +413,7 @@ class TrainerApp(App[None]):
         if node.board and desc.startswith("Board "):
             dot = desc.find(". ")
             desc = desc[dot + 2 :] if dot != -1 else ""
-        headline = f"[bold magenta]{node.street.upper()}[/]"
+        headline = f"[b #2f6bff]{node.street.upper()}[/]"
         if desc:
             headline += f"  [dim]- {desc}[/]"
         if self._headline_label:
@@ -341,22 +421,33 @@ class TrainerApp(App[None]):
 
         P = float(node.pot_bb)
         spr = (node.effective_bb / P) if P > 0 else float("inf")
-        meta_lines = [f"Pot: {P:.2f} bb (SPR {spr:.1f})", f"Effective stack: {node.effective_bb:.1f} bb"]
         bet = node.context.get("bet")
         if isinstance(bet, (int, float)):
             pct = 100.0 * float(bet) / max(1e-9, P)
-            meta_lines.append(f"Facing bet: {float(bet):.2f} bb ({pct:.0f}% pot)")
         if self._meta_panel:
-            self._meta_panel.update("\n".join(meta_lines))
+            styled_meta = [
+                f"[b #1b2d55]Pot[/]: {P:.2f} bb [dim](SPR {spr:.1f})[/]",
+                f"[b #1b2d55]Effective[/]: {node.effective_bb:.1f} bb",
+            ]
+            if isinstance(bet, (int, float)):
+                styled_meta.append(
+                    f"[b #1b2d55]Facing[/]: {float(bet):.2f} bb ({pct:.0f}% pot)"
+                )
+            self._meta_panel.update("\n".join(styled_meta))
 
         hand_str = self._format_cards_colored(node.hero_cards)
         if self._hand_panel:
             self._hand_panel.update(
-                f"Hero: {hand_str} [dim]({canonical_hand_abbrev(node.hero_cards)})[/]"
+                f"[b #1b2d55]Hero[/]: {hand_str} [dim]({canonical_hand_abbrev(node.hero_cards)})[/]"
             )
         if self._board_panel:
             board_rows = self._format_board_rows(node.board)
-            self._board_panel.update(f"Board\n{board_rows}")
+            self._board_panel.update(f"[b #1b2d55]Board[/]\n{board_rows}")
+
+        if self._status_panel:
+            self._status_panel.update(
+                f"[b #1b2d55]{node.street.title()} spotlight[/]\n[dim]Select the line that preserves edge.[/]"
+            )
 
         # Render actions as buttons
         if self._options_container:
@@ -381,7 +472,7 @@ class TrainerApp(App[None]):
     def show_step_feedback(self, _node: Node, chosen: Option, best: Option) -> None:
         correct = chosen.key == best.key
         ev_loss = best.ev - chosen.ev
-        lines = ["[b]Decision Grade[/]"]
+        lines = ["[b #1b2d55]Decision grade[/]"]
         if correct:
             lines.append(f"[green]Optimal[/] — {chosen.key} (EV {chosen.ev:.2f} bb)")
         else:
@@ -396,17 +487,28 @@ class TrainerApp(App[None]):
             lines.append("[dim]Hand ends on this action.[/]")
         if self._feedback_panel:
             self._feedback_panel.update("\n".join(lines))
+        if self._status_panel:
+            tag = "[green]Nice read[/]" if correct else "[b #9f3b56]Learn point[/]"
+            self._status_panel.update(
+                f"{tag}\n[dim]Review the feedback below before the next hand.[/]"
+            )
 
     def show_summary(self, records: list[dict[str, Any]]) -> None:
         if not records:
             if self._feedback_panel:
                 self._feedback_panel.update("No hands answered.")
+            if self._status_panel:
+                self._status_panel.update(
+                    "[b #1b2d55]Session wrapped[/]\n[dim]Start a fresh hand when you're ready.[/]"
+                )
             return
         total_ev_best = sum(r["best_ev"] for r in records)
         total_ev_chosen = sum(r["chosen_ev"] for r in records)
         total_ev_lost = total_ev_best - total_ev_chosen
         avg_ev_lost = total_ev_lost / len(records)
         hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
+        hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
+        hands_answered = len(hand_ids) if hand_ids else len(records)
         score_pct = 0.0
         def _room_term(rec: dict[str, Any]) -> float:
             room_ev = rec.get("room_ev")
@@ -420,7 +522,8 @@ class TrainerApp(App[None]):
         if room > 1e-9:
             score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room))
         msg = (
-            f"[b]Session Summary[/]\nHands answered: {len(records)}\n"
+            f"[b #1b2d55]Session summary[/]\n"
+            f"Hands answered: {hands_answered}\n"
             f"Best choices hit: {hits} ({(100.0 * hits / len(records)):.0f}%)\n"
             f"Total EV (chosen): {total_ev_chosen:.2f} bb\n"
             f"Total EV (best): {total_ev_best:.2f} bb\n"
@@ -430,6 +533,10 @@ class TrainerApp(App[None]):
         )
         if self._feedback_panel:
             self._feedback_panel.update(msg)
+        if self._status_panel:
+            self._status_panel.update(
+                "[b #1b2d55]Great work[/]\n[dim]Check the summary, then dive back in for another run.[/]"
+            )
 
     # --- Session lifecycle helpers ---
     def _queue_restart_when_idle(self) -> None:
@@ -468,6 +575,10 @@ class TrainerApp(App[None]):
             self._options_container.remove_children()
         if self._feedback_panel:
             self._feedback_panel.update("[dim]Session ended at your request.[/]")
+        if self._status_panel:
+            self._status_panel.update(
+                "[b #1b2d55]Session on pause[/]\n[dim]Restart when you're ready to keep sharpening.[/]"
+            )
 
     # --- UI events ---
     @on(Button.Pressed, "#btn-new")

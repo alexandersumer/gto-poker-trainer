@@ -235,6 +235,7 @@ class SessionManager:
                 "ev_loss": best.ev - chosen.ev,
                 "hand_ended": getattr(chosen_feedback, "ends_hand", False),
                 "resolution_note": chosen_feedback.resolution_note,
+                "hand_index": state.hand_index,
             }
             state.records.append(record)
             ends = getattr(chosen_feedback, "ends_hand", False)
@@ -351,6 +352,8 @@ def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
     total_ev_chosen = sum(r["chosen_ev"] for r in records)
     total_ev_lost = total_ev_best - total_ev_chosen
     hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
+    hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
+    hands = len(hand_ids) if hand_ids else len(records)
     room = 0.0
     for record in records:
         room_ev = record.get("room_ev")
@@ -360,4 +363,4 @@ def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
             room_ev = max(1e-9, record["best_ev"] - baseline)
         room += max(1e-9, room_ev)
     score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room)) if room > 1e-9 else 100.0
-    return SummaryPayload(hands=len(records), hits=hits, ev_lost=total_ev_lost, score=score_pct)
+    return SummaryPayload(hands=hands, hits=hits, ev_lost=total_ev_lost, score=score_pct)

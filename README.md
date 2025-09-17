@@ -1,75 +1,73 @@
 # GTO Poker Trainer CLI
 
-Command‑line trainer for heads‑up no‑limit hold’em. Each scenario now includes a fully dealt villain hand (never overlapping with yours or the board). Actions are resolved against that hand: villains can fold, call, raise, or take you to showdown, and the feedback panel explains both EV and their response.
+Heads-up no-limit hold’em trainer with both a terminal flow and a minimal browser UI. Every scenario deals a full villain hand (never overlapping with yours or the board), lets them react street by street, and shows the EV swing behind each choice.
+
+**Live demo:** https://gto-poker-trainer.onrender.com/
 
 ## Requirements
 
-- Python 3.12.11 exactly.
+- Python 3.12.11 exactly (use `pyenv` or your system Python).
 
-## Quick Start
+## Install & Run (CLI)
 
-Install and run:
-
-```
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
 pip install -e .
-gto-poker-trainer-cli
+
+# Play a handful of random hands
+gto-poker-trainer-cli --hands 5
 ```
 
-Run without installing (from project root):
+Running in-place without installing:
 
-```
+```bash
 PYTHONPATH=src python -m gto_poker_trainer_cli
 ```
 
-## Usage
-
-Single mode only; optional `play` subcommand is accepted.
+### CLI options
 
 ```
 gto-poker-trainer-cli [--hands N] [--seed N] [--mc N] [--no-color] [--solver-csv PATH]
 ```
 
-Options:
-
-- `--hands N` Hands to play (default: 1).
+- `--hands N` hands to play (default 1).
 - `--seed N` RNG seed (omit for randomness).
-- `--mc N` Monte Carlo trials per node (default: 200).
-- `--solver-csv PATH` Preflop strategy CSV (falls back to dynamic villain logic when entries are missing).
-- `--no-color` Disable colored output (color is ON by default).
+- `--mc N` Monte Carlo trials per decision (default 200).
+- `--solver-csv PATH` optional preflop strategy CSV before heuristics kick in.
+- `--no-color` disable ANSI colors.
 
-Controls:
+Controls: `1–9` choose an action, `h` help, `?` pot + SPR, `q` quit. Feedback includes a summary such as “Villain calls with…” with EV breakdowns.
 
-- `1–9` choose an action
-- `h` help
-- `?` pot + SPR
-- `q` quit session
+## Web UI
 
-During feedback you’ll also see a summary line such as “Villain folds…” or “Villain calls with …” that reflects the simulated counterplay.
+- Cloud: the Render deployment mirrors the CLI defaults — try it at https://gto-poker-trainer.onrender.com/.
+- Local: install `.[dev]`, then start FastAPI with reload support.
 
-## Development
-
-Ensure Python 3.12.11, then:
-
+```bash
+pip install -e .[dev]
+uvicorn gto_poker_trainer_cli.web.app:app --reload
 ```
-make install-dev
-make test
-make lint
-make fix
-make format
-make check        # lint + tests (same combo used in CI)
-make render-smoke # build the Docker image and hit /healthz like Render does
 
-Run the deep regression suite directly when iterating on strategy logic:
+Environment overrides: `HANDS` and `MC` mirror the CLI flags when set before launch.
 
+## Local Development
+
+```bash
+make install-dev   # editable install with dev extras
+make check         # lint + tests (same combo as CI)
+make test          # pytest -q
+make lint          # Ruff lint
+make format        # Ruff formatter
+make render-smoke  # smoke test Render Docker image + /healthz
 ```
-pytest -q
-```
-```
+
+`pytest -q` runs the deeper regression suite during strategy work.
 
 ## Notes
 
 - Per step: `ev_loss = best_ev - chosen_ev`.
-- Score uses total/avg EV lost and hit rate.
+- Score aggregates total/average EV lost plus hit rate.
 
 ## License
 

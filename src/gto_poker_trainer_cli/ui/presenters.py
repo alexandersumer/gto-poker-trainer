@@ -151,6 +151,8 @@ class RichPresenter(Presenter):
         total_ev_chosen = sum(r["chosen_ev"] for r in records)
         total_ev_lost = total_ev_best - total_ev_chosen
         avg_ev_lost = total_ev_lost / len(records)
+        hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
+        hands_answered = len(hand_ids) if hand_ids else len(records)
         def _room_term(rec: dict) -> float:
             room_ev = rec.get("room_ev")
             if room_ev is not None:
@@ -164,7 +166,7 @@ class RichPresenter(Presenter):
         hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
 
         summary = Table(title="Session Summary", show_header=False)
-        summary.add_row("Hands answered:", str(len(records)))
+        summary.add_row("Hands answered:", str(hands_answered))
         summary.add_row("Best choices hit:", f"{hits} ({100.0 * hits / len(records):.0f}%)")
         summary.add_row("Total EV (chosen):", f"{total_ev_chosen:.2f} bb")
         summary.add_row("Total EV (best possible):", f"{total_ev_best:.2f} bb")

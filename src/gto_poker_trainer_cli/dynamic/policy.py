@@ -585,9 +585,16 @@ def _resolve_preflop(node: Node, option: Option, hand_state: dict[str, Any]) -> 
         villain_eq = 1.0 - hero_eq
         if villain_eq < threshold:
             hand_state["hand_over"] = True
+            risk = raise_to - 1.0
+            total_pot = pot_after_raise
+            net_gain = total_pot - risk
+            note = (
+                f"Villain folds to your 3-bet. Pot {total_pot:.2f}bb awarded "
+                f"(net +{net_gain:.2f}bb)."
+            )
             return OptionResolution(
                 hand_ended=True,
-                note=f"Villain folds to your 3-bet. You scoop {pot_after_raise:.2f}bb.",
+                note=note,
             )
         villain_call = raise_to - open_size
         final_pot = pot_after_raise + villain_call
@@ -615,9 +622,14 @@ def _resolve_preflop(node: Node, option: Option, hand_state: dict[str, Any]) -> 
         villain_text = format_cards_spaced(list(villain_cards))
         if villain_eq < threshold:
             scoop = pot_before_jam + risk
+            net_gain = scoop - risk
+            note = (
+                f"Villain folds to your jam. Pot {scoop:.2f}bb awarded "
+                f"(net +{net_gain:.2f}bb)."
+            )
             return OptionResolution(
                 hand_ended=True,
-                note=f"Villain folds to your jam. You win {scoop:.2f}bb.",
+                note=note,
                 reveal_villain=True,
             )
         equity_note = _fmt_pct(hero_eq, 1)
@@ -661,9 +673,14 @@ def _resolve_flop(node: Node, option: Option, hand_state: dict[str, Any]) -> Opt
         if villain_eq < threshold:
             hand_state["hand_over"] = True
             total_pot = pot_after_bet
+            net_gain = total_pot - bet_size
+            note = (
+                f"Villain folds flop. Pot {total_pot:.2f}bb awarded "
+                f"(net +{net_gain:.2f}bb)."
+            )
             return OptionResolution(
                 hand_ended=True,
-                note=f"Villain folds flop. You win {total_pot:.2f}bb.",
+                note=note,
             )
         # Villain calls
         final_pot = pot_after_bet + bet_size
@@ -684,9 +701,15 @@ def _resolve_flop(node: Node, option: Option, hand_state: dict[str, Any]) -> Opt
         villain_eq = 1.0 - hero_eq
         villain_text = format_cards_spaced(list(villain_cards))
         if villain_eq < threshold:
+            total_pot = pot + risk
+            net_gain = total_pot - risk
+            note = (
+                f"Villain folds to your jam. Pot {total_pot:.2f}bb awarded "
+                f"(net +{net_gain:.2f}bb)."
+            )
             return OptionResolution(
                 hand_ended=True,
-                note=f"Villain folds to your jam. You win {pot:.2f}bb.",
+                note=note,
                 reveal_villain=True,
             )
         equity_note = _fmt_pct(hero_eq, 1)
@@ -738,9 +761,15 @@ def _resolve_turn(node: Node, option: Option, hand_state: dict[str, Any]) -> Opt
         villain_eq = 1.0 - hero_eq
         if villain_eq < threshold:
             hand_state["hand_over"] = True
+            total_pot = pot_after_raise
+            net_gain = total_pot - raise_to
+            note = (
+                f"Villain folds turn. Pot {total_pot:.2f}bb awarded "
+                f"(net +{net_gain:.2f}bb)."
+            )
             return OptionResolution(
                 hand_ended=True,
-                note=f"Villain folds turn. You capture {pot_after_raise:.2f}bb.",
+                note=note,
             )
         final_pot = pot_start + 2 * raise_to
         hand_state["pot"] = final_pot
@@ -800,9 +829,15 @@ def _resolve_river(node: Node, option: Option, hand_state: dict[str, Any]) -> Op
         villain_eq = 1.0 - hero_eq
         if villain_eq < threshold:
             hand_state["hand_over"] = True
+            total_pot = pot_after_bet
+            net_gain = total_pot - bet_size
+            note = (
+                f"Villain folds river. Pot {total_pot:.2f}bb awarded "
+                f"(net +{net_gain:.2f}bb)."
+            )
             return OptionResolution(
                 hand_ended=True,
-                note=f"Villain folds river. You win {pot_after_bet:.2f}bb.",
+                note=note,
             )
         final_pot = pot_after_bet + bet_size
         hand_state["pot"] = final_pot
@@ -841,9 +876,15 @@ def _resolve_river(node: Node, option: Option, hand_state: dict[str, Any]) -> Op
         villain_eq = 1.0 - hero_eq
         villain_text = format_cards_spaced(list(villain_cards))
         if villain_eq < threshold:
+            total_pot = pot + risk
+            net_gain = total_pot - risk
+            note = (
+                f"Villain folds river jam. Pot {total_pot:.2f}bb awarded "
+                f"(net +{net_gain:.2f}bb)."
+            )
             return OptionResolution(
                 hand_ended=True,
-                note=f"Villain folds river jam. You win {pot:.2f}bb.",
+                note=note,
                 reveal_villain=True,
             )
         final_pot = pot + 2 * risk

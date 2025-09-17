@@ -53,6 +53,7 @@ def run_core(
                     "ev_loss": best.ev - chosen.ev,
                     "hand_ended": chosen_feedback.ends_hand,
                     "resolution_note": chosen_feedback.resolution_note,
+                    "hand_index": h,
                 }
             )
             # If the chosen action ends the hand (e.g., Fold), stop traversing further nodes.

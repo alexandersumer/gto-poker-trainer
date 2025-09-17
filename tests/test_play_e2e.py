@@ -46,7 +46,8 @@ def test_play_shows_all_streets_and_summary_then_loops_until_quit():
     assert "Session Summary" in out
     # Verify next session started by seeing another hand header
     assert out.count("Hand 1/1") >= 2
-    assert "Hands answered:" in out
+    summary_line = next(line for line in out.splitlines() if "Hands answered:" in line)
+    assert "│ 1" in summary_line
     assert "Top EV leaks" in out
 
 

@@ -74,6 +74,7 @@ def test_summary_scoring_uses_full_room_between_best_and_worst():
             "ev_loss": 0.4,
             "hand_ended": False,
             "resolution_note": None,
+            "hand_index": 0,
         },
         {
             "street": "RIVER",
@@ -86,12 +87,50 @@ def test_summary_scoring_uses_full_room_between_best_and_worst():
             "ev_loss": 0.5,
             "hand_ended": True,
             "resolution_note": "Villain folds",
+            "hand_index": 0,
+        },
+    ]
+
+    summary = _summary_payload(records)
+
+    assert summary.hands == 1
+    assert summary.hits == 0
+    assert summary.ev_lost == pytest.approx(0.9)
+    assert summary.score == pytest.approx(52.63, rel=1e-3)
+
+
+def test_summary_counts_unique_hands():
+    from gto_poker_trainer_cli.application.session_service import _summary_payload
+
+    records = [
+        {
+            "street": "PREFLOP",
+            "chosen_key": "call",
+            "chosen_ev": 1.0,
+            "best_key": "3bet",
+            "best_ev": 1.3,
+            "worst_ev": 0.4,
+            "room_ev": 0.9,
+            "ev_loss": 0.3,
+            "hand_ended": True,
+            "resolution_note": "Villain folds to your 3-bet. Pot 4.00bb awarded (net +2.50bb).",
+            "hand_index": 0,
+        },
+        {
+            "street": "PREFLOP",
+            "chosen_key": "fold",
+            "chosen_ev": 0.0,
+            "best_key": "call",
+            "best_ev": 0.1,
+            "worst_ev": -0.5,
+            "room_ev": 0.6,
+            "ev_loss": 0.1,
+            "hand_ended": True,
+            "resolution_note": "You fold. SB keeps 3.50bb.",
+            "hand_index": 1,
         },
     ]
 
     summary = _summary_payload(records)
 
     assert summary.hands == 2
-    assert summary.hits == 0
-    assert summary.ev_lost == pytest.approx(0.9)
-    assert summary.score == pytest.approx(52.63, rel=1e-3)
