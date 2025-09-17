@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from .cards import Dealt, deal_hand_and_board, format_card_ascii, format_cards_spaced
+from .cards import Dealt, deal_hand_and_board, format_card_ascii
 
 
 @dataclass
@@ -46,9 +46,8 @@ def generate_episode(
     # Preflop node: Villain opens to s in {2.0, 2.5, 3.0}; hero defends from the opposite seat.
     open_sizes = [2.0, 2.5, 3.0]
     sz = rng.choice(open_sizes)
-    desc_pf = (
-        f"{villain_pos} opens {sz:.1f}bb. You're {hero_pos} with {format_cards_spaced(hero_cards)}, {int(stacks_bb)}bb."
-    )
+    eff_stacks = int(stacks_bb)
+    desc_pf = f"{villain_pos} opens {sz:.1f}bb. You're {hero_pos} with {eff_stacks}bb behind."
     # Pot after SB opens to sz: add only the incremental chips beyond the posted SB
     # Example: pot=1.5 (0.5 SB + 1 BB); SB opens to 2.0 → adds 1.5; pot becomes 3.0
     pot_after_open = pot + (sz - sb)

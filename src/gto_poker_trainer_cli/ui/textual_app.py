@@ -481,7 +481,6 @@ class TrainerApp(App[None]):
         if self._headline_label:
             self._headline_label.update(headline)
 
-        hero_seat = node.actor or node.context.get("hero_seat")
         P = float(node.pot_bb)
         spr = (node.effective_bb / P) if P > 0 else float("inf")
         bet = node.context.get("bet")
@@ -489,8 +488,6 @@ class TrainerApp(App[None]):
             pct = 100.0 * float(bet) / max(1e-9, P)
         if self._meta_panel:
             styled_meta = []
-            if isinstance(hero_seat, str) and hero_seat:
-                styled_meta.append(f"[b #1b2d55]Seat[/]: {hero_seat}")
             styled_meta.extend(
                 [
                     f"[b #1b2d55]Pot[/]: {P:.2f} bb [dim](SPR {spr:.1f})[/]",

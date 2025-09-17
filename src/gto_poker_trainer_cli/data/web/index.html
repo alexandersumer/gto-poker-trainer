@@ -393,8 +393,7 @@
         const boardEl = $('#board'); if(boardEl) boardEl.innerHTML = board || '<span class="text-sm text-muted">Board not yet revealed</span>';
         const meta = $('#meta');
         if(meta){
-          const parts = [`Seat: ${n.actor}`];
-          parts.push(`Hand ${n.hand_no}/${n.total_hands}`);
+          const parts = [`Hand ${n.hand_no}/${n.total_hands}`];
           const spr = n.pot_bb > 0 ? (n.effective_bb / n.pot_bb) : Infinity;
           parts.push(`Pot: ${fmt(n.pot_bb)} bb`);
           parts.push(`SPR: ${spr.toFixed(1)}`);
