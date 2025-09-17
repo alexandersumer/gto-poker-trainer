@@ -324,7 +324,10 @@
         } catch (err) {
           console.error(err);
           const stats = $('#stats');
-          if(stats) stats.textContent = 'Unable to start session. Please try again.';
+          if(stats){
+            const message = err instanceof Error ? err.message : String(err ?? 'unknown error');
+            stats.textContent = `Unable to start session. ${message}`;
+          }
           show('#panel-start');
         } finally {
           startBusy = false;
