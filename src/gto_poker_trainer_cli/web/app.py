@@ -13,6 +13,24 @@ class CreateSessionRequest(BaseModel):
     hands: int | None = None
     mc: int | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce(cls, data: dict[str, object]) -> dict[str, object]:
+        if not isinstance(data, dict):
+            return data
+        cleaned: dict[str, object] = dict(data)
+        for field in ("hands", "mc"):
+            value = cleaned.get(field)
+            if value in (None, ""):
+                cleaned[field] = None
+                continue
+            if isinstance(value, str):
+                try:
+                    cleaned[field] = int(value)
+                except ValueError:
+                    cleaned[field] = None
+        return cleaned
+
     @model_validator(mode="after")
     def _normalize(self) -> CreateSessionRequest:
         hands = self.hands if self.hands is not None else 1

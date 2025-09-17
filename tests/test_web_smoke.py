@@ -63,7 +63,7 @@ def test_web_endpoints_session_flow():
 
 def test_create_session_with_missing_or_invalid_inputs():
     client = TestClient(app)
-    # Simulate empty form fields posting nulls/zeros
+    # Simulate empty/invalid form fields posting nulls/strings
     r = client.post("/api/session", json={"hands": None, "mc": None})
     assert r.status_code == 200
     sid = r.json()["session"]
@@ -85,3 +85,9 @@ def test_create_session_with_missing_or_invalid_inputs():
     summary2 = client.get(f"/api/session/{sid2}/summary")
     assert summary2.status_code == 200
     assert summary2.json()["hands"] >= 0
+
+    r3 = client.post("/api/session", json={"hands": "", "mc": ""})
+    assert r3.status_code == 200
+    sid3 = r3.json()["session"]
+    node3 = client.get(f"/api/session/{sid3}/node")
+    assert node3.status_code == 200
