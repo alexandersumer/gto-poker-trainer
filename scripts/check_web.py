@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import socket
 import subprocess
@@ -16,29 +17,40 @@ def free_port() -> int:
 
 def main() -> int:
     port = int(os.environ.get("PORT", str(free_port())))
-    cmd = [
-        sys.executable,
-        "-m",
-        "textual",
-        "serve",
-        "python -m gto_poker_trainer_cli.ui.textual_main --hands 1 --mc 5",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        str(port),
-    ]
+
+    try:
+        import textual_serve.server  # noqa: F401
+    except Exception as exc:  # pragma: no cover - optional dependency missing
+        print(f"textual-serve is required for this check: {exc}", file=sys.stderr)
+        return 3
+
+    launcher = "\n".join(
+        [
+            "from textual_serve.server import Server",
+            "server = Server(",
+            "    command='python -m gto_poker_trainer_cli.ui.textual_main --hands 1 --mc 5',",
+            "    host='127.0.0.1',",
+            f"    port={port},",
+            "    title='GTO Poker Trainer',",
+            "    public_url=None,",
+            ")",
+            "server.serve()",
+        ]
+    )
 
     proc = subprocess.Popen(
-        cmd,
+        [sys.executable, "-c", launcher],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
     )
+
+    base = f"http://127.0.0.1:{port}/"
+    ok = False
     try:
-        # Wait for server to accept connections
-        base = f"http://127.0.0.1:{port}/"
-        ok = False
         for _ in range(100):
+            if proc.poll() is not None:
+                break
             time.sleep(0.1)
             try:
                 with urllib.request.urlopen(base, timeout=1) as resp:
@@ -48,22 +60,20 @@ def main() -> int:
                         break
             except Exception:
                 continue
-        if not ok:
-            # dump a bit of logs to help diagnose
-            try:
-                output = proc.stdout.read() if proc.stdout else ""
-                sys.stderr.write(output[-2000:])
-            except Exception:
-                pass
-            return 2
-        return 0
+        if ok:
+            return 0
+        output = proc.stdout.read() if proc.stdout else ""
+        if output:
+            sys.stderr.write(output[-2000:])
+        return 2
     finally:
         proc.terminate()
-        try:
+        with contextlib.suppress(Exception):
             proc.wait(timeout=2)
-        except Exception:
+        if proc.poll() is None:
             proc.kill()
-            proc.wait(timeout=2)
+            with contextlib.suppress(Exception):
+                proc.wait(timeout=2)
 
 
 if __name__ == "__main__":

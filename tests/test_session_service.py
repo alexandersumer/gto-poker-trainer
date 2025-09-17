@@ -19,12 +19,16 @@ def test_session_manager_basic_flow():
     assert len(node["hero_cards"]) == 2
     assert all(len(card) == 2 for card in node["hero_cards"])
     assert data["options"], "options should be available"
+    first_option = data["options"][0]
+    assert {"key", "label", "ev", "why", "ends_hand"}.issubset(first_option)
 
     # choose first option for a couple of nodes to ensure caching works
     choice = manager.choose(session_id, 0)
     assert isinstance(choice, ChoiceResult)
     choice_payload = choice.to_dict()
     assert "feedback" in choice_payload
+    feedback = choice_payload["feedback"]
+    assert "chosen" in feedback and "label" in feedback["chosen"]
     next_payload = choice_payload["next"]
     assert "done" in next_payload
 

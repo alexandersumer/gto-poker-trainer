@@ -4,13 +4,14 @@ import random
 import secrets
 import string
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
+from ..core.formatting import format_option_label
 from ..core.models import Option
 from ..dynamic.cards import format_card_ascii
 from ..dynamic.generator import Episode, Node, generate_episode
-from ..dynamic.policy import options_for
+from ..dynamic.policy import options_for, resolve_for
 
 
 def _card_strings(cards: list[int]) -> list[str]:
@@ -71,19 +72,64 @@ class SummaryPayload:
 
 
 @dataclass(frozen=True)
+class OptionPayload:
+    key: str
+    label: str
+    ev: float
+    why: str
+    ends_hand: bool
+    gto_freq: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data = {
+            "key": self.key,
+            "label": self.label,
+            "ev": self.ev,
+            "why": self.why,
+            "ends_hand": self.ends_hand,
+        }
+        if self.gto_freq is not None:
+            data["gto_freq"] = self.gto_freq
+        return data
+
+
+@dataclass(frozen=True)
+class ActionSnapshot:
+    key: str
+    label: str
+    ev: float
+    why: str
+    gto_freq: float | None
+    resolution_note: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data = {
+            "key": self.key,
+            "label": self.label,
+            "ev": self.ev,
+            "why": self.why,
+        }
+        if self.gto_freq is not None:
+            data["gto_freq"] = self.gto_freq
+        if self.resolution_note:
+            data["resolution_note"] = self.resolution_note
+        return data
+
+
+@dataclass(frozen=True)
 class FeedbackPayload:
     correct: bool
     ev_loss: float
-    chosen: dict[str, Any]
-    best: dict[str, Any]
+    chosen: ActionSnapshot
+    best: ActionSnapshot
     ended: bool
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "correct": self.correct,
             "ev_loss": self.ev_loss,
-            "chosen": self.chosen,
-            "best": self.best,
+            "chosen": self.chosen.to_dict(),
+            "best": self.best.to_dict(),
             "ended": self.ended,
         }
 
@@ -104,7 +150,7 @@ class ChoiceResult:
 class NodeResponse:
     done: bool
     node: NodePayload | None = None
-    options: list[str] | None = None
+    options: list[OptionPayload] | None = None
     summary: SummaryPayload | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -113,7 +159,7 @@ class NodeResponse:
         data = {
             "done": False,
             "node": None if self.node is None else self.node.to_dict(),
-            "options": list(self.options or []),
+            "options": [opt.to_dict() for opt in self.options or []],
         }
         return data
 
@@ -158,7 +204,7 @@ class SessionManager:
                 return NodeResponse(done=True, summary=_summary_payload(state.records))
             payload = _node_payload(state, node)
             options = _ensure_options(state, node)
-            return NodeResponse(done=False, node=payload, options=[opt.key for opt in options])
+            return NodeResponse(done=False, node=payload, options=_option_payloads(node, options))
 
     def choose(self, session_id: str, choice_index: int) -> ChoiceResult:
         with self._lock:
@@ -171,6 +217,12 @@ class SessionManager:
                 raise ValueError("choice index out of range")
             chosen = options[choice_index]
             best = options[_best_index(options)]
+            resolution = resolve_for(node, chosen, state.rng)
+            chosen_feedback = replace(chosen)
+            if resolution.note:
+                chosen_feedback.resolution_note = resolution.note
+            if resolution.hand_ended:
+                chosen_feedback.ends_hand = True
             record = {
                 "street": node.street,
                 "chosen_key": chosen.key,
@@ -178,9 +230,11 @@ class SessionManager:
                 "best_key": best.key,
                 "best_ev": best.ev,
                 "ev_loss": best.ev - chosen.ev,
+                "hand_ended": getattr(chosen_feedback, "ends_hand", False),
+                "resolution_note": chosen_feedback.resolution_note,
             }
             state.records.append(record)
-            ends = getattr(chosen, "ends_hand", False)
+            ends = getattr(chosen_feedback, "ends_hand", False)
             episode = state.episodes[state.hand_index]
             state.current_index = len(episode.nodes) if ends else state.current_index + 1
             state.cached_options = None
@@ -191,15 +245,15 @@ class SessionManager:
                 else NodeResponse(
                     done=False,
                     node=_node_payload(state, next_node),
-                    options=[opt.key for opt in _ensure_options(state, next_node)],
+                    options=_option_payloads(next_node, _ensure_options(state, next_node)),
                 )
             )
 
         feedback = FeedbackPayload(
             correct=chosen.key == best.key,
             ev_loss=record["ev_loss"],
-            chosen={"key": chosen.key, "ev": chosen.ev, "why": chosen.why},
-            best={"key": best.key, "ev": best.ev, "why": best.why},
+            chosen=_snapshot(node, chosen_feedback),
+            best=_snapshot(node, best),
             ended=ends,
         )
         return ChoiceResult(feedback=feedback, next_payload=next_payload)
@@ -260,6 +314,31 @@ def _node_payload(state: SessionState, node: Node) -> NodePayload:
 
 def _best_index(opts: list[Option]) -> int:
     return max(range(len(opts)), key=lambda idx: opts[idx].ev)
+
+
+def _option_payloads(node: Node, options: list[Option]) -> list[OptionPayload]:
+    return [
+        OptionPayload(
+            key=opt.key,
+            label=format_option_label(node, opt),
+            ev=opt.ev,
+            why=opt.why,
+            ends_hand=getattr(opt, "ends_hand", False),
+            gto_freq=getattr(opt, "gto_freq", None),
+        )
+        for opt in options
+    ]
+
+
+def _snapshot(node: Node, option: Option) -> ActionSnapshot:
+    return ActionSnapshot(
+        key=option.key,
+        label=format_option_label(node, option),
+        ev=option.ev,
+        why=option.why,
+        gto_freq=getattr(option, "gto_freq", None),
+        resolution_note=getattr(option, "resolution_note", None),
+    )
 
 
 def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:

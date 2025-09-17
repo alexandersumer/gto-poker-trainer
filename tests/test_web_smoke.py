@@ -34,11 +34,15 @@ def test_web_endpoints_session_flow():
         board_cards = node["board_cards"]
         assert all(isinstance(card, str) and len(card) == 2 for card in board_cards)
         assert data["options"], "options list should not be empty"
+        first_option = data["options"][0]
+        assert first_option["label"]
         # choose first option
         r2 = client.post(f"/api/session/{sid}/choose", json={"choice": 0})
         assert r2.status_code == 200
         choice_payload = r2.json()
         assert "feedback" in choice_payload
+        chosen_snapshot = choice_payload["feedback"]["chosen"]
+        assert "label" in chosen_snapshot
         assert "next" in choice_payload
         nxt = choice_payload["next"]
         assert isinstance(nxt, dict)
