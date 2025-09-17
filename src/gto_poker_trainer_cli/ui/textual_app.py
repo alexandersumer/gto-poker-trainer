@@ -215,16 +215,16 @@ class TrainerApp(App[None]):
     .option-button { background: #ffffff; border: 1px solid #d1daf3; color: #1b2d55; }
     .option-button:hover { background: #eef3ff; }
     .option-button:focus { border: 1px solid #5b76f8; }
-    .option-fold { background: #f4dce1; border: 1px solid #e2c4cd; color: #6f3a4a; }
-    .option-fold:hover { background: #efd1d8; }
-    .option-call { background: #d9f0e4; border: 1px solid #bcdac7; color: #2e5948; }
-    .option-call:hover { background: #cde7da; }
-    .option-check { background: #e4ebf9; border: 1px solid #c7d3ee; color: #2f4a6f; }
-    .option-check:hover { background: #d7e0f4; }
-    .option-bet { background: #ede4f6; border: 1px solid #d8cdef; color: #58446c; }
-    .option-bet:hover { background: #e4d9f0; }
-    .option-raise { background: #ede4f6; border: 1px solid #d8cdef; color: #58446c; }
-    .option-raise:hover { background: #e4d9f0; }
+    .option-fold { background: #f7e8ee; border: 1px solid #e9d2dc; color: #734552; }
+    .option-fold:hover { background: #f0dde5; }
+    .option-call { background: #eef2fb; border: 1px solid #d9e0f2; color: #3f4a63; }
+    .option-call:hover { background: #e5e9f6; }
+    .option-check { background: #eef2fb; border: 1px solid #d9e0f2; color: #3f4a63; }
+    .option-check:hover { background: #e5e9f6; }
+    .option-bet { background: #ece6f5; border: 1px solid #d6cde8; color: #4d3d66; }
+    .option-bet:hover { background: #e3dced; }
+    .option-raise { background: #ece6f5; border: 1px solid #d6cde8; color: #4d3d66; }
+    .option-raise:hover { background: #e3dced; }
     #btn-new { background: #2f6bff; border: 1px solid #2a5de0; color: #ffffff; text-align: center; }
     #btn-new:hover { background: #2657d1; }
     #btn-end { background: #f3f6ff; border: 1px solid #ccd8ff; color: #253260; text-align: center; }
