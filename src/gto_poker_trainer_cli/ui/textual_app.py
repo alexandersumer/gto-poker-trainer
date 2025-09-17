@@ -203,12 +203,14 @@ class TrainerApp(App[None]):
     .option-button:focus { border: 1px solid #5b76f8; }
     .option-fold { background: #fff5f6; border: 1px solid #f3cbd3; color: #9f3b56; }
     .option-fold:hover { background: #ffe9ef; }
-    .option-call { background: #eef6ff; border: 1px solid #c0d8ff; color: #1f4d8f; }
-    .option-call:hover { background: #e1eeff; }
+    .option-call { background: #d2f0ed; border: 1px solid #9ed7cf; color: #0f3d35; }
+    .option-call:hover { background: #c2e8e3; }
     .option-check { background: #f8f9ff; border: 1px solid #d8deef; color: #2a3a5f; }
     .option-check:hover { background: #edf1ff; }
-    .option-value { background: #fdf4e4; border: 1px solid #f1d7aa; color: #7d5115; }
-    .option-value:hover { background: #f8e8cf; }
+    .option-bet { background: #fdf0c9; border: 1px solid #f2d88f; color: #6b4a12; }
+    .option-bet:hover { background: #f8e2ac; }
+    .option-raise { background: #fde1d6; border: 1px solid #f3b8a1; color: #6a2f17; }
+    .option-raise:hover { background: #f8d0bf; }
     #btn-new { background: #2f6bff; border: 1px solid #2a5de0; color: #ffffff; text-align: center; }
     #btn-new:hover { background: #2657d1; }
     #btn-end { background: #f3f6ff; border: 1px solid #ccd8ff; color: #253260; text-align: center; }
@@ -458,8 +460,12 @@ class TrainerApp(App[None]):
                     classes.append("option-call")
                 elif "check" in key_lower:
                     classes.append("option-check")
+                elif any(term in key_lower for term in ("raise", "3-bet", "4-bet", "jam", "all-in")):
+                    classes.append("option-raise")
+                elif "bet" in key_lower:
+                    classes.append("option-bet")
                 else:
-                    classes.append("option-value")
+                    classes.append("option-bet")
                 btn = Button(f"{i}. {k}", id=f"opt-{i - 1}", classes=" ".join(classes))
                 buttons.append(btn)
             if buttons:

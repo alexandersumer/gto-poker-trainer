@@ -58,6 +58,7 @@ class NodePayload:
 @dataclass(frozen=True)
 class SummaryPayload:
     hands: int
+    decisions: int
     hits: int
     ev_lost: float
     score: float
@@ -65,6 +66,7 @@ class SummaryPayload:
     def to_dict(self) -> dict[str, Any]:
         return {
             "hands": self.hands,
+            "decisions": self.decisions,
             "hits": self.hits,
             "ev_lost": self.ev_lost,
             "score": self.score,
@@ -347,7 +349,7 @@ def _snapshot(node: Node, option: Option) -> ActionSnapshot:
 
 def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
     if not records:
-        return SummaryPayload(hands=0, hits=0, ev_lost=0.0, score=0.0)
+        return SummaryPayload(hands=0, decisions=0, hits=0, ev_lost=0.0, score=0.0)
     total_ev_best = sum(r["best_ev"] for r in records)
     total_ev_chosen = sum(r["chosen_ev"] for r in records)
     total_ev_lost = total_ev_best - total_ev_chosen
@@ -363,4 +365,4 @@ def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
             room_ev = max(1e-9, record["best_ev"] - baseline)
         room += max(1e-9, room_ev)
     score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room)) if room > 1e-9 else 100.0
-    return SummaryPayload(hands=hands, hits=hits, ev_lost=total_ev_lost, score=score_pct)
+    return SummaryPayload(hands=hands, decisions=len(records), hits=hits, ev_lost=total_ev_lost, score=score_pct)

@@ -94,6 +94,7 @@ def test_summary_scoring_uses_full_room_between_best_and_worst():
     summary = _summary_payload(records)
 
     assert summary.hands == 1
+    assert summary.decisions == 2
     assert summary.hits == 0
     assert summary.ev_lost == pytest.approx(0.9)
     assert summary.score == pytest.approx(52.63, rel=1e-3)
@@ -134,6 +135,7 @@ def test_summary_counts_unique_hands():
     summary = _summary_payload(records)
 
     assert summary.hands == 2
+    assert summary.decisions == 2
 
 
 def _play_session_with_policy(manager, sid, chooser):
@@ -160,6 +162,7 @@ def test_optimal_play_produces_zero_ev_loss():
     summary = _play_session_with_policy(manager, sid, take_best)
 
     assert summary.hands == 1
+    assert summary.decisions >= summary.hands
     assert summary.ev_lost == pytest.approx(0.0, abs=1e-9)
     assert summary.score == pytest.approx(100.0)
     assert summary.hits > 0
@@ -175,6 +178,7 @@ def test_poor_choices_accumulate_ev_loss():
     summary = _play_session_with_policy(manager, sid, take_worst)
 
     assert summary.hands == 1
+    assert summary.decisions >= summary.hands
     assert summary.ev_lost > 0.0
     assert summary.score < 100.0
     assert summary.hits == 0
