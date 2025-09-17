@@ -163,6 +163,12 @@
 
         <div id="options" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
 
+        <div class="flex flex-col sm:flex-row gap-2 sm:justify-end">
+          <button id="btn-end" class="rounded-lg border border-[#475569] bg-[#1f2937] px-4 py-2 text-sm font-semibold text-slate-100 transition-colors duration-200 hover:bg-[#273447] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2">
+            End Session
+          </button>
+        </div>
+
         <div id="feedback" class="hidden rounded-lg bg-white shadow p-4"></div>
       </section>
 
@@ -311,20 +317,22 @@
         const area = $('#options');
         if(area){
           const palette = {
-            Fold: 'bg-slate-800 border-slate-700 hover:bg-slate-700 focus-visible:ring-rose-200',
-            Call: 'bg-slate-700 border-slate-600 hover:bg-slate-600 focus-visible:ring-sky-200',
-            Check: 'bg-slate-600 border-slate-500 hover:bg-slate-500 focus-visible:ring-slate-200',
-            'Check back': 'bg-slate-600 border-slate-500 hover:bg-slate-500 focus-visible:ring-slate-200',
+            Fold: 'bg-[#3b1010] border-[#7f1d1d] hover:bg-[#4c1515] focus-visible:ring-rose-200 text-slate-100',
+            Call: 'bg-[#0f2f52] border-[#1d4ed8] hover:bg-[#153a63] focus-visible:ring-sky-200 text-slate-100',
+            Check: 'bg-[#1f2937] border-[#475569] hover:bg-[#273447] focus-visible:ring-slate-200 text-slate-100',
+            'Check back': 'bg-[#1f2937] border-[#475569] hover:bg-[#273447] focus-visible:ring-slate-200 text-slate-100',
           };
           const fragment = document.createDocumentFragment();
-          payload.options.forEach((k,i)=>{
+          payload.options.forEach((label,i)=>{
+            const text = label.replace(/\s*\([^)]*\)$/, '');
+            const toneKey = label.includes('%') ? text : label;
             const b = document.createElement('button');
             b.type = 'button';
-            const base = 'option-card w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold text-slate-100 tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-300 border border-slate-700/60 shadow-sm';
-            const color = palette[k] || 'bg-emerald-700 border-emerald-600 hover:bg-emerald-600 focus-visible:ring-emerald-200';
+            const base = 'option-card w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-300 border border-slate-700/60 shadow-sm text-slate-100';
+            const color = palette[toneKey] || 'bg-[#0f4c3a] border-[#0f766e] hover:bg-[#135b47] focus-visible:ring-emerald-200';
             b.className = `${base} ${color}`;
             b.style.animationDelay = `${i * 40}ms`;
-            b.textContent = `${i + 1}. ${k}`;
+            b.textContent = `${i + 1}. ${text}`;
             b.onclick = () => choose(i);
             fragment.appendChild(b);
           });
@@ -393,6 +401,17 @@
         show('#panel-summary');
       }
 
+      async function endSession(){
+        if(!sid || pending) return;
+        try{
+          const summary = await api(`/api/session/${sid}/summary`);
+          answered = summary.hands || answered;
+          await showSummary(summary);
+        } catch(err){
+          console.error(err);
+        }
+      }
+
       function updateStats(){
         const stats = $('#stats');
         if(stats) stats.textContent = answered ? `Answered: ${answered}` : '';
@@ -416,6 +435,14 @@
           resetFeedback();
           setStartButtonState(false);
           show('#panel-start');
+        });
+      }
+
+      const endBtn = $('#btn-end');
+      if(endBtn){
+        endBtn.addEventListener('click', (event)=>{
+          event.preventDefault();
+          endSession();
         });
       }
 

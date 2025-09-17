@@ -114,10 +114,10 @@ class TrainerApp(App[None]):
     .option-button { background: #1f2937; border: 1px solid #334155; color: #f8fafc; }
     .option-button:hover { background: #273449; }
     .option-button:focus { border: 1px solid #64748b; }
-    .option-fold { background: #3f1d1d; border: 1px solid #7f1d1d; }
-    .option-fold:hover { background: #4c1d1d; }
-    .option-call { background: #1e3a5f; border: 1px solid #1d4ed8; }
-    .option-call:hover { background: #1d3d68; }
+    .option-fold { background: #3b1010; border: 1px solid #7f1d1d; }
+    .option-fold:hover { background: #4c1515; }
+    .option-call { background: #0f2f52; border: 1px solid #1d4ed8; }
+    .option-call:hover { background: #153a63; }
     .option-check { background: #1f2937; border: 1px solid #475569; }
     .option-check:hover { background: #273447; }
     .option-value { background: #0f4c3a; border: 1px solid #0f766e; }

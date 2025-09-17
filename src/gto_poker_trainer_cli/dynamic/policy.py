@@ -154,7 +154,8 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             f"Continuing range (~{_fmt_pct(continue_ratio)}) gives you {_fmt_pct(eq_call, 1)} equity "
             f"→ EV {ev_called:.2f} bb."
         )
-        options.append(Option(f"Bet {int(pct * 100)}% pot ({bet:.2f} bb)", ev, why))
+        why += f" Additional sizing detail: {bet:.2f} bb (equals {int(pct * 100)}% pot)."
+        options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why))
 
     return options
 
@@ -244,7 +245,8 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             f"Bet {int(pct * 100)}%: villain folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
             f"Calls (~{_fmt_pct(continue_ratio)}) give you {_fmt_pct(eq_call, 1)} equity → EV {ev_called:.2f} bb."
         )
-        options.append(Option(f"Bet {int(pct * 100)}% pot ({bet:.2f} bb)", ev, why))
+        why += f" Additional sizing detail: {bet:.2f} bb (equals {int(pct * 100)}% pot)."
+        options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why))
 
     return options
 
