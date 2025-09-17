@@ -304,27 +304,6 @@
       }
       button:not([disabled]):active { transform: translateY(1px); }
       button[disabled] { cursor: wait !important; opacity: 0.65 !important; }
-      #options {
-        box-shadow: none;
-      }
-      #options button {
-        box-shadow: 0 6px 12px var(--color-shadow-soft);
-      }
-      #options button:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 3px var(--focus-ring);
-      }
-      .btn-action {
-        border-radius: 0.9rem;
-        border: 1px solid var(--border-panel);
-        padding: 0.9rem 1.15rem;
-        font-weight: 600;
-        text-align: left;
-        color: var(--text-primary);
-        background: var(--card-highlight);
-        box-shadow: 0 6px 12px var(--color-shadow-soft);
-        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
-      }
       .btn-primary {
         background: var(--btn-primary-bg);
         color: var(--btn-primary-text);
@@ -438,10 +417,6 @@
         border-left: 4px solid rgba(180, 35, 24, 0.25);
       }
 
-      .action-button {
-        min-height: var(--min-tap);
-      }
-
       .result-panel {
         line-height: 1.35;
       }
@@ -451,20 +426,29 @@
         top: 0;
         z-index: 50;
         backdrop-filter: blur(12px);
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.92);
         border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-        padding-top: max(12px, var(--safe-top));
+        padding-top: max(8px, var(--safe-top));
+        padding-bottom: 8px;
       }
-      .app-header .header-inner {
+      .app-header__inner {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding-inline: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .app-header .top-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        height: 56px;
+        min-height: 56px;
       }
       .app-header .brand {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.5rem;
       }
       .app-header .brand-mark {
         display: inline-grid;
@@ -476,9 +460,10 @@
         color: #ffffff;
         font-size: 1rem;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 2px rgba(15, 23, 42, 0.16);
+        padding: 0.5rem;
       }
       .app-header .wordmark {
-        font-size: 17px;
+        font-size: 16px;
         font-weight: 600;
         color: var(--text-primary);
         letter-spacing: -0.01em;
@@ -523,54 +508,333 @@
         font-weight: 600;
         color: var(--text-primary);
       }
-      .subheader {
+      .status-bar {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        color: var(--color-subheader-text);
+      }
+      .status-scroll {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        margin-inline: -0.25rem;
+        padding-inline: 0.25rem;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      .status-scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: var(--color-muted-bg);
+        border: 1px solid var(--color-muted-border);
+        color: var(--text-secondary);
+        font-size: 0.78rem;
+        line-height: 1;
+        white-space: nowrap;
+      }
+      .status-chip strong {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .status-chip .chip-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        line-height: 1;
+        color: var(--color-secondary-text);
+      }
+      .feedback-banner {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-size: 13px;
-        color: var(--color-subheader-text);
-        gap: 0.75rem;
-        flex-wrap: nowrap;
-        min-height: 38px;
+        gap: 12px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1px solid var(--color-muted-border);
+        background: var(--color-muted-bg);
+        color: var(--color-secondary-text);
       }
-      .subheader .stateline {
-        flex: 1 1 auto;
-        min-width: 0;
-        font-weight: 500;
-        color: var(--text-secondary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      .feedback-banner[data-state="correct"] {
+        background: var(--success-bg);
+        color: var(--success-text);
+        border-color: rgba(17, 106, 71, 0.35);
       }
-      .subheader .stateline strong {
+      .feedback-banner[data-state="incorrect"] {
+        background: var(--btn-danger-bg);
+        color: var(--btn-danger-text);
+        border-color: rgba(180, 35, 24, 0.25);
+      }
+      .feedback-text {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.9rem;
+      }
+      .feedback-line strong {
         color: var(--text-primary);
       }
-      .subheader .stats {
+      .feedback-detail {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid var(--color-muted-border);
+        background: #ffffff;
+        color: var(--color-secondary-text);
+        font-size: 0.9rem;
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+      .feedback-detail:hover {
+        background: var(--color-settings-hover);
+      }
+      .feedback-detail:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      .info-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--color-outline);
+        border-radius: 12px;
+        background: #ffffff;
+        color: var(--text-primary);
+      }
+      .info-row {
         display: flex;
         align-items: center;
-        flex: 0 0 auto;
-        gap: 0.75rem;
-        white-space: nowrap;
+        gap: 12px;
       }
-      .subheader .stats span strong {
+      .info-label {
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        min-width: 3.5rem;
+      }
+      .info-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 1.05rem;
+        font-weight: 600;
         color: var(--text-primary);
       }
-      .text-num {
-        font-variant-numeric: tabular-nums;
+      .action-sheet {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 60;
+        padding: 0 clamp(1rem, 4vw, 2rem) clamp(0.75rem, 2vw, 1.25rem);
+        pointer-events: none;
       }
-      .unit {
-        opacity: 0.65;
-        margin-left: 0.125rem;
+      .sheet-inner {
+        pointer-events: auto;
+        background: rgba(255, 255, 255, 0.96);
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.12);
+        padding: 16px 20px calc(16px + var(--safe-bottom));
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
       }
-      .subheader .stats span {
-        display: inline-flex;
-        align-items: baseline;
+      .sheet-handle {
+        width: 48px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.16);
+        margin: 0 auto 12px;
       }
-      .subheader .stats span + span::before {
-        content: '•';
-        margin: 0 0.6rem;
-        color: var(--color-subheader-separator);
+      .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+      }
+      .action-button {
+        min-height: 56px;
+        border-radius: 14px;
+        border: 1px solid var(--color-secondary-border);
+        background: var(--card-highlight);
+        color: var(--text-primary);
+        font-weight: 600;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+        padding: 12px;
+        transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+      }
+      .action-button .action-label {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .action-button .action-meta {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
         font-weight: 500;
+      }
+      .action-button:hover {
+        background: var(--btn-primary-hover);
+        border-color: var(--btn-primary-active);
+      }
+      .action-button:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      .action-button.active {
+        background: var(--btn-primary-bg);
+        border-color: var(--btn-primary-active);
+        color: var(--btn-primary-text);
+      }
+      .raise-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-top: 4px;
+      }
+      .raise-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+      }
+      .raise-value {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      #raise-slider {
+        width: 100%;
+        accent-color: var(--color-progress);
+      }
+      .raise-presets {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .raise-preset {
+        border: 1px solid var(--color-muted-border);
+        background: var(--color-muted-bg);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+      }
+      .raise-preset.active {
+        background: var(--btn-primary-bg);
+        border-color: var(--btn-primary-active);
+        color: var(--btn-primary-text);
+      }
+      .sheet-empty {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        text-align: center;
+        padding: 12px 0;
+      }
+      .feedback-drawer {
+        position: fixed;
+        inset: 0;
+        background: rgba(17, 24, 39, 0.4);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 2rem clamp(1rem, 6vw, 2.5rem);
+        z-index: 70;
+      }
+      .feedback-drawer.hidden {
+        display: none;
+      }
+      .drawer-content {
+        width: min(480px, 100%);
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.18);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .drawer-header h2 {
+        font-size: 1rem;
+        color: var(--text-primary);
+        margin: 0;
+      }
+      .drawer-close {
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+      }
+      .drawer-close:hover {
+        background: var(--color-settings-hover);
+      }
+      .drawer-close:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      .drawer-body {
+        display: grid;
+        gap: 12px;
+        font-size: 0.92rem;
+        color: var(--text-secondary);
+      }
+      .drawer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .drawer-col {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .drawer-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--text-muted);
+      }
+      .drawer-value {
+        font-size: 1rem;
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .drawer-ev {
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+      .drawer-sub {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-top: -6px;
       }
 
       .density-compact .page-section {
@@ -595,60 +859,26 @@
         width: clamp(36px, 7.2vw, 44px);
         height: clamp(50px, 10vw, 60px);
       }
-      .density-compact .stateline {
-        font-size: 0.98rem;
-        line-height: 1.25;
-        margin-block: 6px;
+      .density-compact .status-chip {
+        padding-inline: 0.6rem;
+        padding-block: 0.3rem;
+        font-size: 0.72rem;
       }
-      .density-compact .stats {
-        margin-block: 4px;
-        font-size: 0.95rem;
-        line-height: 1.25;
-      }
-      .density-compact .actions {
-        row-gap: 8px;
+      .density-compact .action-buttons {
+        gap: 10px;
       }
       .density-compact .action-button {
-        padding-block: 10px;
+        min-height: 52px;
       }
-      .density-compact .result-panel {
-        padding: 10px 12px;
-        margin-block-start: 8px;
-        line-height: 1.3;
-      }
-      .density-compact .app-header .header-inner {
-        height: 52px;
-      }
-      .density-compact .subheader {
-        min-height: 34px;
-        font-size: 12.5px;
-      }
-      .option-card {
-        animation: option-in 0.26s ease forwards;
-        transform-origin: top center;
-        opacity: 0;
+      .density-compact .status-bar {
+        min-height: 40px;
       }
       @keyframes option-in {
         0% { opacity: 0; transform: translateY(12px) scale(0.97); }
         100% { opacity: 1; transform: translateY(0) scale(1); }
       }
       @media (prefers-reduced-motion: reduce) {
-        .option-card { animation: none; }
         #progress-bar { transition: none; animation: none; }
-      }
-      #feedback {
-        transition: opacity 0.2s ease, transform 0.2s ease;
-      }
-      #feedback.hidden { opacity: 0; transform: translateY(6px); }
-      #feedback[data-state="correct"] {
-        background: var(--success-bg);
-        color: var(--success-text);
-        border-left: 4px solid rgba(17, 106, 71, 0.35);
-      }
-      #feedback[data-state="incorrect"] {
-        background: var(--btn-danger-bg);
-        color: var(--btn-danger-text);
-        border-left: 4px solid rgba(180, 35, 24, 0.25);
       }
       @media (max-width: 640px) {
         header { position: sticky; top: 0; }
@@ -659,8 +889,8 @@
   <body>
     <div id="progress-bar" aria-hidden="true"></div>
     <header class="app-header">
-      <div class="max-w-2xl mx-auto px-4">
-        <div class="header-inner">
+      <div class="app-header__inner">
+        <div class="top-bar">
           <div class="brand">
             <span aria-hidden="true" class="brand-mark">♠︎</span>
             <h1 class="wordmark"><span class="lead">GTO</span> <span class="trail">Trainer</span></h1>
@@ -673,18 +903,18 @@
             </span>
           </div>
         </div>
-        <div class="subheader">
-          <div id="headline" class="stateline">Ready for a new hand</div>
-          <div id="meta" class="stats">
-            <span>Hand <strong class="text-num">0</strong><span class="unit">/0</span></span>
-            <span>Pot <strong class="text-num">0</strong><span class="unit"> bb</span></span>
-            <span>SPR <strong class="text-num">0</strong></span>
+        <div class="status-bar">
+          <div id="status-scroll" class="status-scroll" aria-live="polite">
+            <span class="status-chip" data-kind="street"><span class="chip-icon">♠</span><strong>Ready</strong></span>
+            <span class="status-chip" data-kind="hand"><span class="chip-icon">🂡</span>Hand <strong>0/0</strong></span>
+            <span class="status-chip" data-kind="pot"><span class="chip-icon">⛁</span>Pot <strong>0bb</strong></span>
+            <span class="status-chip" data-kind="spr"><span class="chip-icon">⇵</span>SPR <strong>0</strong></span>
           </div>
         </div>
       </div>
     </header>
 
-    <main class="screen max-w-2xl min-h-[720px] mx-auto p-4 pb-[calc(4rem+var(--safe-bottom))]">
+    <main class="screen max-w-2xl min-h-[720px] mx-auto p-4 pb-[calc(12rem+var(--safe-bottom))]">
       <section id="panel-start" class="page-section space-y-4">
         <div class="rounded-lg panel-box panel-soft p-6 text-secondary">
           <h2 class="font-semibold mb-4 text-[clamp(1.25rem,2vw,1.45rem)] text-primary">Start a Session</h2>
@@ -702,22 +932,18 @@
       </section>
 
       <section id="panel-play" class="page-section hidden space-y-4">
-        <div class="rounded-lg panel-box panel-soft p-6 text-secondary">
-          <div class="mt-2 space-y-4 stack" id="card-summary">
-            <div>
-              <div class="text-xs font-semibold uppercase eyebrow section-heading">Your hand</div>
-              <div id="hand" class="hand-row mt-1 flex flex-wrap items-center gap-1 text-lg font-semibold text-primary"></div>
+        <div class="rounded-lg panel-box panel-soft p-5 text-secondary">
+          <div id="card-summary" class="info-card">
+            <div class="info-row">
+              <span class="info-label">YOU</span>
+              <div id="hand" class="info-cards"></div>
             </div>
-            <div>
-              <div class="text-xs font-semibold uppercase eyebrow section-heading">Board</div>
-              <div id="board" class="board-row mt-1 flex flex-wrap items-center gap-1 text-secondary"></div>
+            <div class="info-row">
+              <span class="info-label">BOARD</span>
+              <div id="board" class="info-cards"></div>
             </div>
           </div>
 
-          <div class="options-block mt-6 pt-5 border-t border-divider-soft">
-            <div class="section-heading text-xs font-semibold uppercase eyebrow text-muted tracking-[0.18em]">Choose your action</div>
-            <div id="options" class="actions mt-3 grid grid-cols-1 gap-2 max-w-xl mx-auto"></div>
-          </div>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-2 sm:justify-end" id="primary-controls">
@@ -726,7 +952,14 @@
           </button>
         </div>
 
-        <div id="feedback" class="hidden rounded-lg panel-box p-5 result-panel"></div>
+        <div id="feedback-banner" class="feedback-banner hidden" role="status" aria-live="polite">
+          <div class="feedback-text">
+            <span id="feedback-recommendation" class="feedback-line"></span>
+            <span id="feedback-choice" class="feedback-line"></span>
+          </div>
+          <button type="button" id="feedback-detail" class="feedback-detail" aria-label="Show EV breakdown">ℹ︎</button>
+        </div>
+
         <div class="mt-3 flex justify-center" id="end-session-container">
           <button id="btn-end" class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn-secondary-tone">
             End Session
@@ -742,6 +975,31 @@
         </div>
       </section>
     </main>
+
+    <div id="feedback-drawer" class="feedback-drawer hidden" role="dialog" aria-modal="false" aria-labelledby="feedback-drawer-title">
+      <div class="drawer-content">
+        <div class="drawer-header">
+          <h2 id="feedback-drawer-title">EV breakdown</h2>
+          <button type="button" id="feedback-drawer-close" class="drawer-close" aria-label="Close">✕</button>
+        </div>
+        <div id="feedback-drawer-body" class="drawer-body"></div>
+      </div>
+    </div>
+
+    <div id="action-sheet" class="action-sheet">
+      <div class="sheet-inner">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div id="options" class="action-buttons"></div>
+        <div id="raise-controls" class="raise-controls hidden">
+          <div class="raise-header">
+            <span class="raise-label">Raise sizing</span>
+            <span id="raise-value" class="raise-value">0%</span>
+          </div>
+          <input type="range" id="raise-slider" min="50" max="200" step="5" value="100" aria-label="Select raise sizing" />
+          <div id="raise-presets" class="raise-presets"></div>
+        </div>
+      </div>
+    </div>
 
     <script>
 
@@ -846,6 +1104,187 @@
       let startBusy = false;
       let pendingSummary = null;
       const screen = document.querySelector('main.screen');
+      const statusScrollEl = $('#status-scroll');
+      const statsPill = $('#stats');
+      const statsCount = $('#stats-count');
+      const feedbackBanner = $('#feedback-banner');
+      const feedbackRecommendation = $('#feedback-recommendation');
+      const feedbackChoice = $('#feedback-choice');
+      const feedbackDetailBtn = $('#feedback-detail');
+      const feedbackDrawer = $('#feedback-drawer');
+      const feedbackDrawerBody = $('#feedback-drawer-body');
+      const feedbackDrawerClose = $('#feedback-drawer-close');
+      const optionsContainer = $('#options');
+      const startBtn = $('#btn-start');
+      const summaryBtn = $('#btn-summary');
+      const endBtn = $('#btn-end');
+      const summaryCloseBtn = $('#btn-summary-close');
+      const newBtn = $('#btn-new');
+      let lastFeedback = null;
+
+      const STREET_ICONS = {
+        preflop: '♣',
+        flop: '♦',
+        turn: '♥',
+        river: '♠',
+      };
+
+      const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
+
+      const makeChip = (kind, icon, label, value, { title } = {}) => {
+        const iconHtml = icon ? `<span class="chip-icon">${icon}</span>` : '';
+        const valueHtml = value ? `${label ? `${label} ` : ''}<strong>${value}</strong>` : `<strong>${label}</strong>`;
+        return `<span class="status-chip" data-kind="${kind}"${title ? ` title="${title}"` : ''}>${iconHtml}${valueHtml}</span>`;
+      };
+
+      const setStatusMessage = (message) => {
+        if(!statusScrollEl) return;
+        statusScrollEl.innerHTML = makeChip('info', 'ℹ︎', message);
+        statusScrollEl.scrollLeft = 0;
+      };
+
+      const updateStatusBar = (node, descriptor) => {
+        if(!statusScrollEl){
+          return;
+        }
+        const chips = [];
+        const streetKey = (node.street || '').toLowerCase();
+        const icon = STREET_ICONS[streetKey] || '♠';
+        const streetLabel = streetKey ? streetKey.charAt(0).toUpperCase() + streetKey.slice(1) : 'Ready';
+        chips.push(makeChip('street', icon, streetLabel, '', { title: descriptor || streetLabel }));
+        if(descriptor){
+          chips.push(makeChip('context', 'ℹ︎', descriptor));
+        }
+        const betRaw = node?.context?.bet;
+        const potValue = Number(node.pot_bb) || 0;
+        if(typeof betRaw === 'number' && potValue > 0){
+          const pct = Math.round((betRaw / potValue) * 100);
+          const betLabel = `${formatBb(betRaw)} (${pct}% pot)`;
+          chips.push(makeChip('bet', '⛁', 'Bet', betLabel));
+        }
+        if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
+          chips.push(makeChip('hand', '🂡', 'Hand', `${node.hand_no}/${node.total_hands}`));
+        }
+        chips.push(makeChip('pot', '⬤', 'Pot', formatBb(potValue)));
+        const sprRaw = potValue > 0 ? node.effective_bb / potValue : Infinity;
+        const sprText = Number.isFinite(sprRaw) ? fmt(sprRaw, 1) : '∞';
+        chips.push(makeChip('spr', '⇵', 'SPR', sprText));
+        statusScrollEl.innerHTML = chips.join('');
+        statusScrollEl.scrollLeft = 0;
+      };
+
+      const parseActionLabel = (label) => {
+        if(!label) return { primary: 'Action', meta: '' };
+        const idx = label.indexOf('(');
+        if(idx === -1) return { primary: label.trim(), meta: '' };
+        const primary = label.slice(0, idx).trim();
+        const meta = label.slice(idx).replace(/[()]/g, '').trim();
+        return { primary, meta };
+      };
+
+      const parseDescriptor = (node) => {
+        let descriptor = node?.description || '';
+        if ((Array.isArray(node?.board_cards) && node.board_cards.length > 0) && descriptor.includes('; ')){
+          descriptor = descriptor.split('; ')[1];
+        } else if ((Array.isArray(node?.board_cards) && node.board_cards.length > 0) && descriptor.startsWith('Board ')){
+          const idx = descriptor.indexOf('. ');
+          descriptor = idx >= 0 ? descriptor.slice(idx + 2) : descriptor;
+        }
+        return descriptor.trim();
+      };
+
+      const renderOptions = (options) => {
+        if(!optionsContainer) return;
+        const fragment = document.createDocumentFragment();
+        if(options.length === 0){
+          const empty = document.createElement('div');
+          empty.className = 'sheet-empty';
+          empty.textContent = 'No available actions.';
+          optionsContainer.replaceChildren(empty);
+          return;
+        }
+        options.forEach((option,i)=>{
+          const rawLabel = typeof option === 'string' ? option : option?.label || option?.key;
+          const labelText = rawLabel || `Option ${i + 1}`;
+          const { primary, meta } = parseActionLabel(labelText);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'action-button';
+          btn.innerHTML = `<span class="action-label">${primary}</span>${meta ? `<span class="action-meta">${meta}</span>` : ''}`;
+          if (typeof option === 'object' && option && 'key' in option) {
+            btn.dataset.optionKey = option.key;
+          }
+          btn.dataset.optionIndex = String(i);
+          btn.addEventListener('click', () => choose(i));
+          fragment.appendChild(btn);
+        });
+        optionsContainer.replaceChildren(fragment);
+      };
+
+      const hideFeedbackDrawer = () => {
+        if(!feedbackDrawer) return;
+        feedbackDrawer.classList.add('hidden');
+        feedbackDrawer.setAttribute('aria-hidden', 'true');
+      };
+
+      const showFeedbackDrawer = () => {
+        if(!feedbackDrawer || !feedbackDrawerBody || !lastFeedback) return;
+        const rows = [];
+        const addRow = (label, opt) => {
+          if(!opt) return;
+          const ev = typeof opt.ev === 'number' ? formatBb(opt.ev) : '—';
+          const why = opt.why ? `<div class="drawer-sub">${opt.why}</div>` : '';
+          rows.push(`
+            <div class="drawer-row">
+              <div class="drawer-col">
+                <div class="drawer-label">${label}</div>
+                <div class="drawer-value">${opt.key || opt.label || '—'}</div>
+              </div>
+              <div class="drawer-ev">${ev}</div>
+            </div>
+            ${why}
+          `);
+        };
+        addRow('GTO recommends', lastFeedback.best);
+        addRow('You picked', lastFeedback.chosen);
+        if(Array.isArray(lastFeedback.options)){
+          lastFeedback.options.forEach((opt) => addRow('Alt line', opt));
+        }
+        feedbackDrawerBody.innerHTML = rows.join('');
+        feedbackDrawer.classList.remove('hidden');
+        feedbackDrawer.setAttribute('aria-hidden', 'false');
+      };
+
+      const applyFeedback = (feedback) => {
+        lastFeedback = feedback;
+        if(!feedbackBanner || !feedbackRecommendation || !feedbackChoice){
+          return;
+        }
+        const correct = Boolean(feedback?.correct);
+        const bestLabel = feedback?.best?.key || 'Best action';
+        const bestEv = typeof feedback?.best?.ev === 'number' ? formatBb(feedback.best.ev) : null;
+        const chosenLabel = feedback?.chosen?.key || '—';
+        const deltaValue = typeof feedback?.ev_loss === 'number' ? Math.abs(feedback.ev_loss) : null;
+        const deltaCopy = typeof deltaValue === 'number' ? `EV gap ${formatBb(deltaValue)}` : '';
+        const bestCopy = bestEv ? `${bestLabel} (${bestEv})` : bestLabel;
+        feedbackBanner.dataset.state = correct ? 'correct' : 'incorrect';
+        feedbackRecommendation.innerHTML = correct
+          ? `GTO matches your line: <strong>${bestCopy}</strong>`
+          : `GTO recommends <strong>${bestCopy}</strong>${deltaCopy ? ` · ${deltaCopy}` : ''}`;
+        feedbackChoice.innerHTML = `You picked <strong>${chosenLabel}</strong>`;
+        feedbackBanner.classList.remove('hidden');
+      };
+
+      const resetFeedback = () => {
+        if(feedbackBanner){
+          feedbackBanner.classList.add('hidden');
+          feedbackBanner.removeAttribute('data-state');
+          if(feedbackRecommendation) feedbackRecommendation.textContent = '';
+          if(feedbackChoice) feedbackChoice.textContent = '';
+        }
+        lastFeedback = null;
+        hideFeedbackDrawer();
+      };
 
       const applyDensity = () => {
         if(!screen) return;
@@ -905,52 +1344,36 @@
         }).join(' ');
       }
 
-      function resetFeedback(){
-        const fb = $('#feedback');
-        if(!fb) return;
-        fb.classList.add('hidden');
-        fb.removeAttribute('data-state');
-        fb.classList.remove('feedback-success','feedback-warning','feedback-danger');
-        fb.innerHTML = '';
-      }
+      const setSummaryAvailability = (enabled) => {
+        if(!summaryBtn) return;
+        summaryBtn.disabled = !enabled;
+        summaryBtn.classList.toggle('hidden', !enabled);
+      };
 
-      function setSummaryAvailability(enabled){
-        const btn = $('#btn-summary');
-        if(!btn) return;
-        if(enabled){
-          btn.disabled = false;
-          btn.classList.remove('hidden');
-        } else {
-          btn.disabled = true;
-          btn.classList.add('hidden');
-        }
-      }
-
-      function setStartButtonState(busy){
-        const btn = $('#btn-start');
-        if(!btn) return;
-        const label = btn.dataset.label || btn.textContent || 'Start';
-        btn.dataset.label = label;
+      const setStartButtonState = (busy) => {
+        if(!startBtn) return;
+        const label = startBtn.dataset.label || startBtn.textContent || 'Start';
+        startBtn.dataset.label = label;
         if(busy){
-          btn.disabled = true;
-          btn.classList.add('cursor-wait','opacity-80');
-          btn.textContent = 'Starting…';
+          startBtn.disabled = true;
+          startBtn.classList.add('cursor-wait','opacity-80');
+          startBtn.textContent = 'Starting…';
         } else {
-          btn.disabled = false;
-          btn.classList.remove('cursor-wait','opacity-80');
-          btn.textContent = btn.dataset.label;
+          startBtn.disabled = false;
+          startBtn.classList.remove('cursor-wait','opacity-80');
+          startBtn.textContent = startBtn.dataset.label;
         }
-      }
+      };
 
-      function readInt(selector, {fallback, min}){
+      const readInt = (selector, {fallback, min}) => {
         const el = $(selector);
         if(!el) return fallback;
         const raw = parseInt(el.value || '', 10);
         if(Number.isNaN(raw)) return fallback;
         return Math.max(min, raw);
-      }
+      };
 
-      async function start(){
+      const start = async () => {
         if(startBusy) return;
         startBusy = true;
         setStartButtonState(true);
@@ -969,104 +1392,46 @@
           updateStats();
           resetFeedback();
           setSummaryAvailability(false);
-          const area = $('#options'); if(area) area.innerHTML = '';
+          if(optionsContainer) optionsContainer.innerHTML = '';
           show('#panel-play');
+          setStatusMessage('Preparing a fresh scenario…');
           await showNode();
         } catch (err) {
           console.error(err);
-          const statusLine = $('#headline');
-          if(statusLine){
-            const message = err instanceof Error ? err.message : String(err ?? 'unknown error');
-            statusLine.textContent = `Unable to start session — ${message}`;
-          }
+          const message = err instanceof Error ? err.message : String(err ?? 'unknown error');
+          setStatusMessage(`Unable to start session — ${message}`);
           show('#panel-start');
         } finally {
           startBusy = false;
           setStartButtonState(false);
         }
-      }
+      };
 
-      async function showNode(){
+      const showNode = async () => {
         const payload = await api(`/api/session/${sid}/node`);
         await renderNodePayload(payload, {clearFeedback: true});
-      }
+      };
 
-      async function renderNodePayload(payload, {clearFeedback = false} = {}){
+      const renderNodePayload = async (payload, {clearFeedback = false} = {}) => {
         if(payload.done){
           pendingSummary = payload.summary || null;
           setSummaryAvailability(true);
-          const area = $('#options'); if(area) area.innerHTML = '';
-          const headline = $('#headline'); if(headline) headline.textContent = 'Session complete';
-          const meta = $('#meta'); if(meta) meta.textContent = 'View summary for detailed results.';
+          renderOptions([]);
+          setStatusMessage('Session complete — view summary for breakdown.');
           return;
         }
         pendingSummary = null;
         setSummaryAvailability(false);
-        const n = payload.node;
-        const headline = $('#headline');
-        if(headline){
-          let descriptor = n.description || '';
-          if ((Array.isArray(n.board_cards) && n.board_cards.length > 0) && descriptor.includes('; ')){
-            descriptor = descriptor.split('; ')[1];
-          } else if ((Array.isArray(n.board_cards) && n.board_cards.length > 0) && descriptor.startsWith('Board ')){
-            const idx = descriptor.indexOf('. ');
-            descriptor = idx >= 0 ? descriptor.slice(idx + 2) : descriptor;
-          }
-          const prefix = n.street.toUpperCase();
-          headline.textContent = descriptor ? `${prefix} — ${descriptor}` : prefix;
-        }
-        const hero = renderCards(n.hero_cards);
-        const heroEl = $('#hand'); if(heroEl) heroEl.innerHTML = hero || '<span class="text-sm text-muted">Dealing…</span>';
-        const board = renderCards(n.board_cards);
-        const boardEl = $('#board'); if(boardEl) boardEl.innerHTML = board || '<span class="text-sm text-muted">Board not yet revealed</span>';
-        const meta = $('#meta');
-        if(meta){
-          const sprRaw = n.pot_bb > 0 ? (n.effective_bb / n.pot_bb) : Infinity;
-          const sprText = Number.isFinite(sprRaw) ? fmt(sprRaw, 1) : '∞';
-          const html = [
-            `<span>Hand <strong class="text-num">${n.hand_no}</strong><span class="unit">/${n.total_hands}</span></span>`,
-            `<span>Pot <strong class="text-num">${fmt(n.pot_bb, 2)}</strong><span class="unit"> bb</span></span>`,
-            `<span>SPR <strong class="text-num">${sprText}</strong></span>`
-          ].join('');
-          meta.innerHTML = html;
-        }
-        const area = $('#options');
-        if(area){
-          const classifyTone = (label) => {
-            const lower = label.toLowerCase();
-            if (lower.includes('fold')) return 'btn-tertiary';
-            if (lower.includes('call')) return 'btn-primary';
-            if (lower.includes('check')) return 'btn-primary';
-            if (lower.includes('all-in') || lower.includes('jam')) return 'btn-secondary-tone';
-            if (lower.includes('raise') || lower.includes('3-bet') || lower.includes('4-bet')) return 'btn-secondary-tone';
-            if (lower.includes('bet')) return 'btn-secondary-tone';
-            return 'btn-neutral';
-          };
-          const fragment = document.createDocumentFragment();
-          payload.options.forEach((option,i)=>{
-            const rawLabel = typeof option === 'string' ? option : option?.label;
-            const labelText = typeof rawLabel === 'string' && rawLabel.length ? rawLabel : `Option ${i + 1}`;
-            const text = labelText;
-            const b = document.createElement('button');
-            b.type = 'button';
-            const base = 'option-card btn-action action-button w-full text-sm font-semibold tracking-tight transition-all duration-200';
-            const toneClass = classifyTone(text);
-            b.className = `${base} ${toneClass}`.trim();
-            b.style.animationDelay = `${i * 40}ms`;
-            b.textContent = text;
-            if (typeof option === 'object' && option && 'key' in option) {
-              b.dataset.optionKey = option.key;
-            }
-            b.onclick = () => choose(i);
-            fragment.appendChild(b);
-          });
-          if(typeof area.replaceChildren === 'function'){
-            area.replaceChildren(fragment);
-          } else {
-            area.innerHTML = '';
-            area.appendChild(fragment);
-          }
-        }
+        const node = payload.node;
+        const descriptor = parseDescriptor(node);
+        updateStatusBar(node, descriptor);
+        const heroEl = $('#hand');
+        const heroCards = renderCards(node.hero_cards);
+        if(heroEl) heroEl.innerHTML = heroCards || '<span class="text-sm text-muted">Dealing…</span>';
+        const boardEl = $('#board');
+        const boardCards = renderCards(node.board_cards);
+        if(boardEl) boardEl.innerHTML = boardCards || '<span class="text-sm text-muted">Board pending</span>';
+        renderOptions(Array.isArray(payload.options) ? payload.options : []);
         if(clearFeedback){
           resetFeedback();
         }
@@ -1076,51 +1441,50 @@
             if(panel){ panel.scrollIntoView({behavior: 'smooth', block: 'start'}); }
           });
         }
-      }
+      };
 
-      async function choose(i){
+      const choose = async (index) => {
         if(pending) return;
         pending = true;
-        const buttons = Array.from(document.querySelectorAll('#options button'));
-        buttons.forEach((btn)=>{
+        const buttons = Array.from(optionsContainer?.querySelectorAll('button') || []);
+        buttons.forEach((btn, idx)=>{
+          btn.classList.toggle('active', idx === index);
           btn.disabled = true;
           btn.classList.add('cursor-wait','opacity-60');
         });
         try{
-          const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:i})});
-          const f = data.feedback; answered += 1; updateStats();
-          const fb = $('#feedback');
-          if(fb){
-            fb.dataset.state = f.correct ? 'correct' : 'incorrect';
-            fb.classList.remove('hidden','feedback-success','feedback-warning','feedback-danger');
-            fb.classList.add(f.correct ? 'feedback-success' : 'feedback-danger');
-            const verdictLabel = f.correct ? '✓ Best choice' : 'Better line available';
-            const whyChosen = f.chosen.why ? `<div class="mt-2 text-sm text-secondary"><strong>Why you chose it:</strong> ${f.chosen.why}</div>` : '';
-            const whyBest = !f.correct && f.best.why ? `<div class="mt-1 text-sm text-secondary"><strong>Coach note:</strong> ${f.best.why}</div>` : '';
-            fb.innerHTML = `
-              <div class="text-base font-semibold">${verdictLabel}: ${f.best.key}</div>
-              <div class="mt-1 text-sm">You picked <strong>${f.chosen.key}</strong> · EV difference <strong>${fmt(f.ev_loss)} bb</strong></div>
-              ${whyChosen}
-              ${whyBest}
-            `;
+          const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:index})});
+          const feedback = data.feedback;
+          answered += 1;
+          updateStats();
+          if(feedback){
+            applyFeedback(feedback);
           }
           if(data.next){
             await renderNodePayload(data.next, {clearFeedback: false});
           } else {
             await showNode();
           }
+        } catch (err) {
+          console.error(err);
+          setStatusMessage('Action failed — please retry.');
+          buttons.forEach((btn)=>{
+            btn.disabled = false;
+            btn.classList.remove('cursor-wait','opacity-60','active');
+          });
         } finally {
           pending = false;
         }
-      }
+      };
 
-      async function showSummary(prefetched){
+      const showSummary = async (prefetched) => {
         const s = prefetched || await api(`/api/session/${sid}/summary`);
         const sum = $('#summary');
         if(sum){
           const decisions = s.decisions ?? answered;
           const accuracy = decisions ? Math.round((s.hits / decisions) * 100) : 0;
-          const avgEvLoss = s.hands ? fmt(s.ev_lost / s.hands) : fmt(s.ev_lost);
+          const totalEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
+          const avgEvLoss = s.hands ? totalEvLost / s.hands : totalEvLost;
           sum.innerHTML = `
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -1144,8 +1508,8 @@
               </div>
               <div class="rounded-lg border border-outline bg-white px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
-                <dd class="mt-1 text-lg font-semibold text-primary">${fmt(s.ev_lost)} bb</dd>
-                <dd class="text-xs text-muted">Avg / hand: ${avgEvLoss} bb</dd>
+                <dd class="mt-1 text-lg font-semibold text-primary">${formatBb(totalEvLost)}</dd>
+                <dd class="text-xs text-muted">Avg / hand: ${formatBb(avgEvLoss)}</dd>
               </div>
             </dl>
             <div class="mt-4 rounded-lg border border-outline bg-white px-4 py-3 text-sm text-secondary">
@@ -1159,7 +1523,7 @@
         show('#panel-summary');
       }
 
-      async function endSession(){
+      const endSession = async () => {
         if(!sid || pending) return;
         try{
           const summary = await api(`/api/session/${sid}/summary`);
@@ -1168,18 +1532,15 @@
         } catch(err){
           console.error(err);
         }
-      }
+      };
 
-      function updateStats(){
-        const countEl = $('#stats-count');
-        if(countEl) countEl.textContent = String(answered);
-        const stats = $('#stats');
-        if(stats) {
-          stats.classList.toggle('is-empty', answered === 0);
+      const updateStats = () => {
+        if(statsCount) statsCount.textContent = String(answered);
+        if(statsPill) {
+          statsPill.classList.toggle('is-empty', answered === 0);
         }
-      }
+      };
 
-      const startBtn = $('#btn-start');
       if(startBtn){
         startBtn.addEventListener('click', (event)=>{
           event.preventDefault();
@@ -1187,7 +1548,6 @@
         });
       }
 
-      const newBtn = $('#btn-new');
       if(newBtn){
         newBtn.addEventListener('click', () => {
           sid = null;
@@ -1199,10 +1559,10 @@
           setStartButtonState(false);
           setSummaryAvailability(false);
           show('#panel-start');
+          setStatusMessage('Ready for a new hand');
         });
       }
 
-      const endBtn = $('#btn-end');
       if(endBtn){
         endBtn.addEventListener('click', (event)=>{
           event.preventDefault();
@@ -1210,7 +1570,6 @@
         });
       }
 
-      const summaryBtn = $('#btn-summary');
       if(summaryBtn){
         summaryBtn.addEventListener('click', async (event)=>{
           event.preventDefault();
@@ -1222,7 +1581,6 @@
         });
       }
 
-      const summaryCloseBtn = $('#btn-summary-close');
       if(summaryCloseBtn){
         summaryCloseBtn.addEventListener('click', (event)=>{
           event.preventDefault();
@@ -1233,7 +1591,35 @@
         });
       }
 
+      if(feedbackDetailBtn){
+        feedbackDetailBtn.addEventListener('click', (event)=>{
+          event.preventDefault();
+          if(lastFeedback){
+            showFeedbackDrawer();
+          }
+        });
+      }
+
+      if(feedbackDrawerClose){
+        feedbackDrawerClose.addEventListener('click', (event)=>{
+          event.preventDefault();
+          hideFeedbackDrawer();
+        });
+      }
+
+      if(feedbackDrawer){
+        feedbackDrawer.addEventListener('click', (event)=>{
+          if(event.target === feedbackDrawer){
+            hideFeedbackDrawer();
+          }
+        });
+      }
+
       window.addEventListener('keydown', (e)=>{
+        if(e.key === 'Escape'){
+          hideFeedbackDrawer();
+          return;
+        }
         const panel = $('#panel-play');
         if(!panel || panel.classList.contains('hidden')) return;
         if(e.key >= '1' && e.key <= '9'){
@@ -1242,6 +1628,9 @@
           if(btns[idx]) btns[idx].click();
         }
       });
+
+      setStatusMessage('Ready for a new hand');
+      renderOptions([]);
     </script>
   </body>
   </html>
