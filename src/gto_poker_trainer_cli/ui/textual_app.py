@@ -302,7 +302,9 @@ class TrainerApp(App[None]):
         if self._tagline_panel:
             self._tagline_panel.update("[#3c4f86]Sharpen your instincts with solver-backed drills.[/]")
         if self._status_panel:
-            self._status_panel.update("[b #1b2d55]Preparing a fresh hand[/]\n[dim]Hang tight—simulations are spinning up.[/]")
+            self._status_panel.update(
+                "[b #1b2d55]Preparing a fresh hand[/]\n[dim]Hang tight—simulations are spinning up.[/]"
+            )
         if self._meta_panel:
             self._meta_panel.update("[dim]We'll surface pot details the moment action begins.[/]")
         if self._hand_panel:
@@ -363,9 +365,7 @@ class TrainerApp(App[None]):
     def show_session_start(self, total_hands: int) -> None:
         if self._headline_label:
             plural = "s" if total_hands != 1 else ""
-            self._headline_label.update(
-                f"[b #1b2d55]Session start[/] — {total_hands} hand{plural} queued"
-            )
+            self._headline_label.update(f"[b #1b2d55]Session start[/] — {total_hands} hand{plural} queued")
         if self._meta_panel:
             self._meta_panel.update("")
         if self._status_panel:
@@ -376,9 +376,7 @@ class TrainerApp(App[None]):
 
     def show_hand_start(self, hand_index: int, total_hands: int) -> None:
         if self._headline_label:
-            self._headline_label.update(
-                f"[b #1b2d55]Hand {hand_index}/{total_hands}[/]"
-            )
+            self._headline_label.update(f"[b #1b2d55]Hand {hand_index}/{total_hands}[/]")
         if self._feedback_panel:
             self._feedback_panel.update("")
         if self._options_container:
@@ -430,9 +428,7 @@ class TrainerApp(App[None]):
                 f"[b #1b2d55]Effective[/]: {node.effective_bb:.1f} bb",
             ]
             if isinstance(bet, (int, float)):
-                styled_meta.append(
-                    f"[b #1b2d55]Facing[/]: {float(bet):.2f} bb ({pct:.0f}% pot)"
-                )
+                styled_meta.append(f"[b #1b2d55]Facing[/]: {float(bet):.2f} bb ({pct:.0f}% pot)")
             self._meta_panel.update("\n".join(styled_meta))
 
         hand_str = self._format_cards_colored(node.hero_cards)
@@ -489,9 +485,7 @@ class TrainerApp(App[None]):
             self._feedback_panel.update("\n".join(lines))
         if self._status_panel:
             tag = "[green]Nice read[/]" if correct else "[b #9f3b56]Learn point[/]"
-            self._status_panel.update(
-                f"{tag}\n[dim]Review the feedback below before the next hand.[/]"
-            )
+            self._status_panel.update(f"{tag}\n[dim]Review the feedback below before the next hand.[/]")
 
     def show_summary(self, records: list[dict[str, Any]]) -> None:
         if not records:
@@ -510,6 +504,7 @@ class TrainerApp(App[None]):
         hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
         hands_answered = len(hand_ids) if hand_ids else len(records)
         score_pct = 0.0
+
         def _room_term(rec: dict[str, Any]) -> float:
             room_ev = rec.get("room_ev")
             if room_ev is not None:

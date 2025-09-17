@@ -588,10 +588,7 @@ def _resolve_preflop(node: Node, option: Option, hand_state: dict[str, Any]) -> 
             risk = raise_to - 1.0
             total_pot = pot_after_raise
             net_gain = total_pot - risk
-            note = (
-                f"Villain folds to your 3-bet. Pot {total_pot:.2f}bb awarded "
-                f"(net +{net_gain:.2f}bb)."
-            )
+            note = f"Villain folds to your 3-bet. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(
                 hand_ended=True,
                 note=note,
@@ -623,10 +620,7 @@ def _resolve_preflop(node: Node, option: Option, hand_state: dict[str, Any]) -> 
         if villain_eq < threshold:
             scoop = pot_before_jam + risk
             net_gain = scoop - risk
-            note = (
-                f"Villain folds to your jam. Pot {scoop:.2f}bb awarded "
-                f"(net +{net_gain:.2f}bb)."
-            )
+            note = f"Villain folds to your jam. Pot {scoop:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(
                 hand_ended=True,
                 note=note,
@@ -674,10 +668,7 @@ def _resolve_flop(node: Node, option: Option, hand_state: dict[str, Any]) -> Opt
             hand_state["hand_over"] = True
             total_pot = pot_after_bet
             net_gain = total_pot - bet_size
-            note = (
-                f"Villain folds flop. Pot {total_pot:.2f}bb awarded "
-                f"(net +{net_gain:.2f}bb)."
-            )
+            note = f"Villain folds flop. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(
                 hand_ended=True,
                 note=note,
@@ -703,10 +694,7 @@ def _resolve_flop(node: Node, option: Option, hand_state: dict[str, Any]) -> Opt
         if villain_eq < threshold:
             total_pot = pot + risk
             net_gain = total_pot - risk
-            note = (
-                f"Villain folds to your jam. Pot {total_pot:.2f}bb awarded "
-                f"(net +{net_gain:.2f}bb)."
-            )
+            note = f"Villain folds to your jam. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(
                 hand_ended=True,
                 note=note,
@@ -763,10 +751,7 @@ def _resolve_turn(node: Node, option: Option, hand_state: dict[str, Any]) -> Opt
             hand_state["hand_over"] = True
             total_pot = pot_after_raise
             net_gain = total_pot - raise_to
-            note = (
-                f"Villain folds turn. Pot {total_pot:.2f}bb awarded "
-                f"(net +{net_gain:.2f}bb)."
-            )
+            note = f"Villain folds turn. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(
                 hand_ended=True,
                 note=note,
@@ -831,10 +816,7 @@ def _resolve_river(node: Node, option: Option, hand_state: dict[str, Any]) -> Op
             hand_state["hand_over"] = True
             total_pot = pot_after_bet
             net_gain = total_pot - bet_size
-            note = (
-                f"Villain folds river. Pot {total_pot:.2f}bb awarded "
-                f"(net +{net_gain:.2f}bb)."
-            )
+            note = f"Villain folds river. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(
                 hand_ended=True,
                 note=note,
@@ -878,10 +860,7 @@ def _resolve_river(node: Node, option: Option, hand_state: dict[str, Any]) -> Op
         if villain_eq < threshold:
             total_pot = pot + risk
             net_gain = total_pot - risk
-            note = (
-                f"Villain folds river jam. Pot {total_pot:.2f}bb awarded "
-                f"(net +{net_gain:.2f}bb)."
-            )
+            note = f"Villain folds river jam. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(
                 hand_ended=True,
                 note=note,

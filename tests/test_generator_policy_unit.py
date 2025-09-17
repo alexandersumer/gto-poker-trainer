@@ -182,7 +182,11 @@ def test_flop_resolution_folds_weak_villain_combo():
         context={"facing": "check", "open_size": 2.5, "hand_state": hand_state},
     )
     opts = flop_options(node, rng, mc_trials=40)
-    bet_opt = next(o for o in opts if o.meta and o.meta.get("action") == "bet" and abs(o.meta["bet"] - round(node.pot_bb * 0.75, 2)) < 1e-6)
+    bet_opt = next(
+        o
+        for o in opts
+        if o.meta and o.meta.get("action") == "bet" and abs(o.meta["bet"] - round(node.pot_bb * 0.75, 2)) < 1e-6
+    )
     res = resolve_for(node, bet_opt, rng)
     assert res.hand_ended
     assert "fold" in res.note.lower()
@@ -214,7 +218,11 @@ def test_flop_resolution_continues_when_villain_strong():
         context={"facing": "check", "open_size": 2.5, "hand_state": hand_state},
     )
     opts = flop_options(node, rng, mc_trials=40)
-    bet_opt = next(o for o in opts if o.meta and o.meta.get("action") == "bet" and abs(o.meta["bet"] - round(node.pot_bb * 0.33, 2)) < 1e-6)
+    bet_opt = next(
+        o
+        for o in opts
+        if o.meta and o.meta.get("action") == "bet" and abs(o.meta["bet"] - round(node.pot_bb * 0.33, 2)) < 1e-6
+    )
     prev_pot = hand_state["pot"]
     res = resolve_for(node, bet_opt, rng)
     assert not res.hand_ended

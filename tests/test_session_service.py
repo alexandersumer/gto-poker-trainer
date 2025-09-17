@@ -134,3 +134,47 @@ def test_summary_counts_unique_hands():
     summary = _summary_payload(records)
 
     assert summary.hands == 2
+
+
+def _play_session_with_policy(manager, sid, chooser):
+    node_resp = manager.get_node(sid)
+    guard = 0
+    while not node_resp.done:
+        assert node_resp.options, "expected options while session active"
+        choice_index = chooser(node_resp.options)
+        choice = manager.choose(sid, choice_index)
+        node_resp = choice.next_payload
+        guard += 1
+        if guard > 32:
+            raise AssertionError("session did not complete within expected steps")
+    return manager.summary(sid)
+
+
+def test_optimal_play_produces_zero_ev_loss():
+    manager = SessionManager()
+    sid = manager.create_session(SessionConfig(hands=1, mc_trials=60, seed=321))
+
+    def take_best(options):
+        return max(range(len(options)), key=lambda idx: options[idx].ev)
+
+    summary = _play_session_with_policy(manager, sid, take_best)
+
+    assert summary.hands == 1
+    assert summary.ev_lost == pytest.approx(0.0, abs=1e-9)
+    assert summary.score == pytest.approx(100.0)
+    assert summary.hits > 0
+
+
+def test_poor_choices_accumulate_ev_loss():
+    manager = SessionManager()
+    sid = manager.create_session(SessionConfig(hands=1, mc_trials=60, seed=321))
+
+    def take_worst(options):
+        return min(range(len(options)), key=lambda idx: options[idx].ev)
+
+    summary = _play_session_with_policy(manager, sid, take_worst)
+
+    assert summary.hands == 1
+    assert summary.ev_lost > 0.0
+    assert summary.score < 100.0
+    assert summary.hits == 0

@@ -153,6 +153,7 @@ class RichPresenter(Presenter):
         avg_ev_lost = total_ev_lost / len(records)
         hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
         hands_answered = len(hand_ids) if hand_ids else len(records)
+
         def _room_term(rec: dict) -> float:
             room_ev = rec.get("room_ev")
             if room_ev is not None:
