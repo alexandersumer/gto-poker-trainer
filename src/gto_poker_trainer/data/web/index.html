@@ -8,25 +8,43 @@
     <style>
       :root {
         color-scheme: light;
-        --bg-primary: #f5f7fb;
+        --bg-primary: #f9fafb;
         --bg-secondary: rgba(255, 255, 255, 0.92);
-        --bg-panel: rgba(255, 255, 255, 0.88);
-        --surface-subtle: #eef1f8;
-        --border-panel: #d7ddea;
-        --card-highlight: #f1f3fb;
-        --accent-primary: #6c83f5;
-        --accent-secondary: #7ec7c2;
-        --accent-warm: #f2b4c0;
-        --text-primary: #1f2740;
-        --text-secondary: #47516d;
-        --text-muted: #838eaa;
-        --focus-ring: rgba(108, 131, 245, 0.35);
+        --bg-panel: rgba(255, 255, 255, 0.92);
+        --surface-subtle: #f3f4f6;
+        --border-panel: #e5e7eb;
+        --card-highlight: #ffffff;
+        --text-primary: #111827;
+        --text-secondary: #4b5563;
+        --text-muted: #6b7280;
+
+        /* Action palette */
+        --btn-primary-bg: #eef2ff;
+        --btn-primary-text: #4338ca;
+        --btn-primary-hover: #e0e7ff;
+        --btn-primary-active: #c7d2fe;
+
+        --btn-info-bg: #e9f2ff;
+        --btn-info-text: #0b4f9c;
+        --btn-info-hover: #dde9ff;
+
+        --btn-danger-bg: #fdecec;
+        --btn-danger-text: #b42318;
+        --btn-danger-hover: #fad7d7;
+
+        --focus-ring: #a5b4fc;
+
+        /* Card suits */
+        --suit-spade: #111827;
+        --suit-heart: #e11d48;
+        --suit-diamond: #2563eb;
+        --suit-club: #16a34a;
       }
       body {
         min-height: 100vh;
         margin: 0;
         font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #f5f7fb;
+        background: var(--bg-primary);
         color: var(--text-primary);
         display: flex;
         flex-direction: column;
@@ -67,19 +85,19 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 0.75rem;
-        border: 1px solid rgba(190, 202, 224, 0.5);
+        border-radius: 0.65rem;
+        border: 1px solid var(--border-panel);
         padding: 0.35rem 0.75rem;
         font-weight: 700;
         letter-spacing: 0.4px;
         margin: 0 0.25rem 0.25rem 0;
         background: var(--card-highlight);
-        box-shadow: 0 8px 18px rgba(31, 39, 64, 0.08);
+        box-shadow: 0 6px 12px rgba(17, 24, 39, 0.06);
       }
-      .card.s { color: #1f2740; }
-      .card.h { color: #c45b6b; }
-      .card.d { color: #1d68a6; }
-      .card.c { color: #2c7a66; }
+      .card.s { color: var(--suit-spade); }
+      .card.h { color: var(--suit-heart); }
+      .card.d { color: var(--suit-diamond); }
+      .card.c { color: var(--suit-club); }
       .glass {
         backdrop-filter: blur(18px);
         background: rgba(255, 255, 255, 0.82);
@@ -88,9 +106,8 @@
       .panel-box {
         background: var(--bg-panel);
         border: 1px solid var(--border-panel);
-        box-shadow: 0 14px 28px rgba(31, 39, 64, 0.08);
+        box-shadow: 0 30px 40px rgba(15, 23, 42, 0.04);
         color: var(--text-primary);
-        backdrop-filter: blur(18px);
         border-radius: 1.25rem;
       }
       input, select, textarea {
@@ -111,14 +128,69 @@
         transition: transform 0.18s ease, box-shadow 0.18s ease;
       }
       button:not([disabled]):active { transform: translateY(1px); }
-      button[disabled] { cursor: wait !important; opacity: 0.7 !important; }
+      button[disabled] { cursor: wait !important; opacity: 0.65 !important; }
       #options {
         box-shadow: none;
       }
       #options button {
-        box-shadow: 0 10px 20px rgba(31, 39, 64, 0.12);
+        box-shadow: 0 6px 12px rgba(17, 24, 39, 0.08);
       }
-      #options button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+      #options button:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--focus-ring);
+      }
+      .btn-action {
+        border-radius: 0.9rem;
+        border: 1px solid var(--border-panel);
+        padding: 0.9rem 1.15rem;
+        font-weight: 600;
+        text-align: left;
+        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+      }
+      .btn-primary {
+        background: var(--btn-primary-bg);
+        color: var(--btn-primary-text);
+        border-color: var(--btn-primary-active);
+      }
+      .btn-primary:hover { background: var(--btn-primary-hover); }
+      .btn-primary:active { background: var(--btn-primary-active); }
+
+      .btn-info {
+        background: var(--btn-info-bg);
+        color: var(--btn-info-text);
+        border-color: #c6dbff;
+      }
+      .btn-info:hover { background: var(--btn-info-hover); }
+
+      .btn-danger {
+        background: var(--btn-danger-bg);
+        color: var(--btn-danger-text);
+        border-color: #f8c4c4;
+      }
+      .btn-danger:hover { background: var(--btn-danger-hover); }
+
+      .btn-neutral {
+        background: var(--surface-subtle);
+        color: var(--text-secondary);
+        border-color: var(--border-panel);
+      }
+      .btn-neutral:hover { background: #e7eaf1; }
+
+      .feedback-success {
+        background: var(--success-bg) !important;
+        color: var(--success-text) !important;
+        border-left: 4px solid rgba(17, 106, 71, 0.35);
+      }
+      .feedback-warning {
+        background: var(--warning-bg) !important;
+        color: var(--warning-text) !important;
+        border-left: 4px solid rgba(146, 64, 14, 0.25);
+      }
+      .feedback-danger {
+        background: var(--btn-danger-bg) !important;
+        color: var(--btn-danger-text) !important;
+        border-left: 4px solid rgba(180, 35, 24, 0.25);
+      }
       .option-card {
         animation: option-in 0.26s ease forwards;
         transform-origin: top center;
@@ -137,12 +209,14 @@
       }
       #feedback.hidden { opacity: 0; transform: translateY(6px); }
       #feedback[data-state="correct"] {
-        background: #e3f3ed;
-        border-left: 4px solid rgba(111, 191, 163, 0.65);
+        background: var(--success-bg);
+        color: var(--success-text);
+        border-left: 4px solid rgba(17, 106, 71, 0.35);
       }
       #feedback[data-state="incorrect"] {
-        background: #f6e9e4;
-        border-left: 4px solid rgba(210, 150, 120, 0.6);
+        background: var(--btn-danger-bg);
+        color: var(--btn-danger-text);
+        border-left: 4px solid rgba(180, 35, 24, 0.25);
       }
       @media (max-width: 640px) {
         header { position: sticky; top: 0; }
@@ -286,6 +360,7 @@
         if(!fb) return;
         fb.classList.add('hidden');
         fb.removeAttribute('data-state');
+        fb.classList.remove('feedback-success','feedback-warning','feedback-danger');
         fb.innerHTML = '';
       }
 
@@ -403,43 +478,36 @@
         }
         const area = $('#options');
         if(area){
-          const toneStyles = {
-            fold: 'bg-[#f2d6d9] border-[#dfbcc1] hover:bg-[#ebcacf] focus-visible:ring-[#d7aab3]/55 text-[#684249]',
-            passive: 'bg-[#eef2fb] border-[#d9e0f2] hover:bg-[#e5e9f6] focus-visible:ring-[#c6d1ec]/45 text-[#3f4a63]',
-            aggressive: 'bg-[#ece6f5] border-[#d6cde8] hover:bg-[#e3dced] focus-visible:ring-[#c4b9df]/45 text-[#4d3d66]'
-          };
           const toneMap = {
-            fold: 'fold',
-            call: 'passive',
-            check: 'passive',
-            bet: 'aggressive',
-            raise: 'aggressive',
-            shove: 'aggressive',
-            default: 'passive'
+            fold: 'btn-danger',
+            call: 'btn-info',
+            check: 'btn-neutral',
+            bet: 'btn-primary',
+            raise: 'btn-primary',
+            shove: 'btn-primary',
+            default: 'btn-neutral'
           };
 
           const classifyTone = (label) => {
             const lower = label.toLowerCase();
-            if (lower.includes('fold')) return 'fold';
-            if (lower.includes('call')) return 'call';
-            if (lower.includes('check')) return 'check';
-            if (lower.includes('all-in') || lower.includes('jam')) return 'shove';
-            if (lower.includes('raise') || lower.includes('3-bet') || lower.includes('4-bet')) return 'raise';
-            if (lower.includes('bet')) return 'bet';
-            return 'default';
+            if (lower.includes('fold')) return toneMap.fold;
+            if (lower.includes('call')) return toneMap.call;
+            if (lower.includes('check')) return toneMap.check;
+            if (lower.includes('all-in') || lower.includes('jam')) return toneMap.shove;
+            if (lower.includes('raise') || lower.includes('3-bet') || lower.includes('4-bet')) return toneMap.raise;
+            if (lower.includes('bet')) return toneMap.bet;
+            return toneMap.default;
           };
           const fragment = document.createDocumentFragment();
           payload.options.forEach((option,i)=>{
             const rawLabel = typeof option === 'string' ? option : option?.label;
             const labelText = typeof rawLabel === 'string' && rawLabel.length ? rawLabel : `Option ${i + 1}`;
-            const text = labelText.replace(/\s*\([^)]*\)$/, '');
+            const text = labelText;
             const b = document.createElement('button');
             b.type = 'button';
-            const base = 'option-card w-full rounded-lg px-3.5 py-2 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb] border shadow shadow-[#1f2740]/12';
-            const tone = classifyTone(text);
-            const toneKey = toneMap[tone] || 'passive';
-            const color = toneStyles[toneKey];
-            b.className = `${base} ${color}`;
+            const base = 'option-card btn-action w-full text-sm font-semibold tracking-tight transition-all duration-200';
+            const toneClass = classifyTone(text);
+            b.className = `${base} ${toneClass}`.trim();
             b.style.animationDelay = `${i * 40}ms`;
             b.textContent = text;
             if (typeof option === 'object' && option && 'key' in option) {
@@ -480,14 +548,16 @@
           const fb = $('#feedback');
           if(fb){
             fb.dataset.state = f.correct ? 'correct' : 'incorrect';
-            fb.classList.remove('hidden');
-            const stateTone = f.correct ? 'text-[#4a8b74]' : 'text-[#b17646]';
-            const contextTone = 'text-[#6d7794]';
+            fb.classList.remove('hidden','feedback-success','feedback-warning','feedback-danger');
+            fb.classList.add(f.correct ? 'feedback-success' : 'feedback-danger');
+            const verdictLabel = f.correct ? '✓ Best choice' : 'Better line available';
+            const whyChosen = f.chosen.why ? `<div class="mt-2 text-sm text-secondary"><strong>Why you chose it:</strong> ${f.chosen.why}</div>` : '';
+            const whyBest = !f.correct && f.best.why ? `<div class="mt-1 text-sm text-secondary"><strong>Coach note:</strong> ${f.best.why}</div>` : '';
             fb.innerHTML = `
-              <div class="text-lg font-bold ${stateTone}">${f.correct?'✓ Best choice':'✗ Better was'}: ${f.best.key}</div>
-              <div class="mt-2">You chose: <b>${f.chosen.key}</b> — EV lost: <b>${fmt(f.ev_loss)} bb</b></div>
-              ${f.chosen.why?`<div class=\"mt-1 text-sm ${contextTone}\"><i>Why (yours):</i> ${f.chosen.why}</div>`:''}
-             ${!f.correct && f.best.why?`<div class=\"text-sm ${contextTone}\"><i>Why (best):</i> ${f.best.why}</div>`:''}
+              <div class="text-base font-semibold">${verdictLabel}: ${f.best.key}</div>
+              <div class="mt-1 text-sm">You picked <strong>${f.chosen.key}</strong> · EV difference <strong>${fmt(f.ev_loss)} bb</strong></div>
+              ${whyChosen}
+              ${whyBest}
             `;
           }
           if(data.next){
@@ -510,31 +580,31 @@
           sum.innerHTML = `
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 class="text-lg font-semibold text-[#1d3a56]">Session summary</h2>
+                <h2 class="text-lg font-semibold text-primary">Session summary</h2>
                 <p class="text-sm text-muted">Your decisions across this run.</p>
               </div>
               <div class="text-right">
                 <div class="text-xs uppercase tracking-wide text-muted">Score (0–100)</div>
-                <div class="text-2xl font-bold text-[#1f2740]">${Math.round(s.score)}</div>
+                <div class="text-2xl font-bold text-primary">${Math.round(s.score)}</div>
               </div>
             </div>
             <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div class="rounded-lg border border-[#d7ddea] bg-white/70 px-4 py-3">
+              <div class="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Hands answered</dt>
-                <dd class="mt-1 text-lg font-semibold text-[#1f2740]">${s.hands}</dd>
+                <dd class="mt-1 text-lg font-semibold text-primary">${s.hands}</dd>
               </div>
-              <div class="rounded-lg border border-[#d7ddea] bg-white/70 px-4 py-3">
+              <div class="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Best choices hit</dt>
-                <dd class="mt-1 text-lg font-semibold text-[#1f2740]">${s.hits}</dd>
+                <dd class="mt-1 text-lg font-semibold text-primary">${s.hits}</dd>
                 <dd class="text-xs text-muted">Accuracy per decision: ${accuracy}%</dd>
               </div>
-              <div class="rounded-lg border border-[#d7ddea] bg-white/70 px-4 py-3">
+              <div class="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
-                <dd class="mt-1 text-lg font-semibold text-[#1f2740]">${fmt(s.ev_lost)} bb</dd>
+                <dd class="mt-1 text-lg font-semibold text-primary">${fmt(s.ev_lost)} bb</dd>
                 <dd class="text-xs text-muted">Avg / hand: ${avgEvLoss} bb</dd>
               </div>
             </dl>
-            <div class="mt-4 rounded-lg border border-[#d7ddea] bg-white/70 px-4 py-3 text-sm text-secondary">
+            <div class="mt-4 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-secondary">
               Keep iterating: review the final hand’s feedback before starting a fresh session to reinforce the optimal line.
             </div>
           `;

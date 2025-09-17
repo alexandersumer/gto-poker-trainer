@@ -36,19 +36,19 @@ def format_option_label(node: Node, option: Option) -> str:
     if action == "bet":
         bet_size = float(meta.get("bet", 0.0))
         pct = _safe_pct(bet_size, pot)
-        return f"Bet {_fmt_pct(pct)}"
+        return f"Bet {bet_size:.2f} bb ({_fmt_pct(pct)} pot)"
 
     if action == "raise":
         raise_to = float(meta.get("raise_to", 0.0))
         pot_before = float(meta.get("pot_before", pot))
         pct = _safe_pct(raise_to, pot_before)
-        return f"Raise {_fmt_pct(pct)}"
+        return f"Raise to {raise_to:.2f} bb ({_fmt_pct(pct)} pot)"
 
     if action == "3bet":
         raise_to = float(meta.get("raise_to", 0.0))
         pot_before = float(meta.get("pot_before", pot))
         pct = _safe_pct(raise_to, pot_before)
-        return f"3-bet {_fmt_pct(pct)}"
+        return f"3-bet to {raise_to:.2f} bb ({_fmt_pct(pct)} pot)"
 
     if action in {"jam", "allin", "all-in"}:
         return "All-in"
@@ -91,11 +91,11 @@ def _fallback_percent_label(key: str, node: Node) -> str:
     pct = _safe_pct(amount, pot)
 
     if "3-bet" in key_lower:
-        return f"3-bet {_fmt_pct(pct)}"
+        return f"3-bet to {amount:.2f} bb ({_fmt_pct(pct)} pot)"
     if "raise" in key_lower:
-        return f"Raise {_fmt_pct(pct)}"
+        return f"Raise to {amount:.2f} bb ({_fmt_pct(pct)} pot)"
     if "bet" in key_lower:
-        return f"Bet {_fmt_pct(pct)}"
+        return f"Bet {amount:.2f} bb ({_fmt_pct(pct)} pot)"
     if "call" in key_lower:
         return f"Call {_fmt_pct(pct)}"
     return key

@@ -26,19 +26,19 @@ def test_format_option_label_uses_meta_percentage_for_bet():
         meta={"action": "bet", "bet": 3.0},
     )
     label = format_option_label(_node(pot=6.0), opt)
-    assert label == "Bet 50%"
+    assert label == "Bet 3.00 bb (50% pot)"
 
 
 def test_format_option_label_converts_bb_to_percentage():
     opt = Option("Bet 4.00 bb", 0.0, "")
     label = format_option_label(_node(pot=8.0), opt)
-    assert label == "Bet 50%"
+    assert label == "Bet 4.00 bb (50% pot)"
 
 
 def test_format_option_label_convert_raise_from_text():
     opt = Option("Raise to 6.00 bb", 0.0, "")
     label = format_option_label(_node(pot=9.0), opt)
-    assert label == "Raise 66.7%"
+    assert label == "Raise to 6.00 bb (66.7% pot)"
 
 
 def test_format_option_label_leave_fold_literal():
@@ -57,7 +57,7 @@ def test_format_option_label_uppercase_bb_text():
     opt = Option("3-bet to 10 BB", 0.0, "")
     label = format_option_label(_node(pot=12.0), opt)
     assert label.startswith("3-bet")
-    assert "%" in label
+    assert "pot" in label
 
 
 def test_format_option_label_all_in_text():
