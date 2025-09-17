@@ -46,9 +46,20 @@ def test_options_css_uses_grid_layout():
     css = TrainerApp.CSS
     assert "#options" in css
     assert "layout: grid" in css
-    assert "grid-columns: 1fr 1fr" in css
+    assert "grid-columns: 1fr 1fr 1fr" in css
 
 
 def test_trainer_app_has_end_session_control():
     source = inspect.getsource(TrainerApp.compose)
     assert "btn-end" in source
+
+
+def test_trainer_app_bindings_include_end_session():
+    bindings = {}
+    for binding in TrainerApp.BINDINGS:
+        if hasattr(binding, "key"):
+            bindings[binding.key] = binding.action
+        else:
+            key, action, *_ = binding
+            bindings[key] = action
+    assert bindings.get("escape") == "end_session"

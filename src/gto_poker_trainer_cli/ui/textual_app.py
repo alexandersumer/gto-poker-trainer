@@ -82,6 +82,11 @@ class _TextualPresenter(Presenter):
 
 
 class TrainerApp(App[None]):
+    BINDINGS = [
+        ("ctrl+n", "new_session", "Start Fresh Hand"),
+        ("escape", "end_session", "End Session"),
+        ("ctrl+q", "quit_app", "Quit"),
+    ]
     CSS = """
     Screen {
         layout: vertical;
@@ -92,12 +97,40 @@ class TrainerApp(App[None]):
     .headline-col { width: 100%; }
     .meta-panel { width: 100%; }
     .card-panel { width: 100%; padding: 0; font-family: monospace; }
-    #options { layout: grid; grid-columns: 1fr 1fr; grid-gutter: 0 1; }
+    #options { layout: grid; grid-columns: 1fr 1fr 1fr; grid-gutter: 0 1; }
     #controls { column-gap: 1; }
-    Button { width: 100%; min-height: 2; padding: 0 1; margin: 0 0 0.5 0; }
+    Button {
+        width: 100%;
+        min-height: 2;
+        padding: 0 1;
+        margin: 0 0 0.5 0;
+        background: #1f2937;
+        color: #f8fafc;
+        border: 1px solid #334155;
+        transition: background 0.15s ease, border 0.15s ease;
+    }
+    Button:hover { background: #273449; }
+    Button:focus { border: 1px solid #94a3b8; }
+    .option-button { background: #1f2937; border: 1px solid #334155; color: #f8fafc; }
+    .option-button:hover { background: #273449; }
+    .option-button:focus { border: 1px solid #64748b; }
+    .option-fold { background: #3f1d1d; border: 1px solid #7f1d1d; }
+    .option-fold:hover { background: #4c1d1d; }
+    .option-call { background: #1e3a5f; border: 1px solid #1d4ed8; }
+    .option-call:hover { background: #1d3d68; }
+    .option-check { background: #1f2937; border: 1px solid #475569; }
+    .option-check:hover { background: #273447; }
+    .option-value { background: #0f4c3a; border: 1px solid #0f766e; }
+    .option-value:hover { background: #135b47; }
+    #btn-new { background: #0f766e; border: 1px solid #0f766e; }
+    #btn-new:hover { background: #0d5f58; }
+    #btn-end { background: #b45309; border: 1px solid #b45309; }
+    #btn-end:hover { background: #92400e; }
+    #btn-quit { background: #7f1d1d; border: 1px solid #7f1d1d; }
+    #btn-quit:hover { background: #641616; }
     Label { text-align: left; width: 100%; }
     #board { white-space: pre-wrap; }
-    #options { align-horizontal: left; }
+    #options { grid-size: 3; grid-gutter: 1 1; }
     """
 
     # Reactive state for headline / meta
@@ -277,7 +310,20 @@ class TrainerApp(App[None]):
         # Render actions as buttons
         if self._options_container:
             self._options_container.remove_children()
-            buttons = [Button(f"{i}. {k}", id=f"opt-{i - 1}") for i, k in enumerate(options, 1)]
+            buttons = []
+            for i, k in enumerate(options, 1):
+                classes = ["option-button"]
+                key_lower = k.lower()
+                if "fold" in key_lower:
+                    classes.append("option-fold")
+                elif "call" in key_lower:
+                    classes.append("option-call")
+                elif "check" in key_lower:
+                    classes.append("option-check")
+                else:
+                    classes.append("option-value")
+                btn = Button(f"{i}. {k}", id=f"opt-{i - 1}", classes=" ".join(classes))
+                buttons.append(btn)
             if buttons:
                 self._options_container.mount(*buttons)
 
@@ -387,6 +433,15 @@ class TrainerApp(App[None]):
         if hasattr(self, "_presenter"):
             self._presenter.cancel_session()
         self.exit()
+
+    def action_new_session(self) -> None:
+        self._request_restart()
+
+    def action_end_session(self) -> None:
+        self._on_end()
+
+    def action_quit_app(self) -> None:
+        self._on_quit()
 
     @on(Button.Pressed)
     def _on_option_pressed(self, event: Button.Pressed) -> None:
