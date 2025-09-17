@@ -1,0 +1,28 @@
+from __future__ import annotations
+
+import random
+
+from gto_poker_trainer.application.session_engine import SessionEngine
+from gto_poker_trainer.dynamic.seating import SeatRotation
+
+
+def test_session_engine_alternates_seats():
+    engine = SessionEngine(rng=random.Random(123), rotation=SeatRotation())
+    first = engine.build_episode(0)
+    second = engine.build_episode(1)
+
+    assert first.hero_seat == "BB"
+    assert first.villain_seat == "SB"
+    assert second.hero_seat == "SB"
+    assert second.villain_seat == "BB"
+
+
+def test_session_engine_current_seats_matches_build():
+    rotation = SeatRotation()
+    engine = SessionEngine(rng=random.Random(321), rotation=rotation)
+
+    for index in range(4):
+        seats = engine.current_seats(index)
+        episode = engine.build_episode(index)
+        assert episode.hero_seat == seats.hero
+        assert episode.villain_seat == seats.villain

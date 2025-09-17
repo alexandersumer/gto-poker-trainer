@@ -11,9 +11,10 @@ from ..core.formatting import format_option_label
 from ..core.models import Option
 from ..core.scoring import SummaryStats, summarize_records
 from ..dynamic.cards import format_card_ascii
-from ..dynamic.generator import Episode, Node, generate_episode
+from ..dynamic.generator import Episode, Node
 from ..dynamic.policy import options_for, resolve_for
 from ..dynamic.seating import SeatRotation
+from .session_engine import SessionEngine
 
 
 def _card_strings(cards: list[int]) -> list[str]:
@@ -172,12 +173,11 @@ class NodeResponse:
 class SessionState:
     config: SessionConfig
     episodes: list[Episode]
-    rng: random.Random
+    engine: SessionEngine
     hand_index: int = 0
     current_index: int = 0
     records: list[dict[str, Any]] = field(default_factory=list)
     cached_options: list[Option] | None = None
-    seat_rotation: SeatRotation = field(default_factory=SeatRotation)
 
 
 class SessionManager:
@@ -191,13 +191,13 @@ class SessionManager:
         seed = config.seed or secrets.SystemRandom().getrandbits(32)
         rng = random.Random(seed)
         rotation = SeatRotation()
-        first_episode = generate_episode(rng, seat_assignment=rotation.assignment_for(0))
+        engine = SessionEngine(rng=rng, rotation=rotation)
+        first_episode = engine.build_episode(0)
         session_id = _sid()
         state = SessionState(
             config=SessionConfig(hands=max(1, config.hands), mc_trials=max(10, config.mc_trials), seed=seed),
             episodes=[first_episode],
-            rng=rng,
-            seat_rotation=rotation,
+            engine=engine,
         )
         with self._lock:
             self._sessions[session_id] = state
@@ -225,7 +225,7 @@ class SessionManager:
             chosen = options[choice_index]
             best = options[_best_index(options)]
             worst = min(options, key=lambda opt: opt.ev)
-            resolution = resolve_for(node, chosen, state.rng)
+            resolution = resolve_for(node, chosen, state.engine.rng)
             chosen_feedback = replace(chosen)
             if resolution.note:
                 chosen_feedback.resolution_note = resolution.note
@@ -290,8 +290,7 @@ def _sid(length: int = 10) -> str:
 def _ensure_episode(state: SessionState) -> None:
     if state.hand_index >= len(state.episodes):
         next_index = len(state.episodes)
-        seats = state.seat_rotation.assignment_for(next_index)
-        state.episodes.append(generate_episode(state.rng, seat_assignment=seats))
+        state.episodes.append(state.engine.build_episode(next_index))
 
 
 def _ensure_active_node(state: SessionState) -> Node | None:
@@ -308,7 +307,7 @@ def _ensure_active_node(state: SessionState) -> Node | None:
 
 def _ensure_options(state: SessionState, node: Node) -> list[Option]:
     if state.cached_options is None:
-        state.cached_options = options_for(node, state.rng, state.config.mc_trials)
+        state.cached_options = options_for(node, state.engine.rng, state.config.mc_trials)
     return state.cached_options
 
 

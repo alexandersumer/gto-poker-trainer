@@ -542,6 +542,40 @@
         color: var(--text-primary);
         box-shadow: var(--shadow-card);
       }
+      .hand-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: var(--space-2);
+      }
+      .summary-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--brand) 14%, transparent);
+        border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: var(--text-primary);
+      }
+      .summary-chip .chip-meta {
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
       .info-row {
         display: flex;
         align-items: center;
@@ -979,6 +1013,7 @@
 
       <section id="panel-play" class="page-section hidden space-y-4">
         <div class="rounded-lg panel-box panel-soft p-5 text-secondary">
+          <div id="hand-summary" class="hand-summary" aria-live="polite"></div>
           <div id="card-summary" class="info-card">
             <div class="info-row">
               <span class="info-label">YOU</span>
@@ -1053,6 +1088,8 @@
         </div>
       </div>
     </div>
+
+    <div id="action-announcer" class="sr-only" aria-live="polite"></div>
 
     <script>
 
@@ -1169,6 +1206,7 @@
       const feedbackDrawerBody = $('#feedback-drawer-body');
       const feedbackDrawerClose = $('#feedback-drawer-close');
       const optionsContainer = $('#options');
+      const handSummaryEl = $('#hand-summary');
       const startBtn = $('#btn-start');
       const summaryBtn = $('#btn-summary');
       const endBtn = $('#btn-end');
@@ -1180,6 +1218,7 @@
       const sheetTitle = $('#action-sheet-title');
       const sheetMeta = $('#action-sheet-meta');
       const sheetContext = $('#action-sheet-context');
+      const actionAnnouncer = $('#action-announcer');
       let lastFeedback = null;
       let uiState = 'setup';
       let sheetExpanded = false;
@@ -1239,8 +1278,8 @@
 
       const setSheetMeta = (node, descriptor) => {
         if(sheetMeta){
-          const pot = typeof node?.pot_bb === 'number' ? formatBb(node.pot_bb) : '';
-          sheetMeta.textContent = pot ? `Pot ${pot}` : '';
+          const pot = typeof node?.pot_bb === 'number' ? `Pot ${formatBb(node.pot_bb)}` : '';
+          sheetMeta.textContent = pot;
         }
         if(sheetContext){
           const contextText = descriptor ? descriptor : '';
@@ -1252,6 +1291,34 @@
             sheetContext.textContent = '';
           }
         }
+      };
+
+      const renderHandSummary = (node, descriptor) => {
+        if(!handSummaryEl){
+          return;
+        }
+        if(!node){
+          handSummaryEl.innerHTML = '';
+          return;
+        }
+        const chips = [];
+        const street = (node.street || 'Ready').toString();
+        chips.push(createSummaryChip(street.charAt(0).toUpperCase() + street.slice(1)));
+        if(descriptor){
+          chips.push(createSummaryChip(descriptor));
+        }
+        if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
+          chips.push(createSummaryChip(`Hand ${node.hand_no}/${node.total_hands}`));
+        }
+        if(typeof node.pot_bb === 'number'){
+          chips.push(createSummaryChip(`Pot`, formatBb(node.pot_bb)));
+        }
+        handSummaryEl.innerHTML = chips.join('');
+      };
+
+      const createSummaryChip = (label, meta) => {
+        const metaSpan = meta ? `<span class="chip-meta">${meta}</span>` : '';
+        return `<span class="summary-chip">${label}${metaSpan ? ` · ${metaSpan}` : ''}</span>`;
       };
 
       const makeChip = (kind, icon, label, value, { title } = {}) => {
@@ -1377,7 +1444,7 @@
 
       const renderOptions = (options) => {
         if(!optionsContainer) return;
-        const list = Array.isArray(options) ? options : [];
+        const list = orderOptions(Array.isArray(options) ? options : []);
         const count = list.length;
         optionsContainer.dataset.count = String(count);
         if(count === 0){
@@ -1397,6 +1464,7 @@
           btn.className = 'option-tile';
           btn.dataset.optionIndex = String(index);
           btn.setAttribute('aria-pressed', 'false');
+          btn.dataset.optionLabel = meta ? `${primary} (${meta})` : primary;
 
           if(typeof option === 'object' && option && 'key' in option){
             btn.dataset.optionKey = option.key;
@@ -1470,6 +1538,66 @@
         });
 
         optionsContainer.replaceChildren(fragment);
+        announceAction('');
+      };
+
+      const orderOptions = (options) => {
+        if(options.length <= 1){
+          return options;
+        }
+        const baseOrder = ['fold', 'check', 'call', 'bet', 'raise', 'jam', 'all-in'];
+        const normalize = (value) => (value || '').toString().toLowerCase();
+        const actionFrom = (option) => {
+          if(option && typeof option === 'object' && option.meta && option.meta.action){
+            return normalize(option.meta.action);
+          }
+          if(option && typeof option === 'object' && option.key){
+            return classifyByKey(option.key);
+          }
+          if(typeof option === 'string'){
+            return classifyByKey(option);
+          }
+          return '';
+        };
+        const classifyByKey = (key) => {
+          const lower = normalize(key);
+          for (const term of baseOrder){
+            if(lower.startsWith(term)){ return term; }
+          }
+          if(lower.includes('all')) return 'all-in';
+          return lower;
+        };
+        const betValue = (option) => {
+          const metaBet = option && typeof option === 'object' ? option?.meta?.bet : null;
+          if(typeof metaBet === 'number'){
+            return metaBet;
+          }
+          const key = option && typeof option === 'object' ? option.key : option;
+          const match = typeof key === 'string' ? key.match(/(\d+(?:\.\d+)?)\s*bb/i) : null;
+          if(match){
+            return parseFloat(match[1]);
+          }
+          return Number.POSITIVE_INFINITY;
+        };
+        const rankFor = (option) => {
+          const action = actionFrom(option);
+          const baseIndex = baseOrder.indexOf(action);
+          const base = baseIndex >= 0 ? baseIndex : baseOrder.length;
+          if(action === 'bet' || action === 'raise' || action === 'all-in' || action === 'jam'){
+            return base + betValue(option) / 1000;
+          }
+          return base;
+        };
+        return options
+          .map((opt, idx) => ({ opt, idx, rank: rankFor(opt) }))
+          .sort((a, b) => (a.rank === b.rank ? a.idx - b.idx : a.rank - b.rank))
+          .map((entry) => entry.opt);
+      };
+
+      const announceAction = (message) => {
+        if(actionAnnouncer){
+          actionAnnouncer.textContent = message ? `Action selected: ${message}` : '';
+        }
       };
 
       const hideFeedbackDrawer = () => {
@@ -1577,8 +1705,10 @@
         if(target){ target.classList.remove('hidden'); }
         if(id === '#panel-start'){
           setUiState('setup');
+          renderHandSummary(null, '');
         } else if(id === '#panel-summary'){
           setUiState('summary');
+          renderHandSummary(null, '');
         }
       }
 
@@ -1697,6 +1827,7 @@
           setUiState('summary');
           setSheetMeta(null, '');
           renderOptions([]);
+          renderHandSummary(null, '');
           setStatusMessage('Session complete — view summary for breakdown.');
           return;
         }
@@ -1705,6 +1836,7 @@
         const node = payload.node;
         const descriptor = parseDescriptor(node);
         updateStatusBar(node, descriptor);
+        renderHandSummary(node, descriptor);
         setSheetMeta(node, descriptor);
         const heroEl = $('#hand');
         const heroCards = renderCards(node.hero_cards);
@@ -1742,6 +1874,10 @@
           btn.classList.toggle('option--disabled', !isChosen);
           btn.setAttribute('aria-pressed', isChosen ? 'true' : 'false');
         });
+        const chosenLabel = buttons[index]?.dataset.optionLabel;
+        if(chosenLabel){
+          announceAction(chosenLabel);
+        }
         setUiState('resolving');
         try{
           const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:index})});
@@ -1764,6 +1900,7 @@
             btn.classList.remove('option--selected','option--disabled');
             btn.setAttribute('aria-pressed', 'false');
           });
+          announceAction('');
           setUiState('awaitingAction');
         } finally {
           pending = false;
