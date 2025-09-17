@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+from gto_poker_trainer_cli.core.formatting import format_option_label
+from gto_poker_trainer_cli.core.models import Option
+from gto_poker_trainer_cli.dynamic.generator import Node
+
+
+def _node(*, pot: float = 8.0, street: str = "flop") -> Node:
+    return Node(
+        street=street,
+        description="",
+        pot_bb=pot,
+        effective_bb=100.0,
+        hero_cards=[0, 1],
+        board=[2, 3, 4] if street != "preflop" else [],
+        actor="BB",
+        context={"open_size": 2.5} if street == "preflop" else {},
+    )
+
+
+def test_format_option_label_uses_meta_percentage_for_bet():
+    opt = Option(
+        key="Bet 50% pot",
+        ev=0.0,
+        why="",
+        meta={"action": "bet", "bet": 3.0},
+    )
+    label = format_option_label(_node(pot=6.0), opt)
+    assert label == "Bet 50%"
+
+
+def test_format_option_label_converts_bb_to_percentage():
+    opt = Option("Bet 4.00 bb", 0.0, "")
+    label = format_option_label(_node(pot=8.0), opt)
+    assert label == "Bet 50%"
+
+
+def test_format_option_label_convert_raise_from_text():
+    opt = Option("Raise to 6.00 bb", 0.0, "")
+    label = format_option_label(_node(pot=9.0), opt)
+    assert label == "Raise 66.7%"
+
+
+def test_format_option_label_leave_fold_literal():
+    opt = Option("Fold", 0.0, "")
+    label = format_option_label(_node(pot=7.0), opt)
+    assert label == "Fold"
+
+
+def test_format_option_label_call_without_cost_is_literal():
+    opt = Option("Call", 0.0, "", meta={"action": "call"})
+    label = format_option_label(_node(pot=5.0), opt)
+    assert label == "Call"

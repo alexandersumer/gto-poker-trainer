@@ -122,7 +122,14 @@ class TrainerApp(App[None]):
         background: #131d30;
         border: 1px solid #1f2c45;
     }
-    #options { layout: grid; grid-columns: 1fr; grid-gutter: 0 1; width: 100%; max-width: 48; }
+    #options {
+        layout: grid;
+        grid-size: 1;
+        grid-columns: 1fr;
+        grid-gutter: 0 1;
+        width: 100%;
+        max-width: 48;
+    }
     #controls { column-gap: 1; }
     Button {
         width: 100%;
@@ -162,7 +169,6 @@ class TrainerApp(App[None]):
         border: 1px solid #1f2c45;
         padding: 1;
     }
-    #options { grid-size: 3; grid-gutter: 1 1; }
     """
 
     # Reactive state for headline / meta

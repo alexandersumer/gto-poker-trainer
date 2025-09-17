@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from ..dynamic.generator import Node
@@ -26,7 +27,7 @@ def format_option_label(node: Node, option: Option) -> str:
 
     key = option.key.strip()
     if not action:
-        return key
+        return _fallback_percent_label(key, node)
 
     pot = float(node.pot_bb)
 
@@ -60,4 +61,31 @@ def format_option_label(node: Node, option: Option) -> str:
     if action == "fold":
         return "Fold"
 
+    return _fallback_percent_label(key, node)
+
+
+_BB_PATTERN = re.compile(r"([0-9]+(?:\.[0-9]+)?)\s*bb", re.IGNORECASE)
+
+
+def _fallback_percent_label(key: str, node: Node) -> str:
+    key_lower = key.lower()
+    if "%" in key_lower or "all-in" in key_lower:
+        return key
+
+    match = _BB_PATTERN.search(key_lower)
+    if not match:
+        return key
+
+    amount = float(match.group(1))
+    pot = float(node.pot_bb)
+    pct = _safe_pct(amount, pot)
+
+    if "3-bet" in key_lower:
+        return f"3-bet {_fmt_pct(pct)}"
+    if "raise" in key_lower:
+        return f"Raise {_fmt_pct(pct)}"
+    if "bet" in key_lower:
+        return f"Bet {_fmt_pct(pct)}"
+    if "call" in key_lower:
+        return f"Call {_fmt_pct(pct)}"
     return key
