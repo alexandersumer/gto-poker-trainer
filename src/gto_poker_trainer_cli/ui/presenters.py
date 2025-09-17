@@ -151,7 +151,15 @@ class RichPresenter(Presenter):
         total_ev_chosen = sum(r["chosen_ev"] for r in records)
         total_ev_lost = total_ev_best - total_ev_chosen
         avg_ev_lost = total_ev_lost / len(records)
-        room = sum(max(1e-9, r["best_ev"] - min(0.0, r["chosen_ev"])) for r in records)
+        def _room_term(rec: dict) -> float:
+            room_ev = rec.get("room_ev")
+            if room_ev is not None:
+                return max(1e-9, room_ev)
+            worst_ev = rec.get("worst_ev")
+            baseline = worst_ev if worst_ev is not None else rec["chosen_ev"]
+            return max(1e-9, rec["best_ev"] - baseline)
+
+        room = sum(_room_term(r) for r in records)
         score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room)) if room > 1e-9 else 100.0
         hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
 

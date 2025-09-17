@@ -51,14 +51,13 @@ def format_option_label(node: Node, option: Option) -> str:
         return f"3-bet {_fmt_pct(pct)}"
 
     if action in {"jam", "allin", "all-in"}:
-        return "Jam (all-in)"
+        return "All-in"
 
     if action == "call":
         amount = float(meta.get("call_cost", meta.get("villain_bet", 0.0)))
-        pct = _safe_pct(amount, pot)
-        if amount <= 0:
-            return "Call"
-        return f"Call {_fmt_pct(pct)}"
+        if amount > 0:
+            return f"Call {amount:.2f}bb"
+        return "Call"
 
     if action == "check":
         return "Check"
@@ -75,11 +74,11 @@ _BB_PATTERN = re.compile(r"([0-9]+(?:\.[0-9]+)?)\s*bb", re.IGNORECASE)
 def _fallback_percent_label(key: str, node: Node) -> str:
     if node.street == "preflop":
         if "all-in" in key.lower() or "jam" in key.lower():
-            return "Jam (all-in)"
+            return "All-in"
         return key
     key_lower = key.lower()
     if "all-in" in key_lower or "jam" in key_lower:
-        return "Jam (all-in)"
+        return "All-in"
     if "%" in key_lower or "all-in" in key_lower:
         return key
 
@@ -107,7 +106,7 @@ def _format_preflop_label(node: Node, key: str, action: str, meta: dict[str, Any
     action = action or ""
     action = action.lower()
     if action in {"jam", "allin", "all-in"}:
-        return "Jam (all-in)"
+        return "All-in"
     if action == "fold" or key.lower().startswith("fold"):
         return "Fold"
     if action == "check":
@@ -122,5 +121,5 @@ def _format_preflop_label(node: Node, key: str, action: str, meta: dict[str, Any
         raise_to = float(meta.get("raise_to", 0.0))
         return f"Raise to {raise_to:.2f}bb" if raise_to > 0 else key
     if "all-in" in key.lower() or "jam" in key.lower():
-        return "Jam (all-in)"
+        return "All-in"
     return key

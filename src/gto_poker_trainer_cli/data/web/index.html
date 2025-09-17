@@ -165,7 +165,7 @@
           <h2 class="font-semibold mb-4 text-[clamp(1.25rem,2vw,1.45rem)] text-primary">Start a Session</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-secondary">
             <label class="block text-sm">Hands
-              <input id="inp-hands" type="number" min="1" value="1" class="mt-1 w-full" />
+              <input id="inp-hands" type="number" min="1" value="3" class="mt-1 w-full" />
             </label>
             <label class="block text-sm">Simulation depth
               <input id="inp-mc" type="number" min="40" step="10" value="120" class="mt-1 w-full" />
@@ -195,6 +195,9 @@
         <div id="options" class="grid grid-cols-1 gap-3 max-w-xl mx-auto"></div>
 
         <div class="flex flex-col sm:flex-row gap-2 sm:justify-end">
+          <button id="btn-summary" class="hidden rounded-lg border border-[#ccd5e6] bg-[#e8ecf6] px-4 py-2 text-sm font-semibold text-[#25304b] transition-colors duration-200 hover:bg-[#dfe4f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">
+            View summary
+          </button>
           <button id="btn-end" class="rounded-lg border border-[#e3c7d0] bg-[#f7ecf0] px-4 py-2 text-sm font-semibold text-[#5b2940] transition-colors duration-200 hover:bg-[#f3e1e7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2b4c0] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">
             End Session
           </button>
@@ -203,9 +206,12 @@
         <div id="feedback" class="hidden rounded-lg panel-box p-5"></div>
       </section>
 
-      <section id="panel-summary" class="hidden space-y-3">
-        <div class="rounded-lg panel-box p-4" id="summary"></div>
-        <button id="btn-new" class="w-full rounded-md bg-[#e4edf7] px-4 py-2 font-semibold text-[#1b3c68] transition-colors duration-200 hover:bg-[#dbe6f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">New Session</button>
+      <section id="panel-summary" class="hidden space-y-4">
+        <div class="rounded-xl border border-[#ccd5e6] bg-[#eef2fb] p-5 shadow-sm" id="summary"></div>
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+          <button id="btn-new" class="w-full sm:w-auto rounded-md bg-[#d7ebf4] px-4 py-2 font-semibold text-[#1d3a56] transition-colors duration-200 hover:bg-[#cee4ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7ec7c2] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">Start new session</button>
+          <button id="btn-summary-close" class="w-full sm:w-auto rounded-md border border-transparent bg-[#f3f4fa] px-4 py-2 text-sm font-medium text-[#47516d] transition-colors duration-200 hover:border-[#cdd4e6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">Back to results</button>
+        </div>
       </section>
     </main>
 
@@ -219,6 +225,7 @@
       let pending = false;
       let answered = 0;
       let startBusy = false;
+      let pendingSummary = null;
 
       function show(id){
         ['#panel-start', '#panel-play', '#panel-summary'].forEach((sel)=>{
@@ -277,6 +284,18 @@
         fb.innerHTML = '';
       }
 
+      function setSummaryAvailability(enabled){
+        const btn = $('#btn-summary');
+        if(!btn) return;
+        if(enabled){
+          btn.disabled = false;
+          btn.classList.remove('hidden');
+        } else {
+          btn.disabled = true;
+          btn.classList.add('hidden');
+        }
+      }
+
       function setStartButtonState(busy){
         const btn = $('#btn-start');
         if(!btn) return;
@@ -306,7 +325,7 @@
         startBusy = true;
         setStartButtonState(true);
         try{
-          const hands = readInt('#inp-hands', {fallback: 1, min: 1});
+          const hands = readInt('#inp-hands', {fallback: 3, min: 1});
           const handsInput = $('#inp-hands');
           if(handsInput) handsInput.value = String(hands);
           const mc = readInt('#inp-mc', {fallback: 120, min: 40});
@@ -316,8 +335,10 @@
           sid = data.session;
           answered = 0;
           pending = false;
+          pendingSummary = null;
           updateStats();
           resetFeedback();
+          setSummaryAvailability(false);
           const area = $('#options'); if(area) area.innerHTML = '';
           show('#panel-play');
           await showNode();
@@ -342,9 +363,15 @@
 
       async function renderNodePayload(payload, {clearFeedback = false} = {}){
         if(payload.done){
-          await showSummary(payload.summary);
+          pendingSummary = payload.summary || null;
+          setSummaryAvailability(true);
+          const area = $('#options'); if(area) area.innerHTML = '';
+          const headline = $('#headline'); if(headline) headline.textContent = 'Session complete';
+          const meta = $('#meta'); if(meta) meta.textContent = 'Session complete. View summary for detailed results.';
           return;
         }
+        pendingSummary = null;
+        setSummaryAvailability(false);
         const n = payload.node;
         const headline = $('#headline');
         if(headline) headline.textContent = `${n.street.toUpperCase()} — ${n.description}`;
@@ -367,6 +394,8 @@
             Call: 'bg-[#dfe9fc] border-[#bfd0f4] hover:bg-[#d4e1f9] focus-visible:ring-[#6c83f5]/50 text-[#1b3c68]',
             Check: 'bg-[#f3f4fa] border-[#d4dae9] hover:bg-[#eaedf6] focus-visible:ring-[#838eaa]/45 text-[#25304b]',
             'Check back': 'bg-[#f3f4fa] border-[#d4dae9] hover:bg-[#eaedf6] focus-visible:ring-[#838eaa]/45 text-[#25304b]',
+            Raise: 'bg-[#f7eddd] border-[#e6d2b3] hover:bg-[#f1e2ca] focus-visible:ring-[#f5d7a8]/50 text-[#5c3e18]',
+            '3-bet': 'bg-[#f7eddd] border-[#e6d2b3] hover:bg-[#f1e2ca] focus-visible:ring-[#f5d7a8]/50 text-[#5c3e18]',
           };
           const fragment = document.createDocumentFragment();
           payload.options.forEach((option,i)=>{
@@ -377,7 +406,7 @@
             const b = document.createElement('button');
             b.type = 'button';
             const base = 'option-card w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb] border shadow-sm shadow-[#1f2740]/10';
-            const color = palette[toneKey] || 'bg-[#e1f6ee] border-[#bfe4d2] hover:bg-[#d5f0e7] focus-visible:ring-[#7ec7c2]/50 text-[#1d4e3a]';
+            const color = palette[toneKey] || 'bg-[#f7eddd] border-[#e6d2b3] hover:bg-[#f1e2ca] focus-visible:ring-[#f5d7a8]/50 text-[#5c3e18]';
             b.className = `${base} ${color}`;
             b.style.animationDelay = `${i * 40}ms`;
             b.textContent = `${i + 1}. ${text}`;
@@ -426,7 +455,7 @@
               <div class="text-lg font-bold ${stateTone}">${f.correct?'✓ Best choice':'✗ Better was'}: ${f.best.key}</div>
               <div class="mt-2">You chose: <b>${f.chosen.key}</b> — EV lost: <b>${fmt(f.ev_loss)} bb</b></div>
               ${f.chosen.why?`<div class=\"mt-1 text-sm ${contextTone}\"><i>Why (yours):</i> ${f.chosen.why}</div>`:''}
-              ${!f.correct && f.best.why?`<div class=\"text-sm ${contextTone}\"><i>Why (best):</i> ${f.best.why}</div>`:''}
+             ${!f.correct && f.best.why?`<div class=\"text-sm ${contextTone}\"><i>Why (best):</i> ${f.best.why}</div>`:''}
             `;
           }
           if(data.next){
@@ -443,14 +472,42 @@
         const s = prefetched || await api(`/api/session/${sid}/summary`);
         const sum = $('#summary');
         if(sum){
+          const accuracy = s.hands ? Math.round((s.hits / s.hands) * 100) : 0;
+          const avgEvLoss = s.hands ? fmt(s.ev_lost / s.hands) : fmt(s.ev_lost);
           sum.innerHTML = `
-            <div class="text-xl font-bold mb-2">Session Summary</div>
-            <div>Hands answered: <b>${s.hands}</b></div>
-            <div>Best choices hit: <b>${s.hits}</b></div>
-            <div>Total EV lost: <b>${fmt(s.ev_lost)} bb</b></div>
-            <div>Score: <b>${s.score.toFixed(0)}</b></div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-[#1d3a56]">Session summary</h2>
+                <p class="text-sm text-muted">Your decisions across this run.</p>
+              </div>
+              <div class="text-right">
+                <div class="text-xs uppercase tracking-wide text-muted">Score</div>
+                <div class="text-2xl font-bold text-[#1f2740]">${Math.round(s.score)}</div>
+              </div>
+            </div>
+            <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div class="rounded-lg border border-[#d7ddea] bg-white/70 px-4 py-3">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Hands answered</dt>
+                <dd class="mt-1 text-lg font-semibold text-[#1f2740]">${s.hands}</dd>
+              </div>
+              <div class="rounded-lg border border-[#d7ddea] bg-white/70 px-4 py-3">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Best choices hit</dt>
+                <dd class="mt-1 text-lg font-semibold text-[#1f2740]">${s.hits}</dd>
+                <dd class="text-xs text-muted">Accuracy: ${accuracy}%</dd>
+              </div>
+              <div class="rounded-lg border border-[#d7ddea] bg-white/70 px-4 py-3">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
+                <dd class="mt-1 text-lg font-semibold text-[#1f2740]">${fmt(s.ev_lost)} bb</dd>
+                <dd class="text-xs text-muted">Avg / hand: ${avgEvLoss} bb</dd>
+              </div>
+            </dl>
+            <div class="mt-4 rounded-lg border border-[#d7ddea] bg-white/70 px-4 py-3 text-sm text-secondary">
+              Keep iterating: review the final hand’s feedback before starting a fresh session to reinforce the optimal line.
+            </div>
           `;
         }
+        pendingSummary = s;
+        setSummaryAvailability(false);
         show('#panel-summary');
       }
 
@@ -484,9 +541,11 @@
           sid = null;
           answered = 0;
           pending = false;
+          pendingSummary = null;
           updateStats();
           resetFeedback();
           setStartButtonState(false);
+          setSummaryAvailability(false);
           show('#panel-start');
         });
       }
@@ -496,6 +555,29 @@
         endBtn.addEventListener('click', (event)=>{
           event.preventDefault();
           endSession();
+        });
+      }
+
+      const summaryBtn = $('#btn-summary');
+      if(summaryBtn){
+        summaryBtn.addEventListener('click', async (event)=>{
+          event.preventDefault();
+          if(pendingSummary){
+            await showSummary(pendingSummary);
+          } else {
+            await showSummary();
+          }
+        });
+      }
+
+      const summaryCloseBtn = $('#btn-summary-close');
+      if(summaryCloseBtn){
+        summaryCloseBtn.addEventListener('click', (event)=>{
+          event.preventDefault();
+          show('#panel-play');
+          if(pendingSummary){
+            setSummaryAvailability(true);
+          }
         });
       }
 

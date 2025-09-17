@@ -228,7 +228,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             )
         )
 
-    # Jam (all-in) option
+    # All-in option
     jam_to = node.effective_bb
     if jam_to > open_size:
         risk = jam_to - 1.0
@@ -246,7 +246,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         )
         options.append(
             Option(
-                "Jam (all-in)",
+                "All-in",
                 ev,
                 why_jam,
                 ends_hand=True,
@@ -329,7 +329,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         ev = fe * pot + (1 - fe) * ev_called
         options.append(
             Option(
-                "Jam (all-in)",
+                "All-in",
                 ev,
                 (
                     f"Full stack shove: villain folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
@@ -499,10 +499,10 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         ev = fe * pot + (1 - fe) * ev_called
         options.append(
             Option(
-                "Jam (all-in)",
+                "All-in",
                 ev,
                 (
-                    f"Jam: villain folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
+                    f"All-in: villain folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
                     f"Calls (~{_fmt_pct(continue_ratio)}) give you {_fmt_pct(eq_call, 1)} → EV {ev_called:.2f} bb."
                 ),
                 ends_hand=True,

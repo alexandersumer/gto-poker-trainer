@@ -217,6 +217,7 @@ class SessionManager:
                 raise ValueError("choice index out of range")
             chosen = options[choice_index]
             best = options[_best_index(options)]
+            worst = min(options, key=lambda opt: opt.ev)
             resolution = resolve_for(node, chosen, state.rng)
             chosen_feedback = replace(chosen)
             if resolution.note:
@@ -229,6 +230,8 @@ class SessionManager:
                 "chosen_ev": chosen.ev,
                 "best_key": best.key,
                 "best_ev": best.ev,
+                "worst_ev": worst.ev,
+                "room_ev": max(1e-9, best.ev - worst.ev),
                 "ev_loss": best.ev - chosen.ev,
                 "hand_ended": getattr(chosen_feedback, "ends_hand", False),
                 "resolution_note": chosen_feedback.resolution_note,
@@ -348,6 +351,13 @@ def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
     total_ev_chosen = sum(r["chosen_ev"] for r in records)
     total_ev_lost = total_ev_best - total_ev_chosen
     hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
-    room = sum(max(1e-9, r["best_ev"] - min(0.0, r["chosen_ev"])) for r in records)
+    room = 0.0
+    for record in records:
+        room_ev = record.get("room_ev")
+        if room_ev is None:
+            worst_ev = record.get("worst_ev")
+            baseline = worst_ev if worst_ev is not None else record["chosen_ev"]
+            room_ev = max(1e-9, record["best_ev"] - baseline)
+        room += max(1e-9, room_ev)
     score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room)) if room > 1e-9 else 100.0
     return SummaryPayload(hands=len(records), hits=hits, ev_lost=total_ev_lost, score=score_pct)

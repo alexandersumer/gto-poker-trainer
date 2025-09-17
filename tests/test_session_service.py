@@ -57,3 +57,41 @@ def test_invalid_session_errors():
     manager.choose(sid, 0)  # progress once to ensure valid session
     with pytest.raises(ValueError):
         manager.choose(sid, 999)
+
+
+def test_summary_scoring_uses_full_room_between_best_and_worst():
+    from gto_poker_trainer_cli.application.session_service import _summary_payload
+
+    records = [
+        {
+            "street": "TURN",
+            "chosen_key": "call",
+            "chosen_ev": 3.8,
+            "best_key": "raise",
+            "best_ev": 4.2,
+            "worst_ev": 3.0,
+            "room_ev": 1.2,
+            "ev_loss": 0.4,
+            "hand_ended": False,
+            "resolution_note": None,
+        },
+        {
+            "street": "RIVER",
+            "chosen_key": "bet",
+            "chosen_ev": 2.0,
+            "best_key": "shove",
+            "best_ev": 2.5,
+            "worst_ev": 1.8,
+            "room_ev": 0.7,
+            "ev_loss": 0.5,
+            "hand_ended": True,
+            "resolution_note": "Villain folds",
+        },
+    ]
+
+    summary = _summary_payload(records)
+
+    assert summary.hands == 2
+    assert summary.hits == 0
+    assert summary.ev_lost == pytest.approx(0.9)
+    assert summary.score == pytest.approx(52.63, rel=1e-3)

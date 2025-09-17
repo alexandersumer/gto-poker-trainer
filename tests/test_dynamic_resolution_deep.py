@@ -127,7 +127,7 @@ def test_preflop_jam_resolves_and_folds_weak_villain():
     )
 
     opts = preflop_options(node, random.Random(7), mc_trials=200)
-    jam_opt = next(o for o in opts if "Jam" in o.key)
+    jam_opt = next(o for o in opts if "All-in" in o.key)
     res = resolve_for(node, jam_opt, random.Random(7))
 
     assert res.hand_ended

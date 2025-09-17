@@ -165,8 +165,8 @@ class TrainerApp(App[None]):
     .option-call:hover { background: #d4e1f9; }
     .option-check { background: #f3f4fa; border: 1px solid #d4dae9; color: #25304b; }
     .option-check:hover { background: #eaedf6; }
-    .option-value { background: #e1f6ee; border: 1px solid #bfe4d2; color: #1d4e3a; }
-    .option-value:hover { background: #d5f0e7; }
+    .option-value { background: #f7eddd; border: 1px solid #e6d2b3; color: #5c3e18; }
+    .option-value:hover { background: #f1e2ca; }
     #btn-new { background: #eef1f8; border: 1px solid #cdd4e6; color: #1f2740; }
     #btn-new:hover { background: #e2e6f2; }
     #btn-end { background: #f8e4eb; border: 1px solid #e6bfc9; color: #6e2e45; }
@@ -408,7 +408,15 @@ class TrainerApp(App[None]):
         avg_ev_lost = total_ev_lost / len(records)
         hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
         score_pct = 0.0
-        room = sum(max(1e-9, r["best_ev"] - min(0.0, r["chosen_ev"])) for r in records)
+        def _room_term(rec: dict[str, Any]) -> float:
+            room_ev = rec.get("room_ev")
+            if room_ev is not None:
+                return max(1e-9, room_ev)
+            worst_ev = rec.get("worst_ev")
+            baseline = worst_ev if worst_ev is not None else rec["chosen_ev"]
+            return max(1e-9, rec["best_ev"] - baseline)
+
+        room = sum(_room_term(r) for r in records)
         if room > 1e-9:
             score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room))
         msg = (
