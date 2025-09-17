@@ -6,8 +6,8 @@ from typing import Any
 
 from ..core.models import Option, OptionResolution
 from .cards import format_card_ascii, format_cards_spaced
+from .episode import Node
 from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_vs_range
-from .generator import Node
 from .range_model import tighten_range, villain_bb_defend_range, villain_sb_open_range
 
 

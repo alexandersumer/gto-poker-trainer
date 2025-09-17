@@ -13,6 +13,7 @@ from ..core.scoring import SummaryStats, summarize_records
 from ..dynamic.cards import format_card_ascii
 from ..dynamic.generator import Episode, Node, generate_episode
 from ..dynamic.policy import options_for, resolve_for
+from ..dynamic.seating import SeatRotation
 
 
 def _card_strings(cards: list[int]) -> list[str]:
@@ -176,6 +177,7 @@ class SessionState:
     current_index: int = 0
     records: list[dict[str, Any]] = field(default_factory=list)
     cached_options: list[Option] | None = None
+    seat_rotation: SeatRotation = field(default_factory=SeatRotation)
 
 
 class SessionManager:
@@ -188,12 +190,14 @@ class SessionManager:
     def create_session(self, config: SessionConfig) -> str:
         seed = config.seed or secrets.SystemRandom().getrandbits(32)
         rng = random.Random(seed)
-        first_episode = generate_episode(rng, hero_seat=_hero_seat_for_hand(0))
+        rotation = SeatRotation()
+        first_episode = generate_episode(rng, seat_assignment=rotation.assignment_for(0))
         session_id = _sid()
         state = SessionState(
             config=SessionConfig(hands=max(1, config.hands), mc_trials=max(10, config.mc_trials), seed=seed),
             episodes=[first_episode],
             rng=rng,
+            seat_rotation=rotation,
         )
         with self._lock:
             self._sessions[session_id] = state
@@ -286,8 +290,8 @@ def _sid(length: int = 10) -> str:
 def _ensure_episode(state: SessionState) -> None:
     if state.hand_index >= len(state.episodes):
         next_index = len(state.episodes)
-        seat = _hero_seat_for_hand(next_index)
-        state.episodes.append(generate_episode(state.rng, hero_seat=seat))
+        seats = state.seat_rotation.assignment_for(next_index)
+        state.episodes.append(generate_episode(state.rng, seat_assignment=seats))
 
 
 def _ensure_active_node(state: SessionState) -> Node | None:
@@ -360,7 +364,3 @@ def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
         ev_lost=stats.total_ev_lost,
         score=stats.score_pct,
     )
-
-
-def _hero_seat_for_hand(index: int) -> str:
-    return "BB" if index % 2 == 0 else "SB"

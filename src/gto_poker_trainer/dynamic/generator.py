@@ -1,266 +1,289 @@
+"""Episode generation utilities.
+
+This module previously mixed dataclass declarations, seat assignment logic and
+all of the node construction code in one large function.  The new structure
+introduces a small builder type that encapsulates the common rules used to
+create nodes, while delegating seat rotation concerns to
+``dynamic.seating``.  The result is easier to test and reason about without
+changing the external behaviour of ``generate_episode``.
+"""
+
 from __future__ import annotations
 
 import random
 from dataclasses import dataclass
 
 from .cards import Dealt, deal_hand_and_board, format_card_ascii
+from .episode import Episode, Node
+from .seating import BB, SB, SeatAssignment
 
-_SB = "SB"
-_BB = "BB"
-
-
-def _postflop_nodes(
-    *,
-    hero_pos: str,
-    villain_pos: str,
-    board: list[int],
-    pot_flop: float,
-    effective_bb: float,
-    hero_cards: list[int],
-    hand_state: dict[str, object],
-    open_size: float,
-    villain_range: str,
-) -> list[Node]:
-    flop_cards = board[:3]
-    flop_str = " ".join(format_card_ascii(c, upper=True) for c in flop_cards)
-    desc_flop = f"{flop_str}; {villain_pos} checks."
-    n_flop = Node(
-        street="flop",
-        description=desc_flop,
-        pot_bb=pot_flop,
-        effective_bb=effective_bb,
-        hero_cards=hero_cards,
-        board=flop_cards,
-        actor=hero_pos,
-        context={
-            "facing": "check",
-            "open_size": open_size,
-            "hand_state": hand_state,
-            "hero_seat": hero_pos,
-            "villain_seat": villain_pos,
-            "villain_range": villain_range,
-        },
-    )
-
-    pot_turn = pot_flop
-    bet_turn = round(0.5 * pot_turn, 2)
-    board_turn = board[:4]
-    board_turn_str = " ".join(format_card_ascii(c, upper=True) for c in board_turn)
-    desc_turn = f"{board_turn_str}; {villain_pos} bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."
-    n_turn = Node(
-        street="turn",
-        description=desc_turn,
-        pot_bb=pot_turn,
-        effective_bb=effective_bb,
-        hero_cards=hero_cards,
-        board=board_turn,
-        actor=hero_pos,
-        context={
-            "facing": "bet",
-            "bet": bet_turn,
-            "open_size": open_size,
-            "hand_state": hand_state,
-            "hero_seat": hero_pos,
-            "villain_seat": villain_pos,
-            "villain_range": villain_range,
-        },
-    )
-
-    pot_river = pot_turn + 2 * bet_turn
-    river_cards = board
-    river_str = " ".join(format_card_ascii(c, upper=True) for c in river_cards)
-    desc_river = f"{river_str}; choose your bet."
-    n_river = Node(
-        street="river",
-        description=desc_river,
-        pot_bb=pot_river,
-        effective_bb=effective_bb,
-        hero_cards=hero_cards,
-        board=river_cards,
-        actor=hero_pos,
-        context={
-            "facing": "oop-check",
-            "open_size": open_size,
-            "hand_state": hand_state,
-            "hero_seat": hero_pos,
-            "villain_seat": villain_pos,
-            "villain_range": villain_range,
-        },
-    )
-
-    return [n_flop, n_turn, n_river]
+_SB_VILLAIN_RANGE = "sb_open"
+_BB_VILLAIN_RANGE = "bb_defend"
+_DEFAULT_STACKS = 100.0
+_DEFAULT_SB = 0.5
+_DEFAULT_BB = 1.0
+_OPEN_SIZES = (2.0, 2.5, 3.0)
 
 
 @dataclass
-class Node:
-    street: str  # preflop, flop, turn, river
-    description: str
-    pot_bb: float
-    effective_bb: float
+class _HandContext:
     hero_cards: list[int]
+    villain_cards: list[int]
     board: list[int]
-    actor: str  # SB or BB (hero is always one seat; actor indicates who's to act)
-    context: dict
+    open_size: float
+    villain_range: str
 
 
-@dataclass
-class Episode:
-    nodes: list[Node]
-    hero_seat: str
-    villain_seat: str
+class EpisodeBuilder:
+    """Builds an episode for a specific seat assignment."""
 
+    def __init__(
+        self,
+        rng: random.Random,
+        seats: SeatAssignment,
+        stacks_bb: float = _DEFAULT_STACKS,
+        sb: float = _DEFAULT_SB,
+        bb: float = _DEFAULT_BB,
+    ) -> None:
+        self._rng = rng
+        self._stacks = stacks_bb
+        self._sb = sb
+        self._bb = bb
+        self._seats = seats
 
-def _episode_bb_defense(
-    rng: random.Random,
-    *,
-    stacks_bb: float,
-    sb: float,
-    bb: float,
-) -> Episode:
-    hero_pos = _BB
-    villain_pos = _SB
-    dealt: Dealt = deal_hand_and_board(rng)
-    hero_cards = dealt.hero
-    villain_cards = dealt.villain
-    board = dealt.board
+    def build(self) -> Episode:
+        if self._seats.hero == BB:
+            return self._build_bb_defense()
+        return self._build_sb_in_position()
 
-    # Preflop pot starts at 1.5bb (SB+BB)
-    pot = sb + bb
-    eff = stacks_bb
+    # ------------------------------------------------------------------
+    # Seat specific builders
 
-    # Preflop node: Villain opens to s in {2.0, 2.5, 3.0}; hero defends from the opposite seat.
-    open_sizes = [2.0, 2.5, 3.0]
-    sz = rng.choice(open_sizes)
-    eff_stacks = int(stacks_bb)
-    desc_pf = f"{villain_pos} opens {sz:.1f}bb. You're {hero_pos} with {eff_stacks}bb behind."
-    # Pot after SB opens to sz: add only the incremental chips beyond the posted SB
-    # Example: pot=1.5 (0.5 SB + 1 BB); SB opens to 2.0 → adds 1.5; pot becomes 3.0
-    pot_after_open = pot + (sz - sb)
-    hand_state: dict[str, object] = {
-        "pot": pot_after_open,
-        "hero_cards": tuple(hero_cards),
-        "villain_cards": tuple(villain_cards),
-        "full_board": tuple(board),
-        "street": "preflop",
-        "history": [],
-        "board_index": 0,
-        "hero_seat": hero_pos,
-        "villain_seat": villain_pos,
-    }
+    def _build_bb_defense(self) -> Episode:
+        dealt = self._deal()
+        ctx = self._hand_context(villain_range=_SB_VILLAIN_RANGE, dealt=dealt)
 
-    n_preflop = Node(
-        street="preflop",
-        description=desc_pf,
-        pot_bb=pot_after_open,
-        effective_bb=eff,
-        hero_cards=hero_cards,
-        board=[],
-        actor=hero_pos,
-        context={
-            "open_size": sz,
+        pot_pre = self._sb + self._bb
+        pot_after_open = pot_pre + (ctx.open_size - self._sb)
+
+        hand_state = self._base_state(
+            ctx,
+            street="preflop",
+            pot=pot_after_open,
+            board_index=0,
+        )
+
+        preflop = Node(
+            street="preflop",
+            description=(
+                f"{self._seats.villain} opens {ctx.open_size:.1f}bb. "
+                f"You're {self._seats.hero} with {int(self._stacks)}bb behind."
+            ),
+            pot_bb=pot_after_open,
+            effective_bb=self._stacks,
+            hero_cards=ctx.hero_cards,
+            board=[],
+            actor=self._seats.hero,
+            context=self._node_context(
+                ctx,
+                hand_state,
+                extra={"villain_range": ctx.villain_range},
+            ),
+        )
+
+        pot_flop = pot_after_open + (ctx.open_size - 1.0)
+        postflop = self._postflop_nodes(pot_flop, ctx, hand_state)
+        hand_state["nodes"] = {
+            "preflop": preflop,
+            "flop": postflop[0],
+            "turn": postflop[1],
+            "river": postflop[2],
+        }
+
+        return Episode(
+            nodes=[preflop, *postflop],
+            hero_seat=self._seats.hero,
+            villain_seat=self._seats.villain,
+        )
+
+    def _build_sb_in_position(self) -> Episode:
+        dealt = self._deal()
+        ctx = self._hand_context(villain_range=_BB_VILLAIN_RANGE, dealt=dealt)
+
+        pot_after_open = self._sb + self._bb + (ctx.open_size - self._sb)
+        pot_flop = pot_after_open + (ctx.open_size - 1.0)
+
+        hand_state = self._base_state(
+            ctx,
+            street="flop",
+            pot=pot_flop,
+            board_index=3,
+        )
+
+        postflop = self._postflop_nodes(pot_flop, ctx, hand_state)
+        hand_state["nodes"] = {
+            "flop": postflop[0],
+            "turn": postflop[1],
+            "river": postflop[2],
+        }
+
+        return Episode(
+            nodes=postflop,
+            hero_seat=self._seats.hero,
+            villain_seat=self._seats.villain,
+        )
+
+    # ------------------------------------------------------------------
+    # Helpers
+
+    def _deal(self) -> Dealt:
+        return deal_hand_and_board(self._rng)
+
+    def _hand_context(self, *, villain_range: str, dealt: Dealt) -> _HandContext:
+        open_size = self._rng.choice(_OPEN_SIZES)
+        return _HandContext(
+            hero_cards=list(dealt.hero),
+            villain_cards=list(dealt.villain),
+            board=list(dealt.board),
+            open_size=open_size,
+            villain_range=villain_range,
+        )
+
+    def _base_state(
+        self,
+        ctx: _HandContext,
+        *,
+        street: str,
+        pot: float,
+        board_index: int,
+    ) -> dict:
+        return {
+            "pot": pot,
+            "hero_cards": tuple(ctx.hero_cards),
+            "villain_cards": tuple(ctx.villain_cards),
+            "full_board": tuple(ctx.board),
+            "street": street,
+            "history": [],
+            "board_index": board_index,
+            "hero_seat": self._seats.hero,
+            "villain_seat": self._seats.villain,
+            "villain_range": ctx.villain_range,
+        }
+
+    def _node_context(
+        self,
+        ctx: _HandContext,
+        hand_state: dict,
+        *,
+        extra: dict | None = None,
+    ) -> dict:
+        base = {
+            "open_size": ctx.open_size,
             "hand_state": hand_state,
-            "hero_seat": hero_pos,
-            "villain_seat": villain_pos,
-            "villain_range": "sb_open",
-        },
-    )
+            "hero_seat": self._seats.hero,
+            "villain_seat": self._seats.villain,
+        }
+        if extra:
+            base.update(extra)
+        return base
 
-    pot_flop = pot_after_open + (sz - 1.0)
-    n_flop, n_turn, n_river = _postflop_nodes(
-        hero_pos=hero_pos,
-        villain_pos=villain_pos,
-        board=board,
-        pot_flop=pot_flop,
-        effective_bb=eff,
-        hero_cards=hero_cards,
-        hand_state=hand_state,
-        open_size=sz,
-        villain_range="sb_open",
-    )
+    def _postflop_nodes(
+        self,
+        pot_flop: float,
+        ctx: _HandContext,
+        hand_state: dict,
+    ) -> list[Node]:
+        flop_cards = ctx.board[:3]
+        flop_desc = " ".join(format_card_ascii(card, upper=True) for card in flop_cards)
+        flop_node = Node(
+            street="flop",
+            description=f"{flop_desc}; {self._seats.villain} checks.",
+            pot_bb=pot_flop,
+            effective_bb=self._stacks,
+            hero_cards=ctx.hero_cards,
+            board=flop_cards,
+            actor=self._seats.hero,
+            context=self._node_context(
+                ctx,
+                hand_state,
+                extra={"facing": "check", "villain_range": ctx.villain_range},
+            ),
+        )
 
-    hand_state["nodes"] = {
-        "preflop": n_preflop,
-        "flop": n_flop,
-        "turn": n_turn,
-        "river": n_river,
-    }
+        pot_turn = pot_flop
+        bet_turn = round(0.5 * pot_turn, 2)
+        turn_board = ctx.board[:4]
+        turn_desc = " ".join(format_card_ascii(card, upper=True) for card in turn_board)
+        turn_node = Node(
+            street="turn",
+            description=(f"{turn_desc}; {self._seats.villain} bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."),
+            pot_bb=pot_turn,
+            effective_bb=self._stacks,
+            hero_cards=ctx.hero_cards,
+            board=turn_board,
+            actor=self._seats.hero,
+            context=self._node_context(
+                ctx,
+                hand_state,
+                extra={"facing": "bet", "bet": bet_turn, "villain_range": ctx.villain_range},
+            ),
+        )
 
-    return Episode(
-        nodes=[n_preflop, n_flop, n_turn, n_river],
-        hero_seat=hero_pos,
-        villain_seat=villain_pos,
-    )
+        pot_river = pot_turn + 2 * bet_turn
+        river_desc = " ".join(format_card_ascii(card, upper=True) for card in ctx.board)
+        river_node = Node(
+            street="river",
+            description=f"{river_desc}; choose your bet.",
+            pot_bb=pot_river,
+            effective_bb=self._stacks,
+            hero_cards=ctx.hero_cards,
+            board=ctx.board,
+            actor=self._seats.hero,
+            context=self._node_context(
+                ctx,
+                hand_state,
+                extra={"facing": "oop-check", "villain_range": ctx.villain_range},
+            ),
+        )
 
-
-def _episode_sb_ip(
-    rng: random.Random,
-    *,
-    stacks_bb: float,
-    sb: float,
-    bb: float,
-) -> Episode:
-    hero_pos = _SB
-    villain_pos = _BB
-    dealt: Dealt = deal_hand_and_board(rng)
-    hero_cards = dealt.hero
-    villain_cards = dealt.villain
-    board = dealt.board
-
-    open_sizes = [2.0, 2.5, 3.0]
-    sz = rng.choice(open_sizes)
-
-    # Starting pot 0.5 + 1.0 = 1.5; hero tops up to sz and villain calls.
-    pot_after_open = sb + bb + (sz - sb)
-    pot_flop = pot_after_open + (sz - 1.0)
-
-    hand_state: dict[str, object] = {
-        "pot": pot_flop,
-        "hero_cards": tuple(hero_cards),
-        "villain_cards": tuple(villain_cards),
-        "full_board": tuple(board),
-        "street": "flop",
-        "history": [],
-        "board_index": 3,
-        "hero_seat": hero_pos,
-        "villain_seat": villain_pos,
-        "villain_range": "bb_defend",
-    }
-
-    nodes = _postflop_nodes(
-        hero_pos=hero_pos,
-        villain_pos=villain_pos,
-        board=board,
-        pot_flop=pot_flop,
-        effective_bb=stacks_bb,
-        hero_cards=hero_cards,
-        hand_state=hand_state,
-        open_size=sz,
-        villain_range="bb_defend",
-    )
-
-    hand_state["nodes"] = {
-        "flop": nodes[0],
-        "turn": nodes[1],
-        "river": nodes[2],
-    }
-
-    return Episode(
-        nodes=nodes,
-        hero_seat=hero_pos,
-        villain_seat=villain_pos,
-    )
+        return [flop_node, turn_node, river_node]
 
 
 def generate_episode(
     rng: random.Random,
-    stacks_bb: float = 100.0,
-    sb: float = 0.5,
-    bb: float = 1.0,
+    stacks_bb: float = _DEFAULT_STACKS,
+    sb: float = _DEFAULT_SB,
+    bb: float = _DEFAULT_BB,
     hero_seat: str | None = None,
+    *,
+    seat_assignment: SeatAssignment | None = None,
 ) -> Episode:
-    seat = (hero_seat or _BB).upper()
-    if seat not in {_SB, _BB}:
+    """Generate a fresh episode for the provided seat assignment.
+
+    The legacy ``hero_seat`` argument is still supported for backwards
+    compatibility; it is validated and converted into a ``SeatAssignment``.
+    """
+
+    seats = _resolve_seat_assignment(hero_seat=hero_seat, seat_assignment=seat_assignment)
+    builder = EpisodeBuilder(rng, seats=seats, stacks_bb=stacks_bb, sb=sb, bb=bb)
+    return builder.build()
+
+
+def _resolve_seat_assignment(*, hero_seat: str | None, seat_assignment: SeatAssignment | None) -> SeatAssignment:
+    if seat_assignment and hero_seat:
+        hero = hero_seat.upper()
+        if hero not in {SB, BB}:
+            raise ValueError(f"Unsupported hero seat '{hero_seat}'")
+        expected = seat_assignment.hero
+        if hero != expected:
+            raise ValueError("hero_seat does not match seat_assignment; pass only one of these arguments")
+        return seat_assignment
+
+    if seat_assignment:
+        return seat_assignment
+
+    hero = (hero_seat or BB).upper()
+    if hero not in {SB, BB}:
         raise ValueError(f"Unsupported hero seat '{hero_seat}'")
-    if seat == _BB:
-        return _episode_bb_defense(rng, stacks_bb=stacks_bb, sb=sb, bb=bb)
-    return _episode_sb_ip(rng, stacks_bb=stacks_bb, sb=sb, bb=bb)
+    villain = SB if hero == BB else BB
+    return SeatAssignment(hero=hero, villain=villain)
