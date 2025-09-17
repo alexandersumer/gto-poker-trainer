@@ -59,7 +59,7 @@ def test_preflop_threebet_uses_fold_equity_threshold(monkeypatch):
     expected = fe_expected * pot + (1 - fe_expected) * ev_called
 
     assert abs(three_bet.ev - expected) < 1e-9
-    assert f"{be_threshold:.2f}" in three_bet.why
+    assert f"{be_threshold * 100:.1f}%" in three_bet.why
 
 
 def test_flop_half_pot_bet_uses_p_plus_2b_when_called(monkeypatch):
@@ -97,7 +97,7 @@ def test_flop_half_pot_bet_uses_p_plus_2b_when_called(monkeypatch):
     monkeypatch.setattr(pol, "hero_equity_vs_range", fake_range_eq)
 
     opts = pol.flop_options(node, random.Random(1), mc_trials=100)
-    bet_half = next(o for o in opts if o.key == "Bet 50% pot")
+    bet_half = next(o for o in opts if o.key.startswith("Bet 50% pot"))
 
     bet = round(node.pot_bb * 0.5, 2)
     final_pot = node.pot_bb + 2 * bet
@@ -145,7 +145,7 @@ def test_river_bet_uses_showdown_payout_formula(monkeypatch):
     monkeypatch.setattr(pol, "hero_equity_vs_combo", fake_combo_eq)
 
     opts = pol.river_options(node, random.Random(5), mc_trials=80)
-    bet_half = next(o for o in opts if o.key == "Bet 50% pot")
+    bet_half = next(o for o in opts if o.key.startswith("Bet 50% pot"))
 
     pot = node.pot_bb
     bet = round(pot * 0.5, 2)

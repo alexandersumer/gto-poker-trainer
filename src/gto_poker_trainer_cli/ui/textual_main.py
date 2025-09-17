@@ -11,9 +11,12 @@ def main() -> None:
     p.add_argument(
         "--mc",
         type=int,
-        default=200,
+        default=120,
         metavar="SAMPLES",
-        help="Monte Carlo simulation samples per decision (higher = steadier guidance, slower)",
+        help=(
+            "Monte Carlo simulation samples per decision (higher = steadier guidance, slower). "
+            "120 keeps feedback snappy while remaining stable."
+        ),
     )
     p.add_argument("--solver-csv", type=str, default=None, help="Optional preflop solver CSV")
     args = p.parse_args()

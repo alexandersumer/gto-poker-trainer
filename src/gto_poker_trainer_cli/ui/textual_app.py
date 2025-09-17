@@ -35,7 +35,7 @@ class _DynamicOptions(OptionProvider):
 @dataclass
 class AppConfig:
     hands: int = 1
-    mc_trials: int = 200
+    mc_trials: int = 120
     solver_csv: str | None = None
 
 
@@ -77,6 +77,9 @@ class _TextualPresenter(Presenter):
         self._choice_index = idx
         self._choice_event.set()
 
+    def cancel_session(self) -> None:
+        self.set_choice(-1)
+
 
 class TrainerApp(App[None]):
     CSS = """
@@ -91,10 +94,12 @@ class TrainerApp(App[None]):
     # Options: vertical list of large buttons
     # Feedback: static text area
     # Footer shows key hints
-    # Buttons wider on mobile
-    Button { width: 100%; min-height: 3; margin: 0 0 1 0; }
+    # Buttons compact but readable
+    Button { width: auto; min-width: 20; min-height: 2; padding: 0 1; margin: 0 1 0.5 0; }
     # Labels wrap
-    Label { text-align: left; }
+    Label { text-align: left; width: 100%; }
+    #board { white-space: pre-wrap; }
+    #options { align-horizontal: left; }
     """
 
     # Reactive state for headline / meta
@@ -103,10 +108,27 @@ class TrainerApp(App[None]):
     _presenter: _TextualPresenter
     _engine_thread: threading.Thread | None = None
     _config: AppConfig
+    CARD_STYLES = {
+        0: "white",  # spades – bright neutral
+        1: "bright_red",  # hearts – vivid red
+        2: "bright_cyan",  # diamonds – high-contrast cyan
+        3: "bright_green",  # clubs – lively green
+    }
 
-    def __init__(self, *, hands: int = 1, mc_trials: int = 200, solver_csv: str | None = None) -> None:
+    # Cached widget references populated on mount to avoid hot-path lookups
+    _title_label: Label | None = None
+    _headline_label: Label | None = None
+    _meta_label: Label | None = None
+    _hand_label: Label | None = None
+    _board_label: Label | None = None
+    _options_container: Vertical | None = None
+    _feedback_panel: Static | None = None
+    _pending_restart: bool = False
+
+    def __init__(self, *, hands: int = 1, mc_trials: int = 120, solver_csv: str | None = None) -> None:
         super().__init__()
         self._config = AppConfig(hands=hands, mc_trials=mc_trials, solver_csv=solver_csv)
+        self._pending_restart = False
 
     # --- Compose UI ---
     def compose(self) -> ComposeResult:  # type: ignore[override]
@@ -124,12 +146,20 @@ class TrainerApp(App[None]):
             yield Label("Feedback:")
             yield Static("", id="feedback")
         with Horizontal(classes="section"):
-            yield Button("Start New Session", id="btn-new", variant="success")
+            yield Button("Start Fresh Hand", id="btn-new", variant="success")
             yield Button("Quit", id="btn-quit", variant="error")
         yield Footer()
 
     # --- Engine control ---
     def on_mount(self) -> None:  # type: ignore[override]
+        self._title_label = self.query_one("#title", Label)
+        self._headline_label = self.query_one("#headline", Label)
+        self._meta_label = self.query_one("#meta", Label)
+        self._hand_label = self.query_one("#hand", Label)
+        self._board_label = self.query_one("#board", Label)
+        self._options_container = self.query_one("#options", Vertical)
+        self._feedback_panel = self.query_one("#feedback", Static)
+
         self._presenter = _TextualPresenter(self)
         # Start first session automatically
         self._start_engine_session()
@@ -137,57 +167,74 @@ class TrainerApp(App[None]):
     def _start_engine_session(self) -> None:
         if self._engine_thread and self._engine_thread.is_alive():
             return
-        self.query_one("#feedback", Static).update("")
-        self.query_one("#options", Vertical).remove_children()
+        if self._feedback_panel:
+            self._feedback_panel.update("")
+        if self._options_container:
+            self._options_container.remove_children()
         self._engine_thread = threading.Thread(target=self._engine_run, daemon=True)
         self._engine_thread.start()
 
     def _engine_run(self) -> None:
-        # Build provider chain; for now, always dynamic. CSV solver support can be added later.
-        option_provider: OptionProvider = _DynamicOptions()
-        if self._config.solver_csv:
-            try:
-                solver = CSVStrategyOracle(self._config.solver_csv)
-                option_provider = CompositeOptionProvider(primary=solver, fallback=option_provider)
-            except Exception as exc:  # pragma: no cover - optional path
-                self.query_one("#feedback", Static).update(
-                    f"[red]Failed to load solver CSV[/]: {exc}. Falling back to heuristics."
-                )
-        # Deterministic per-session seed
-        seed = secrets.randbits(32)
-        run_core(
-            generator=_DynamicGenerator(),
-            option_provider=option_provider,
-            presenter=self._presenter,
-            seed=seed,
-            hands=self._config.hands,
-            mc_trials=self._config.mc_trials,
-        )
+        current = threading.current_thread()
+        try:
+            # Build provider chain; for now, always dynamic. CSV solver support can be added later.
+            option_provider: OptionProvider = _DynamicOptions()
+            if self._config.solver_csv:
+                try:
+                    solver = CSVStrategyOracle(self._config.solver_csv)
+                    option_provider = CompositeOptionProvider(primary=solver, fallback=option_provider)
+                except Exception as exc:  # pragma: no cover - optional path
+                    if self._feedback_panel:
+                        self._feedback_panel.update(
+                            f"[red]Failed to load solver CSV[/]: {exc}. Falling back to heuristics."
+                        )
+            # Deterministic per-session seed
+            seed = secrets.randbits(32)
+            run_core(
+                generator=_DynamicGenerator(),
+                option_provider=option_provider,
+                presenter=self._presenter,
+                seed=seed,
+                hands=self._config.hands,
+                mc_trials=self._config.mc_trials,
+            )
+        finally:
+            if self._engine_thread is current:
+                self._engine_thread = None
 
     # --- Presenter-driven UI updates ---
     def show_session_start(self, total_hands: int) -> None:
-        self.query_one("#headline", Label).update(f"Session start — {total_hands} hand(s)")
-        self.query_one("#meta", Label).update("")
+        if self._headline_label:
+            self._headline_label.update(f"Session start — {total_hands} hand(s)")
+        if self._meta_label:
+            self._meta_label.update("")
 
     def show_hand_start(self, hand_index: int, total_hands: int) -> None:
-        self.query_one("#headline", Label).update(f"Hand {hand_index}/{total_hands}")
-        self.query_one("#feedback", Static).update("")
-        self.query_one("#options", Vertical).remove_children()
+        if self._headline_label:
+            self._headline_label.update(f"Hand {hand_index}/{total_hands}")
+        if self._feedback_panel:
+            self._feedback_panel.update("")
+        if self._options_container:
+            self._options_container.remove_children()
+
+    def _render_card_token(self, card: int | None, *, placeholder: str = "--") -> str:
+        if card is None:
+            return f"[dim]{placeholder}[/]"
+        suit = card % 4
+        txt = format_card_ascii(card, upper=True)
+        style = self.CARD_STYLES.get(suit, "white")
+        return f"[bold {style}]" + txt + "[/]"
 
     def _format_cards_colored(self, cards: list[int]) -> str:
-        colors = {
-            0: "white",  # spades – bright neutral
-            1: "bright_red",  # hearts – vivid red
-            2: "bright_cyan",  # diamonds – high-contrast cyan
-            3: "bright_green",  # clubs – lively green
-        }
-        parts = []
-        for c in cards:
-            suit = c % 4
-            txt = format_card_ascii(c, upper=True)
-            style = colors.get(suit, "#f9fafb")
-            parts.append(f"[bold {style}]" + txt + "[/]")
-        return " ".join(parts)
+        return " ".join(self._render_card_token(c) for c in cards)
+
+    def _format_board_rows(self, board: list[int]) -> str:
+        slots: list[int | None] = list(board)
+        while len(slots) < 5:
+            slots.append(None)
+        flop_row = " ".join(self._render_card_token(c) for c in slots[:3])
+        turn_row = " ".join(self._render_card_token(c) for c in slots[3:])
+        return f"{flop_row}\n{turn_row}"
 
     def show_node(self, node: Node, options: list[str]) -> None:
         # Headline and context
@@ -198,53 +245,58 @@ class TrainerApp(App[None]):
         headline = f"[bold magenta]{node.street.upper()}[/]"
         if desc:
             headline += f"  [dim]- {desc}[/]"
-        self.query_one("#headline", Label).update(headline)
+        if self._headline_label:
+            self._headline_label.update(headline)
 
         P = float(node.pot_bb)
         spr = (node.effective_bb / P) if P > 0 else float("inf")
-        meta = f"Pot: {P:.2f}bb | SPR: {spr:.1f}"
+        meta_lines = [f"Pot: {P:.2f} bb (SPR {spr:.1f})", f"Effective stack: {node.effective_bb:.1f} bb"]
         bet = node.context.get("bet")
         if isinstance(bet, (int, float)):
             pct = 100.0 * float(bet) / max(1e-9, P)
-            meta += f" | OOP bet: {float(bet):.2f}bb ({pct:.0f}% pot)"
-        self.query_one("#meta", Label).update(meta)
+            meta_lines.append(f"Facing bet: {float(bet):.2f} bb ({pct:.0f}% pot)")
+        if self._meta_label:
+            self._meta_label.update("\n".join(meta_lines))
 
         hand_str = self._format_cards_colored(node.hero_cards)
-        self.query_one("#hand", Label).update(
-            f"Your hand: {hand_str} [dim]({canonical_hand_abbrev(node.hero_cards)})[/]"
-        )
-        if node.board:
-            self.query_one("#board", Label).update(f"Board: {self._format_cards_colored(node.board)}")
-        else:
-            self.query_one("#board", Label).update("")
+        if self._hand_label:
+            self._hand_label.update(
+                f"Your hand: {hand_str} [dim]({canonical_hand_abbrev(node.hero_cards)})[/]"
+            )
+        if self._board_label:
+            board_rows = self._format_board_rows(node.board)
+            self._board_label.update(f"Board:\n{board_rows}")
 
         # Render actions as buttons
-        opt_container = self.query_one("#options", Vertical)
-        opt_container.remove_children()
-        for i, k in enumerate(options, 1):
-            btn = Button(f"{i}. {k}", id=f"opt-{i - 1}")
-            opt_container.mount(btn)
+        if self._options_container:
+            self._options_container.remove_children()
+            buttons = [Button(f"{i}. {k}", id=f"opt-{i - 1}") for i, k in enumerate(options, 1)]
+            if buttons:
+                self._options_container.mount(*buttons)
 
     def show_step_feedback(self, _node: Node, chosen: Option, best: Option) -> None:
         correct = chosen.key == best.key
         ev_loss = best.ev - chosen.ev
-        lines = []
+        lines = ["[b]Decision Grade[/]"]
         if correct:
-            lines.append(f"[green]✓ Best choice[/]: {best.key} (EV {best.ev:.2f} bb)")
+            lines.append(f"[green]Optimal[/] — {chosen.key} (EV {chosen.ev:.2f} bb)")
         else:
-            lines.append(f"[yellow]✗ Better was[/]: {best.key} (EV {best.ev:.2f} bb)")
-            lines.append(f"You chose: {chosen.key} (EV {chosen.ev:.2f} bb) → EV lost: [red]{ev_loss:.2f} bb[/]")
+            lines.append(f"[red]{ev_loss:.2f} bb[/] behind optimal.")
+            lines.append(f"Your action: {chosen.key} (EV {chosen.ev:.2f} bb)")
+            lines.append(f"Best action: {best.key} (EV {best.ev:.2f} bb)")
         if chosen.why:
-            lines.append(f"Why (yours): {chosen.why}")
+            lines.append(f"• Your reasoning: {chosen.why}")
         if not correct and best.why:
-            lines.append(f"Why (best): {best.why}")
+            lines.append(f"• Better reasoning: {best.why}")
         if getattr(chosen, "ends_hand", False):
             lines.append("[dim]Hand ends on this action.[/]")
-        self.query_one("#feedback", Static).update("\n".join(lines))
+        if self._feedback_panel:
+            self._feedback_panel.update("\n".join(lines))
 
     def show_summary(self, records: list[dict[str, Any]]) -> None:
         if not records:
-            self.query_one("#feedback", Static).update("No hands answered.")
+            if self._feedback_panel:
+                self._feedback_panel.update("No hands answered.")
             return
         total_ev_best = sum(r["best_ev"] for r in records)
         total_ev_chosen = sum(r["chosen_ev"] for r in records)
@@ -264,18 +316,45 @@ class TrainerApp(App[None]):
             f"Avg EV lost/decision: {avg_ev_lost:.2f} bb\n"
             f"Score (0–100): {score_pct:.0f}"
         )
-        self.query_one("#feedback", Static).update(msg)
+        if self._feedback_panel:
+            self._feedback_panel.update(msg)
+
+    # --- Session lifecycle helpers ---
+    def _queue_restart_when_idle(self) -> None:
+        def _try_start() -> None:
+            if self._engine_thread and self._engine_thread.is_alive():
+                self.call_later(_try_start)
+                return
+            if not self._pending_restart:
+                return
+            self._pending_restart = False
+            self._start_engine_session()
+
+        self.call_later(_try_start)
+
+    def _request_restart(self) -> None:
+        if self._engine_thread and self._engine_thread.is_alive():
+            if self._pending_restart:
+                return
+            self._pending_restart = True
+            if hasattr(self, "_presenter"):
+                self._presenter.cancel_session()
+            self._queue_restart_when_idle()
+            return
+
+        self._pending_restart = False
+        self._start_engine_session()
 
     # --- UI events ---
     @on(Button.Pressed, "#btn-new")
     def _on_new(self) -> None:
-        self._start_engine_session()
+        self._request_restart()
 
     @on(Button.Pressed, "#btn-quit")
     def _on_quit(self) -> None:
         # Signal a quit to any pending prompt; -1 means end session
         if hasattr(self, "_presenter"):
-            self._presenter.set_choice(-1)
+            self._presenter.cancel_session()
         self.exit()
 
     @on(Button.Pressed)
@@ -286,6 +365,6 @@ class TrainerApp(App[None]):
         self._presenter.set_choice(idx)
 
 
-def run_textual(hands: int = 1, mc_trials: int = 200, solver_csv: str | None = None) -> None:
+def run_textual(hands: int = 1, mc_trials: int = 120, solver_csv: str | None = None) -> None:
     app = TrainerApp(hands=hands, mc_trials=mc_trials, solver_csv=solver_csv)
     app.run()

@@ -285,10 +285,10 @@
 
       async function showNode(){
         const payload = await api(`/api/session/${sid}/node`);
-        await renderNodePayload(payload);
+        await renderNodePayload(payload, {clearFeedback: true});
       }
 
-      async function renderNodePayload(payload){
+      async function renderNodePayload(payload, {clearFeedback = false} = {}){
         if(payload.done){
           await showSummary(payload.summary);
           return;
@@ -335,7 +335,9 @@
             area.appendChild(fragment);
           }
         }
-        resetFeedback();
+        if(clearFeedback){
+          resetFeedback();
+        }
         if(window.innerWidth < 640){
           window.requestAnimationFrame(()=>{
             const panel = $('#panel-play');
@@ -367,7 +369,7 @@
             `;
           }
           if(data.next){
-            await renderNodePayload(data.next);
+            await renderNodePayload(data.next, {clearFeedback: false});
           } else {
             await showNode();
           }
