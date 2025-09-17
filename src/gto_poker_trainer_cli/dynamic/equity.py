@@ -3,6 +3,9 @@ from __future__ import annotations
 import random
 from collections.abc import Iterable
 from functools import lru_cache
+from itertools import combinations
+
+from treys import Card, Evaluator
 
 from .cards import card_int_to_str, str_to_treys
 
@@ -20,8 +23,6 @@ def estimate_equity(
     - If known_villain is None, sample random opponent hand without collision each trial.
     - Returns equity in [0,1].
     """
-    from treys import Evaluator
-
     evaluator = Evaluator()
     wins = 0
     ties = 0
@@ -57,8 +58,66 @@ def _sorted_tuple(cards: Iterable[int]) -> tuple[int, ...]:
     return tuple(sorted(cards))
 
 
+_EVALUATOR = Evaluator()
+_TREYS_CACHE = [Card.new(card_int_to_str(c)) for c in range(52)]
+
+
+def _treys_cards(cards: Iterable[int]) -> list[int]:
+    return [_TREYS_CACHE[c] for c in cards]
+
+
+def _enumerate_remaining(hero: tuple[int, ...], board: tuple[int, ...], villain: tuple[int, ...]) -> float:
+    """Enumerate all remaining board fillings for len(board) >= 3 for precise equity."""
+
+    # hero/villain are 2-card combos; board is current board cards.
+    need = 5 - len(board)
+    if need < 0:
+        raise ValueError("Board cannot have more than 5 cards")
+
+    hero_cards = _treys_cards(hero)
+    villain_cards = _treys_cards(villain)
+
+    if need == 0:
+        board_treys = _treys_cards(board)
+        hero_rank = _EVALUATOR.evaluate(hero_cards, board_treys)
+        villain_rank = _EVALUATOR.evaluate(villain_cards, board_treys)
+        if hero_rank < villain_rank:
+            return 1.0
+        if hero_rank == villain_rank:
+            return 0.5
+        return 0.0
+
+    known = set(hero) | set(board) | set(villain)
+    deck = [c for c in range(52) if c not in known]
+    wins = 0
+    ties = 0
+    total = 0
+    board_prefix = list(board)
+    hero_cards_eval = hero_cards
+    villain_cards_eval = villain_cards
+
+    for fill in combinations(deck, need):
+        total += 1
+        board_cards = _treys_cards(board_prefix + list(fill))
+        hero_rank = _EVALUATOR.evaluate(hero_cards_eval, board_cards)
+        villain_rank = _EVALUATOR.evaluate(villain_cards_eval, board_cards)
+        if hero_rank < villain_rank:
+            wins += 1
+        elif hero_rank == villain_rank:
+            ties += 1
+
+    return (wins + 0.5 * ties) / total if total else 0.0
+
+
 @lru_cache(maxsize=50000)
-def _cached_equity(hero: tuple[int, ...], board: tuple[int, ...], villain: tuple[int, ...], trials: int) -> float:
+def _cached_equity(
+    hero: tuple[int, ...],
+    board: tuple[int, ...],
+    villain: tuple[int, ...],
+    trials: int,
+) -> float:
+    if len(board) >= 3:
+        return _enumerate_remaining(hero, board, villain)
     seed = hash((hero, board, villain, trials)) & 0xFFFFFFFF
     rng = random.Random(seed)
     hero_list = list(hero)

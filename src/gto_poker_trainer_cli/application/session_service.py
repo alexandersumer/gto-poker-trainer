@@ -1,0 +1,274 @@
+from __future__ import annotations
+
+import random
+import secrets
+import string
+import threading
+from dataclasses import dataclass, field
+from typing import Any
+
+from ..core.models import Option
+from ..dynamic.cards import format_card_ascii
+from ..dynamic.generator import Episode, Node, generate_episode
+from ..dynamic.policy import options_for
+
+
+def _card_strings(cards: list[int]) -> list[str]:
+    return [format_card_ascii(card, upper=True) for card in cards]
+
+
+@dataclass(frozen=True)
+class SessionConfig:
+    """Configuration for a training session."""
+
+    hands: int
+    mc_trials: int
+    seed: int | None = None
+
+
+@dataclass(frozen=True)
+class NodePayload:
+    """UI-agnostic snapshot of the current node state."""
+
+    street: str
+    description: str
+    pot_bb: float
+    effective_bb: float
+    hero_cards: list[str]
+    board_cards: list[str]
+    actor: str
+    hand_no: int
+    total_hands: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "street": self.street,
+            "description": self.description,
+            "pot_bb": self.pot_bb,
+            "effective_bb": self.effective_bb,
+            "hero_cards": list(self.hero_cards),
+            "board_cards": list(self.board_cards),
+            "actor": self.actor,
+            "hand_no": self.hand_no,
+            "total_hands": self.total_hands,
+        }
+
+
+@dataclass(frozen=True)
+class SummaryPayload:
+    hands: int
+    hits: int
+    ev_lost: float
+    score: float
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "hands": self.hands,
+            "hits": self.hits,
+            "ev_lost": self.ev_lost,
+            "score": self.score,
+        }
+
+
+@dataclass(frozen=True)
+class FeedbackPayload:
+    correct: bool
+    ev_loss: float
+    chosen: dict[str, Any]
+    best: dict[str, Any]
+    ended: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "correct": self.correct,
+            "ev_loss": self.ev_loss,
+            "chosen": self.chosen,
+            "best": self.best,
+            "ended": self.ended,
+        }
+
+
+@dataclass(frozen=True)
+class ChoiceResult:
+    feedback: FeedbackPayload
+    next_payload: NodeResponse
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "feedback": self.feedback.to_dict(),
+            "next": self.next_payload.to_dict(),
+        }
+
+
+@dataclass(frozen=True)
+class NodeResponse:
+    done: bool
+    node: NodePayload | None = None
+    options: list[str] | None = None
+    summary: SummaryPayload | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        if self.done:
+            return {"done": True, "summary": None if self.summary is None else self.summary.to_dict()}
+        data = {
+            "done": False,
+            "node": None if self.node is None else self.node.to_dict(),
+            "options": list(self.options or []),
+        }
+        return data
+
+
+@dataclass
+class SessionState:
+    config: SessionConfig
+    episodes: list[Episode]
+    rng: random.Random
+    hand_index: int = 0
+    current_index: int = 0
+    records: list[dict[str, Any]] = field(default_factory=list)
+    cached_options: list[Option] | None = None
+
+
+class SessionManager:
+    """Orchestrates session lifecycle independent of any particular UI."""
+
+    def __init__(self) -> None:
+        self._sessions: dict[str, SessionState] = {}
+        self._lock = threading.Lock()
+
+    def create_session(self, config: SessionConfig) -> str:
+        seed = config.seed or secrets.SystemRandom().getrandbits(32)
+        rng = random.Random(seed)
+        first_episode = generate_episode(rng)
+        session_id = _sid()
+        state = SessionState(
+            config=SessionConfig(hands=max(1, config.hands), mc_trials=max(10, config.mc_trials), seed=seed),
+            episodes=[first_episode],
+            rng=rng,
+        )
+        with self._lock:
+            self._sessions[session_id] = state
+        return session_id
+
+    def get_node(self, session_id: str) -> NodeResponse:
+        with self._lock:
+            state = self._require_session(session_id)
+            node = _ensure_active_node(state)
+            if node is None:
+                return NodeResponse(done=True, summary=_summary_payload(state.records))
+            payload = _node_payload(state, node)
+            options = _ensure_options(state, node)
+            return NodeResponse(done=False, node=payload, options=[opt.key for opt in options])
+
+    def choose(self, session_id: str, choice_index: int) -> ChoiceResult:
+        with self._lock:
+            state = self._require_session(session_id)
+            node = _ensure_active_node(state)
+            if node is None:
+                raise ValueError("session already complete")
+            options = _ensure_options(state, node)
+            if not (0 <= choice_index < len(options)):
+                raise ValueError("choice index out of range")
+            chosen = options[choice_index]
+            best = options[_best_index(options)]
+            record = {
+                "street": node.street,
+                "chosen_key": chosen.key,
+                "chosen_ev": chosen.ev,
+                "best_key": best.key,
+                "best_ev": best.ev,
+                "ev_loss": best.ev - chosen.ev,
+            }
+            state.records.append(record)
+            ends = getattr(chosen, "ends_hand", False)
+            episode = state.episodes[state.hand_index]
+            state.current_index = len(episode.nodes) if ends else state.current_index + 1
+            state.cached_options = None
+            next_node = _ensure_active_node(state)
+            next_payload = (
+                NodeResponse(done=True, summary=_summary_payload(state.records))
+                if next_node is None
+                else NodeResponse(
+                    done=False,
+                    node=_node_payload(state, next_node),
+                    options=[opt.key for opt in _ensure_options(state, next_node)],
+                )
+            )
+
+        feedback = FeedbackPayload(
+            correct=chosen.key == best.key,
+            ev_loss=record["ev_loss"],
+            chosen={"key": chosen.key, "ev": chosen.ev, "why": chosen.why},
+            best={"key": best.key, "ev": best.ev, "why": best.why},
+            ended=ends,
+        )
+        return ChoiceResult(feedback=feedback, next_payload=next_payload)
+
+    def summary(self, session_id: str) -> SummaryPayload:
+        with self._lock:
+            state = self._require_session(session_id)
+            return _summary_payload(state.records)
+
+    def _require_session(self, session_id: str) -> SessionState:
+        state = self._sessions.get(session_id)
+        if state is None:
+            raise KeyError(f"session '{session_id}' not found")
+        return state
+
+
+def _sid(length: int = 10) -> str:
+    alphabet = string.ascii_lowercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def _ensure_episode(state: SessionState) -> None:
+    if state.hand_index >= len(state.episodes):
+        state.episodes.append(generate_episode(state.rng))
+
+
+def _ensure_active_node(state: SessionState) -> Node | None:
+    while True:
+        _ensure_episode(state)
+        episode = state.episodes[state.hand_index]
+        if state.current_index < len(episode.nodes):
+            return episode.nodes[state.current_index]
+        if state.hand_index + 1 >= state.config.hands:
+            return None
+        state.hand_index += 1
+        state.current_index = 0
+
+
+def _ensure_options(state: SessionState, node: Node) -> list[Option]:
+    if state.cached_options is None:
+        state.cached_options = options_for(node, state.rng, state.config.mc_trials)
+    return state.cached_options
+
+
+def _node_payload(state: SessionState, node: Node) -> NodePayload:
+    return NodePayload(
+        street=node.street,
+        description=node.description,
+        pot_bb=node.pot_bb,
+        effective_bb=node.effective_bb,
+        hero_cards=_card_strings(node.hero_cards),
+        board_cards=_card_strings(node.board),
+        actor=node.actor,
+        hand_no=state.hand_index + 1,
+        total_hands=state.config.hands,
+    )
+
+
+def _best_index(opts: list[Option]) -> int:
+    return max(range(len(opts)), key=lambda idx: opts[idx].ev)
+
+
+def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
+    if not records:
+        return SummaryPayload(hands=0, hits=0, ev_lost=0.0, score=0.0)
+    total_ev_best = sum(r["best_ev"] for r in records)
+    total_ev_chosen = sum(r["chosen_ev"] for r in records)
+    total_ev_lost = total_ev_best - total_ev_chosen
+    hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
+    room = sum(max(1e-9, r["best_ev"] - min(0.0, r["chosen_ev"])) for r in records)
+    score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room)) if room > 1e-9 else 100.0
+    return SummaryPayload(hands=len(records), hits=hits, ev_lost=total_ev_lost, score=score_pct)

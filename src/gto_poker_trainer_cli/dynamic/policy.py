@@ -229,10 +229,12 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         if bet <= 0:
             continue
         final_pot = pot + 2 * bet
-        be_threshold = bet / final_pot
+        be_threshold = bet / final_pot if final_pot > 0 else 1.0
         fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
-        # River when called: win final pot with probability eq_call, otherwise lose bet.
-        ev_called = eq_call * final_pot - (1 - eq_call) * bet if continue_ratio else -bet
+        # When called on the river there are no future cards; hero wins pot + villain's
+        # call with probability eq_call and otherwise loses their bet.
+        ev_showdown = eq_call * (pot + bet) - (1 - eq_call) * bet
+        ev_called = ev_showdown if continue_ratio else -bet
         ev = fe * pot + (1 - fe) * ev_called
         why = (
             f"Bet {int(pct * 100)}%: villain folds {_fmt_pct(fe)} (needs eq {be_threshold:.2f}). "

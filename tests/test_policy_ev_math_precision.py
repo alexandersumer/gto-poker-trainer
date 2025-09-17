@@ -108,3 +108,51 @@ def test_flop_half_pot_bet_uses_p_plus_2b_when_called(monkeypatch):
 
     assert abs(bet_half.ev - expected) < 1e-9
     assert "needs eq" in bet_half.why and "equity" in bet_half.why
+
+
+def test_river_bet_uses_showdown_payout_formula(monkeypatch):
+    hero = [str_to_int("Ah"), str_to_int("Kd")]
+    board = [str_to_int(x) for x in ["6h", "6d", "6c", "2s", "9h"]]
+    node = Node(
+        street="river",
+        description="river",
+        pot_bb=12.0,
+        effective_bb=100.0,
+        hero_cards=hero,
+        board=board,
+        actor="BB",
+        context={"facing": "oop-check", "open_size": 2.5},
+    )
+
+    combos = _simple_range((str_to_int("Qc"), str_to_int("Qd")), (str_to_int("7s"), str_to_int("2d")))
+
+    def fake_range(_open_size, _blocked):  # noqa: ARG001
+        return combos
+
+    def fake_tighten_range(_combos, _fraction):  # noqa: ARG001
+        return combos
+
+    eq_map = {
+        combos[0]: 0.40,  # villain equity 0.60 → continues vs threshold 0.25
+        combos[1]: 0.90,  # villain equity 0.10 → folds
+    }
+
+    def fake_combo_eq(_hero, _board, combo, _trials):
+        return eq_map[tuple(sorted(combo))]
+
+    monkeypatch.setattr(pol, "villain_sb_open_range", fake_range)
+    monkeypatch.setattr(pol, "tighten_range", fake_tighten_range)
+    monkeypatch.setattr(pol, "hero_equity_vs_combo", fake_combo_eq)
+
+    opts = pol.river_options(node, random.Random(5), mc_trials=80)
+    bet_half = next(o for o in opts if o.key == "Bet 50% pot")
+
+    pot = node.pot_bb
+    bet = round(pot * 0.5, 2)
+    fe_expected = 0.5  # one of two combos folds
+    eq_call = eq_map[combos[0]]
+    showdown_ev = eq_call * (pot + bet) - (1 - eq_call) * bet
+    expected = fe_expected * pot + (1 - fe_expected) * showdown_ev
+
+    assert abs(bet_half.ev - expected) < 1e-9
+    assert "EV" in bet_half.why and "equity" in bet_half.why

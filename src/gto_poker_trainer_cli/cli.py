@@ -10,7 +10,13 @@ def _add_play_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--hands", type=int, default=1, help="Number of random hands to play")
     # If omitted, runs with a random seed for variety. Pass an int to reproduce.
     p.add_argument("--seed", type=int, default=None, help="RNG seed (random if omitted)")
-    p.add_argument("--mc", type=int, default=200, help="Monte Carlo trials per node")
+    p.add_argument(
+        "--mc",
+        type=int,
+        default=200,
+        metavar="SAMPLES",
+        help="Monte Carlo simulation samples per decision (higher = steadier guidance, slower)",
+    )
     p.add_argument("--no-color", action="store_true", help="Disable colored output (default is colored)")
     p.add_argument("--solver-csv", type=str, default=None, help="Use preflop solver CSV before heuristics")
 
