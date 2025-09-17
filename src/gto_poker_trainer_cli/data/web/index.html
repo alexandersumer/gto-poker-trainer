@@ -402,14 +402,19 @@
         }
         const area = $('#options');
         if(area){
-          const palette = {
-            fold: 'bg-[#f7e8ee] border-[#e9d2dc] hover:bg-[#f0dde5] focus-visible:ring-[#e2c4d5]/55 text-[#734552]',
-            call: 'bg-[#eef2fb] border-[#d9e0f2] hover:bg-[#e5e9f6] focus-visible:ring-[#c6d1ec]/45 text-[#3f4a63]',
-            check: 'bg-[#eef2fb] border-[#d9e0f2] hover:bg-[#e5e9f6] focus-visible:ring-[#c6d1ec]/45 text-[#3f4a63]',
-            bet: 'bg-[#ece6f5] border-[#d6cde8] hover:bg-[#e3dced] focus-visible:ring-[#c4b9df]/45 text-[#4d3d66]',
-            raise: 'bg-[#ece6f5] border-[#d6cde8] hover:bg-[#e3dced] focus-visible:ring-[#c4b9df]/45 text-[#4d3d66]',
-            shove: 'bg-[#ece6f5] border-[#d6cde8] hover:bg-[#e3dced] focus-visible:ring-[#c4b9df]/45 text-[#4d3d66]',
-            default: 'bg-[#eef2fb] border-[#d9e0f2] hover:bg-[#e5e9f6] focus-visible:ring-[#c6d1ec]/45 text-[#3f4a63]'
+          const toneStyles = {
+            fold: 'bg-[#efe6ec] border-[#dcc8cf] hover:bg-[#e6dbe2] focus-visible:ring-[#cfb6bf]/55 text-[#654550]',
+            passive: 'bg-[#eef2fb] border-[#d9e0f2] hover:bg-[#e5e9f6] focus-visible:ring-[#c6d1ec]/45 text-[#3f4a63]',
+            aggressive: 'bg-[#ece6f5] border-[#d6cde8] hover:bg-[#e3dced] focus-visible:ring-[#c4b9df]/45 text-[#4d3d66]'
+          };
+          const toneMap = {
+            fold: 'fold',
+            call: 'passive',
+            check: 'passive',
+            bet: 'aggressive',
+            raise: 'aggressive',
+            shove: 'aggressive',
+            default: 'passive'
           };
 
           const classifyTone = (label) => {
@@ -431,7 +436,8 @@
             b.type = 'button';
             const base = 'option-card w-full rounded-lg px-3.5 py-2 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb] border shadow shadow-[#1f2740]/12';
             const tone = classifyTone(text);
-            const color = palette[tone] || palette.default;
+            const toneKey = toneMap[tone] || 'passive';
+            const color = toneStyles[toneKey];
             b.className = `${base} ${color}`;
             b.style.animationDelay = `${i * 40}ms`;
             b.textContent = `${i + 1}. ${text}`;

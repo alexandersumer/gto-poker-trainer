@@ -20,80 +20,58 @@ from ..dynamic.generator import Node, generate_episode
 from ..dynamic.policy import options_for, resolve_for
 from ..solver.oracle import CompositeOptionProvider, CSVStrategyOracle
 
-# --- Small helpers / adapters ---
+_ACTION_PALETTE: dict[str, dict[str, str]] = {
+    "fold": {
+        "bg": "#efe6ec",
+        "border": "#dcc8cf",
+        "text": "#654550",
+        "hover": "#e6dbe2",
+    },
+    "passive": {
+        "bg": "#eef2fb",
+        "border": "#d9e0f2",
+        "text": "#3f4a63",
+        "hover": "#e5e9f6",
+    },
+    "aggressive": {
+        "bg": "#ece6f5",
+        "border": "#d6cde8",
+        "text": "#4d3d66",
+        "hover": "#e3dced",
+    },
+}
+
+_ACTION_CLASS_MAP: dict[str, str] = {
+    "option-fold": "fold",
+    "option-call": "passive",
+    "option-check": "passive",
+    "option-bet": "aggressive",
+    "option-raise": "aggressive",
+}
 
 
-class _DynamicGenerator(EpisodeGenerator):
-    def generate(self, rng):  # type: ignore[override]
-        return generate_episode(rng)
+def _build_action_css() -> str:
+    lines: list[str] = []
+    for class_name, palette_key in _ACTION_CLASS_MAP.items():
+        palette = _ACTION_PALETTE[palette_key]
+        lines.append(
+            "    .{cls} {{ background: {bg}; border: 1px solid {border}; color: {text}; }}".format(
+                cls=class_name,
+                bg=palette["bg"],
+                border=palette["border"],
+                text=palette["text"],
+            )
+        )
+        lines.append(
+            "    .{cls}:hover {{ background: {hover}; }}".format(
+                cls=class_name,
+                hover=palette["hover"],
+            )
+        )
+    return "\n".join(lines) + "\n"
 
 
-class _DynamicOptions(OptionProvider):
-    def options(self, node, rng, mc_trials):  # type: ignore[override]
-        return options_for(node, rng, mc_trials)
-
-    def resolve(self, node, chosen, rng):  # type: ignore[override]
-        return resolve_for(node, chosen, rng)
-
-
-@dataclass
-class AppConfig:
-    hands: int = 1
-    mc_trials: int = 120
-    solver_csv: str | None = None
-
-
-class _TextualPresenter(Presenter):
-    """Bridges the synchronous engine to the async Textual UI via thread events."""
-
-    def __init__(self, app: TrainerApp) -> None:
-        self.app = app
-        self._choice_event = threading.Event()
-        self._choice_index: int | None = None
-
-    # --- Protocol impl ---
-    def start_session(self, total_hands: int) -> None:  # noqa: D401
-        self.app.call_from_thread(self.app.show_session_start, total_hands)
-
-    def start_hand(self, hand_index: int, total_hands: int) -> None:  # noqa: D401
-        self.app.call_from_thread(self.app.show_hand_start, hand_index, total_hands)
-
-    def show_node(self, node: Node, options: list[str]) -> None:  # noqa: D401
-        self._choice_index = None
-        self._choice_event.clear()
-        self.app.call_from_thread(self.app.show_node, node, options)
-
-    def prompt_choice(self, n: int) -> int:  # noqa: D401, ARG002
-        # Block engine thread until UI signals a choice
-        self._choice_event.wait()
-        if self._choice_index is None:
-            return -1
-        return self._choice_index
-
-    def step_feedback(self, node: Node, chosen: Option, best: Option) -> None:  # noqa: D401
-        self.app.call_from_thread(self.app.show_step_feedback, node, chosen, best)
-
-    def summary(self, records: list[dict]) -> None:  # noqa: D401
-        self.app.call_from_thread(self.app.show_summary, records)
-
-    # --- UI callback ---
-    def set_choice(self, idx: int) -> None:
-        self._choice_index = idx
-        self._choice_event.set()
-
-    def cancel_session(self) -> None:
-        self.set_choice(-1)
-
-
-class TrainerApp(App[None]):
-    TITLE = "GTO Poker Trainer"
-    SUB_TITLE = "Solver-calibrated drills for every street"
-    BINDINGS = [
-        ("ctrl+n", "new_session", "Start Fresh Hand"),
-        ("escape", "end_session", "End Session"),
-        ("ctrl+q", "quit_app", "Quit"),
-    ]
-    CSS = """
+_BASE_CSS = """
     Screen {
         layout: vertical;
         background: #f4f6fb;
@@ -215,16 +193,9 @@ class TrainerApp(App[None]):
     .option-button { background: #ffffff; border: 1px solid #d1daf3; color: #1b2d55; }
     .option-button:hover { background: #eef3ff; }
     .option-button:focus { border: 1px solid #5b76f8; }
-    .option-fold { background: #f7e8ee; border: 1px solid #e9d2dc; color: #734552; }
-    .option-fold:hover { background: #f0dde5; }
-    .option-call { background: #eef2fb; border: 1px solid #d9e0f2; color: #3f4a63; }
-    .option-call:hover { background: #e5e9f6; }
-    .option-check { background: #eef2fb; border: 1px solid #d9e0f2; color: #3f4a63; }
-    .option-check:hover { background: #e5e9f6; }
-    .option-bet { background: #ece6f5; border: 1px solid #d6cde8; color: #4d3d66; }
-    .option-bet:hover { background: #e3dced; }
-    .option-raise { background: #ece6f5; border: 1px solid #d6cde8; color: #4d3d66; }
-    .option-raise:hover { background: #e3dced; }
+"""
+
+_POST_ACTION_CSS = """
     #btn-new { background: #2f6bff; border: 1px solid #2a5de0; color: #ffffff; text-align: center; }
     #btn-new:hover { background: #2657d1; }
     #btn-end { background: #f3f6ff; border: 1px solid #ccd8ff; color: #253260; text-align: center; }
@@ -241,7 +212,81 @@ class TrainerApp(App[None]):
         color: #2d3b62;
         min-height: 5;
     }
-    """
+"""
+# --- Small helpers / adapters ---
+
+
+class _DynamicGenerator(EpisodeGenerator):
+    def generate(self, rng):  # type: ignore[override]
+        return generate_episode(rng)
+
+
+class _DynamicOptions(OptionProvider):
+    def options(self, node, rng, mc_trials):  # type: ignore[override]
+        return options_for(node, rng, mc_trials)
+
+    def resolve(self, node, chosen, rng):  # type: ignore[override]
+        return resolve_for(node, chosen, rng)
+
+
+@dataclass
+class AppConfig:
+    hands: int = 1
+    mc_trials: int = 120
+    solver_csv: str | None = None
+
+
+class _TextualPresenter(Presenter):
+    """Bridges the synchronous engine to the async Textual UI via thread events."""
+
+    def __init__(self, app: TrainerApp) -> None:
+        self.app = app
+        self._choice_event = threading.Event()
+        self._choice_index: int | None = None
+
+    # --- Protocol impl ---
+    def start_session(self, total_hands: int) -> None:  # noqa: D401
+        self.app.call_from_thread(self.app.show_session_start, total_hands)
+
+    def start_hand(self, hand_index: int, total_hands: int) -> None:  # noqa: D401
+        self.app.call_from_thread(self.app.show_hand_start, hand_index, total_hands)
+
+    def show_node(self, node: Node, options: list[str]) -> None:  # noqa: D401
+        self._choice_index = None
+        self._choice_event.clear()
+        self.app.call_from_thread(self.app.show_node, node, options)
+
+    def prompt_choice(self, n: int) -> int:  # noqa: D401, ARG002
+        # Block engine thread until UI signals a choice
+        self._choice_event.wait()
+        if self._choice_index is None:
+            return -1
+        return self._choice_index
+
+    def step_feedback(self, node: Node, chosen: Option, best: Option) -> None:  # noqa: D401
+        self.app.call_from_thread(self.app.show_step_feedback, node, chosen, best)
+
+    def summary(self, records: list[dict]) -> None:  # noqa: D401
+        self.app.call_from_thread(self.app.show_summary, records)
+
+    # --- UI callback ---
+    def set_choice(self, idx: int) -> None:
+        self._choice_index = idx
+        self._choice_event.set()
+
+    def cancel_session(self) -> None:
+        self.set_choice(-1)
+
+
+class TrainerApp(App[None]):
+    TITLE = "GTO Poker Trainer"
+    SUB_TITLE = "Solver-calibrated drills for every street"
+    BINDINGS = [
+        ("ctrl+n", "new_session", "Start Fresh Hand"),
+        ("escape", "end_session", "End Session"),
+        ("ctrl+q", "quit_app", "Quit"),
+    ]
+    CSS = _BASE_CSS + _build_action_css() + _POST_ACTION_CSS
 
     # Reactive state for headline / meta
     headline: reactive[str | None] = reactive(None)
