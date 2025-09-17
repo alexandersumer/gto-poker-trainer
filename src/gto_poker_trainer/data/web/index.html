@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
     <title>GTO Poker Trainer</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <style>
@@ -17,6 +18,9 @@
         --text-primary: #111827;
         --text-secondary: #4b5563;
         --text-muted: #6b7280;
+        --min-tap: 44px;
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
 
         /* Action palette */
         --btn-primary-bg: #eef2ff;
@@ -176,6 +180,21 @@
       }
       .btn-neutral:hover { background: #e7eaf1; }
 
+      .btn-secondary {
+        background: #ffffff;
+        color: var(--btn-primary-text);
+        border: 1px solid rgba(67, 56, 202, 0.18);
+      }
+      .btn-secondary:hover { background: #f4f6ff; }
+      .btn-secondary:active { background: #eef2ff; }
+
+      .btn-tertiary {
+        background: #ffffff;
+        color: #475569;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+      }
+      .btn-tertiary:hover { background: #f4f6f8; }
+
       .feedback-success {
         background: var(--success-bg) !important;
         color: var(--success-text) !important;
@@ -190,6 +209,208 @@
         background: var(--btn-danger-bg) !important;
         color: var(--btn-danger-text) !important;
         border-left: 4px solid rgba(180, 35, 24, 0.25);
+      }
+
+      .action-button {
+        min-height: var(--min-tap);
+      }
+
+      .result-panel {
+        line-height: 1.35;
+      }
+
+      .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(12px);
+        background: rgba(255, 255, 255, 0.9);
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        padding-top: max(12px, var(--safe-top));
+      }
+      .app-header .header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 56px;
+      }
+      .app-header .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .app-header .brand-mark {
+        display: inline-grid;
+        place-items: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 1rem;
+        background: #111827;
+        color: #ffffff;
+        font-size: 1rem;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 2px rgba(15, 23, 42, 0.16);
+      }
+      .app-header .wordmark {
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--text-primary);
+        letter-spacing: -0.01em;
+      }
+      .app-header .wordmark .lead {
+        font-weight: 800;
+      }
+      .app-header .wordmark .trail {
+        opacity: 0.92;
+      }
+      .app-header .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .header-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        background: #ffffff;
+        font-size: 12px;
+        font-weight: 500;
+        color: #475569;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      }
+      .header-pill.is-empty {
+        opacity: 0.75;
+      }
+      .header-pill .status-dot {
+        width: 0.375rem;
+        height: 0.375rem;
+        border-radius: 9999px;
+        background: #10b981;
+      }
+      .header-pill.is-empty .status-dot {
+        background: #cbd5f5;
+      }
+      .header-pill strong {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .settings-button {
+        display: inline-grid;
+        place-items: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        background: #ffffff;
+        font-size: 1.1rem;
+        transition: background 0.18s ease, transform 0.18s ease;
+      }
+      .settings-button:hover {
+        background: #f8fafc;
+      }
+      .settings-button:active {
+        transform: scale(0.97);
+      }
+      .subheader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 38px;
+        font-size: 13px;
+        color: #64748b;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .subheader .stateline {
+        font-weight: 500;
+        color: var(--text-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .subheader .stateline strong {
+        color: var(--text-primary);
+      }
+      .subheader .stats {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        white-space: nowrap;
+        margin-left: auto;
+        flex-wrap: wrap;
+      }
+      .subheader .stats span strong {
+        color: var(--text-primary);
+      }
+      .text-num {
+        font-variant-numeric: tabular-nums;
+      }
+      .unit {
+        opacity: 0.65;
+        margin-left: 0.125rem;
+      }
+      .subheader .stats span {
+        display: inline-flex;
+        align-items: baseline;
+      }
+      .subheader .stats span + span::before {
+        content: '•';
+        margin: 0 0.6rem;
+        color: rgba(148, 163, 184, 0.6);
+        font-weight: 500;
+      }
+
+      .density-compact .page-section {
+        padding-block: 8px;
+      }
+      .density-compact .section-heading {
+        margin-block-end: 6px;
+      }
+      .density-compact .stack > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 8px;
+      }
+      .density-compact .subtext,
+      .density-compact .meta-row {
+        font-size: 0.95rem;
+        line-height: 1.3;
+      }
+      .density-compact .hand-row,
+      .density-compact .board-row {
+        gap: 6px;
+      }
+      .density-compact .poker-card {
+        width: clamp(36px, 7.2vw, 44px);
+        height: clamp(50px, 10vw, 60px);
+      }
+      .density-compact .stateline {
+        font-size: 0.98rem;
+        line-height: 1.25;
+        margin-block: 6px;
+      }
+      .density-compact .stats {
+        margin-block: 4px;
+        font-size: 0.95rem;
+        line-height: 1.25;
+      }
+      .density-compact .actions {
+        row-gap: 8px;
+      }
+      .density-compact .action-button {
+        padding-block: 10px;
+      }
+      .density-compact .result-panel {
+        padding: 10px 12px;
+        margin-block-start: 8px;
+        line-height: 1.3;
+      }
+      .density-compact .app-header .header-inner {
+        height: 52px;
+      }
+      .density-compact .subheader {
+        height: 34px;
+        font-size: 12.5px;
       }
       .option-card {
         animation: option-in 0.26s ease forwards;
@@ -226,15 +447,35 @@
   </head>
   <body>
     <div id="progress-bar" aria-hidden="true"></div>
-    <header class="sticky top-0 z-10 glass shadow-sm">
-      <div class="max-w-2xl mx-auto flex items-center justify-between p-3">
-        <h1 class="text-xl font-bold text-primary">GTO Poker Trainer</h1>
-        <div id="stats" class="text-sm text-muted"></div>
+    <header class="app-header">
+      <div class="max-w-2xl mx-auto px-4">
+        <div class="header-inner">
+          <div class="brand">
+            <span aria-hidden="true" class="brand-mark">♠︎</span>
+            <h1 class="wordmark"><span class="lead">GTO</span> <span class="trail">Trainer</span></h1>
+          </div>
+          <div class="header-actions">
+            <span id="stats" class="header-pill is-empty">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span class="pill-label">Answered</span>
+              <strong id="stats-count">0</strong>
+            </span>
+            <button type="button" class="settings-button" aria-label="Settings">⚙︎</button>
+          </div>
+        </div>
+        <div class="subheader">
+          <div id="headline" class="stateline">Ready for a new hand</div>
+          <div id="meta" class="stats">
+            <span>Hand <strong class="text-num">0</strong><span class="unit">/0</span></span>
+            <span>Pot <strong class="text-num">0</strong><span class="unit"> bb</span></span>
+            <span>SPR <strong class="text-num">0</strong></span>
+          </div>
+        </div>
       </div>
     </header>
 
-    <main class="max-w-2xl min-h-[720px] mx-auto p-4">
-      <section id="panel-start" class="space-y-4">
+    <main class="screen max-w-2xl min-h-[720px] mx-auto p-4 pb-[calc(4rem+var(--safe-bottom))]">
+      <section id="panel-start" class="page-section space-y-4">
         <div class="rounded-lg panel-box bg-[#eff2f8] p-6 text-secondary">
           <h2 class="font-semibold mb-4 text-[clamp(1.25rem,2vw,1.45rem)] text-primary">Start a Session</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-secondary">
@@ -250,24 +491,22 @@
         </div>
       </section>
 
-      <section id="panel-play" class="hidden space-y-4">
+      <section id="panel-play" class="page-section hidden space-y-4">
         <div class="rounded-lg panel-box bg-[#eff2f8] p-6 text-secondary">
-          <div id="headline" class="text-sm uppercase eyebrow"></div>
-          <div class="mt-4 space-y-4" id="card-summary">
+          <div class="mt-2 space-y-4 stack" id="card-summary">
             <div>
-              <div class="text-xs font-semibold uppercase eyebrow">Your hand</div>
-              <div id="hand" class="mt-1 flex flex-wrap items-center gap-1 text-lg font-semibold text-primary"></div>
+              <div class="text-xs font-semibold uppercase eyebrow section-heading">Your hand</div>
+              <div id="hand" class="hand-row mt-1 flex flex-wrap items-center gap-1 text-lg font-semibold text-primary"></div>
             </div>
             <div>
-              <div class="text-xs font-semibold uppercase eyebrow">Board</div>
-              <div id="board" class="mt-1 flex flex-wrap items-center gap-1 text-secondary"></div>
+              <div class="text-xs font-semibold uppercase eyebrow section-heading">Board</div>
+              <div id="board" class="board-row mt-1 flex flex-wrap items-center gap-1 text-secondary"></div>
             </div>
           </div>
-          <div class="text-sm mt-5 text-secondary" id="meta"></div>
 
           <div class="options-block mt-6 pt-5 border-t border-[#d7ddea]/70">
-            <div class="text-xs font-semibold uppercase eyebrow text-muted tracking-[0.18em]">Choose your action</div>
-            <div id="options" class="mt-3 grid grid-cols-1 gap-2 max-w-xl mx-auto"></div>
+            <div class="section-heading text-xs font-semibold uppercase eyebrow text-muted tracking-[0.18em]">Choose your action</div>
+            <div id="options" class="actions mt-3 grid grid-cols-1 gap-2 max-w-xl mx-auto"></div>
           </div>
         </div>
 
@@ -277,7 +516,7 @@
           </button>
         </div>
 
-        <div id="feedback" class="hidden rounded-lg panel-box p-5"></div>
+        <div id="feedback" class="hidden rounded-lg panel-box p-5 result-panel"></div>
         <div class="mt-3 flex justify-center" id="end-session-container">
           <button id="btn-end" class="rounded-lg border border-[#ccd5e6] bg-[#e8ecf6] px-4 py-2 text-sm font-semibold text-[#25304b] transition-colors duration-200 hover:bg-[#dfe4f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">
             End Session
@@ -285,7 +524,7 @@
         </div>
       </section>
 
-      <section id="panel-summary" class="hidden space-y-4">
+      <section id="panel-summary" class="page-section hidden space-y-4">
         <div class="rounded-lg panel-box bg-[#eff2f8] p-6 text-secondary" id="summary"></div>
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <button id="btn-new" class="w-full sm:w-auto rounded-md bg-[#d7ebf4] px-4 py-2 font-semibold text-[#1d3a56] transition-colors duration-200 hover:bg-[#cee4ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7ec7c2] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">Start new session</button>
@@ -296,7 +535,16 @@
 
     <script>
       const $ = (sel) => document.querySelector(sel);
-      const fmt = (n) => Number(n).toFixed(2);
+      const fmt = (value, maxDecimals = 2) => {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return '0';
+        const fixed = num.toFixed(maxDecimals);
+        if (!fixed.includes('.')) return fixed;
+        let trimmed = fixed.replace(/0+$/, '');
+        if(trimmed === '' || trimmed === '.') return '0';
+        if(trimmed.endsWith('.')) trimmed = trimmed.slice(0, -1);
+        return trimmed;
+      };
       const progressBar = document.getElementById('progress-bar');
       let inflight = 0;
       let hideProgressTimer = null;
@@ -305,6 +553,16 @@
       let answered = 0;
       let startBusy = false;
       let pendingSummary = null;
+      const screen = document.querySelector('main.screen');
+
+      const applyDensity = () => {
+        if(!screen) return;
+        const shouldCompact = window.innerHeight < 760;
+        screen.classList.toggle('density-compact', shouldCompact);
+      };
+
+      applyDensity();
+      window.addEventListener('resize', () => window.requestAnimationFrame(applyDensity));
 
       function show(id){
         ['#panel-start', '#panel-play', '#panel-summary'].forEach((sel)=>{
@@ -351,7 +609,7 @@
           const rank = c[0];
           const suitCode = c[1];
           const css = suit(suitCode);
-          return `<span class="card ${css}">${rank}${suitIcon(suitCode)}</span>`;
+          return `<span class="card poker-card ${css}">${rank}${suitIcon(suitCode)}</span>`;
         }).join(' ');
       }
 
@@ -424,10 +682,10 @@
           await showNode();
         } catch (err) {
           console.error(err);
-          const stats = $('#stats');
-          if(stats){
+          const statusLine = $('#headline');
+          if(statusLine){
             const message = err instanceof Error ? err.message : String(err ?? 'unknown error');
-            stats.textContent = `Unable to start session. ${message}`;
+            statusLine.textContent = `Unable to start session — ${message}`;
           }
           show('#panel-start');
         } finally {
@@ -447,7 +705,7 @@
           setSummaryAvailability(true);
           const area = $('#options'); if(area) area.innerHTML = '';
           const headline = $('#headline'); if(headline) headline.textContent = 'Session complete';
-          const meta = $('#meta'); if(meta) meta.textContent = 'Session complete. View summary for detailed results.';
+          const meta = $('#meta'); if(meta) meta.textContent = 'View summary for detailed results.';
           return;
         }
         pendingSummary = null;
@@ -462,7 +720,8 @@
             const idx = descriptor.indexOf('. ');
             descriptor = idx >= 0 ? descriptor.slice(idx + 2) : descriptor;
           }
-          headline.textContent = `${n.street.toUpperCase()} — ${descriptor}`;
+          const prefix = n.street.toUpperCase();
+          headline.textContent = descriptor ? `${prefix} — ${descriptor}` : prefix;
         }
         const hero = renderCards(n.hero_cards);
         const heroEl = $('#hand'); if(heroEl) heroEl.innerHTML = hero || '<span class="text-sm text-muted">Dealing…</span>';
@@ -470,33 +729,26 @@
         const boardEl = $('#board'); if(boardEl) boardEl.innerHTML = board || '<span class="text-sm text-muted">Board not yet revealed</span>';
         const meta = $('#meta');
         if(meta){
-          const parts = [`Hand ${n.hand_no}/${n.total_hands}`];
-          const spr = n.pot_bb > 0 ? (n.effective_bb / n.pot_bb) : Infinity;
-          parts.push(`Pot: ${fmt(n.pot_bb)} bb`);
-          parts.push(`SPR: ${spr.toFixed(1)}`);
-          meta.textContent = parts.join(' • ');
+          const sprRaw = n.pot_bb > 0 ? (n.effective_bb / n.pot_bb) : Infinity;
+          const sprText = Number.isFinite(sprRaw) ? fmt(sprRaw, 1) : '∞';
+          const html = [
+            `<span>Hand <strong class="text-num">${n.hand_no}</strong><span class="unit">/${n.total_hands}</span></span>`,
+            `<span>Pot <strong class="text-num">${fmt(n.pot_bb, 2)}</strong><span class="unit"> bb</span></span>`,
+            `<span>SPR <strong class="text-num">${sprText}</strong></span>`
+          ].join('');
+          meta.innerHTML = html;
         }
         const area = $('#options');
         if(area){
-          const toneMap = {
-            fold: 'btn-danger',
-            call: 'btn-info',
-            check: 'btn-neutral',
-            bet: 'btn-primary',
-            raise: 'btn-primary',
-            shove: 'btn-primary',
-            default: 'btn-neutral'
-          };
-
           const classifyTone = (label) => {
             const lower = label.toLowerCase();
-            if (lower.includes('fold')) return toneMap.fold;
-            if (lower.includes('call')) return toneMap.call;
-            if (lower.includes('check')) return toneMap.check;
-            if (lower.includes('all-in') || lower.includes('jam')) return toneMap.shove;
-            if (lower.includes('raise') || lower.includes('3-bet') || lower.includes('4-bet')) return toneMap.raise;
-            if (lower.includes('bet')) return toneMap.bet;
-            return toneMap.default;
+            if (lower.includes('fold')) return 'btn-tertiary';
+            if (lower.includes('call')) return 'btn-primary';
+            if (lower.includes('check')) return 'btn-primary';
+            if (lower.includes('all-in') || lower.includes('jam')) return 'btn-secondary';
+            if (lower.includes('raise') || lower.includes('3-bet') || lower.includes('4-bet')) return 'btn-secondary';
+            if (lower.includes('bet')) return 'btn-secondary';
+            return 'btn-neutral';
           };
           const fragment = document.createDocumentFragment();
           payload.options.forEach((option,i)=>{
@@ -505,7 +757,7 @@
             const text = labelText;
             const b = document.createElement('button');
             b.type = 'button';
-            const base = 'option-card btn-action w-full text-sm font-semibold tracking-tight transition-all duration-200';
+            const base = 'option-card btn-action action-button w-full text-sm font-semibold tracking-tight transition-all duration-200';
             const toneClass = classifyTone(text);
             b.className = `${base} ${toneClass}`.trim();
             b.style.animationDelay = `${i * 40}ms`;
@@ -627,8 +879,12 @@
       }
 
       function updateStats(){
+        const countEl = $('#stats-count');
+        if(countEl) countEl.textContent = String(answered);
         const stats = $('#stats');
-        if(stats) stats.textContent = answered ? `Answered: ${answered}` : '';
+        if(stats) {
+          stats.classList.toggle('is-empty', answered === 0);
+        }
       }
 
       const startBtn = $('#btn-start');
