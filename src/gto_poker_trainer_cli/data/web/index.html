@@ -369,9 +369,11 @@
             'Check back': 'bg-[#f1f3fb] border-[#cdd4e6] hover:bg-[#e7eaf5] focus-visible:ring-[#6c83f5]/50 text-[#20283f]',
           };
           const fragment = document.createDocumentFragment();
-          payload.options.forEach((label,i)=>{
-            const text = label.replace(/\s*\([^)]*\)$/, '');
-            const toneKey = label.includes('%') ? text : label;
+          payload.options.forEach((option,i)=>{
+            const rawLabel = typeof option === 'string' ? option : option?.label;
+            const labelText = typeof rawLabel === 'string' && rawLabel.length ? rawLabel : `Option ${i + 1}`;
+            const text = labelText.replace(/\s*\([^)]*\)$/, '');
+            const toneKey = labelText.includes('%') ? text : labelText;
             const b = document.createElement('button');
             b.type = 'button';
             const base = 'option-card w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb] border shadow-sm shadow-[#1f2740]/10';
@@ -379,6 +381,9 @@
             b.className = `${base} ${color}`;
             b.style.animationDelay = `${i * 40}ms`;
             b.textContent = `${i + 1}. ${text}`;
+            if (typeof option === 'object' && option && 'key' in option) {
+              b.dataset.optionKey = option.key;
+            }
             b.onclick = () => choose(i);
             fragment.appendChild(b);
           });
