@@ -67,7 +67,7 @@ make render-smoke  # smoke test Render Docker image + /healthz
 ## Notes
 
 - Per step: `ev_loss = best_ev - chosen_ev`.
-- Score aggregates total/average EV lost plus hit rate.
+- Score averages per-decision penalties derived from EV lost as a percentage of the pot; mistakes above ~0.3% pot get exponentially harsher deductions.
 
 ## License
 

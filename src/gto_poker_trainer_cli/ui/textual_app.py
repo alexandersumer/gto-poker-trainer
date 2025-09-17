@@ -14,6 +14,7 @@ from textual.widgets import Button, Footer, Header, Label, Static
 from ..core.engine_core import run_core
 from ..core.interfaces import EpisodeGenerator, OptionProvider, Presenter
 from ..core.models import Option
+from ..core.scoring import summarize_records
 from ..dynamic.cards import canonical_hand_abbrev, format_card_ascii
 from ..dynamic.generator import Node, generate_episode
 from ..dynamic.policy import options_for, resolve_for
@@ -175,15 +176,28 @@ class TrainerApp(App[None]):
         max-width: 50;
         margin: 0 auto;
     }
+    #options-block {
+        border-top: 1px solid #d7dfea;
+        margin: 1.2 0 0 0;
+        padding: 1.2 0 0 0;
+    }
+    .options-title {
+        margin: 0 0 0.6 0;
+        color: #2d3b62;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.85em;
+    }
     #controls {
         column-gap: 1.5;
         justify-content: center;
     }
     Button {
         width: 100%;
-        min-height: 2;
-        padding: 0.5 1.5;
-        margin: 0 0 0.5 0;
+        min-height: 1.8;
+        padding: 0.35 1.25;
+        margin: 0 0 0.3 0;
         background: #ffffff;
         color: #1b2d55;
         border: 1px solid #d1daf3;
@@ -201,16 +215,16 @@ class TrainerApp(App[None]):
     .option-button { background: #ffffff; border: 1px solid #d1daf3; color: #1b2d55; }
     .option-button:hover { background: #eef3ff; }
     .option-button:focus { border: 1px solid #5b76f8; }
-    .option-fold { background: #fff5f6; border: 1px solid #f3cbd3; color: #9f3b56; }
-    .option-fold:hover { background: #ffe9ef; }
-    .option-call { background: #d2f0ed; border: 1px solid #9ed7cf; color: #0f3d35; }
-    .option-call:hover { background: #c2e8e3; }
-    .option-check { background: #f8f9ff; border: 1px solid #d8deef; color: #2a3a5f; }
-    .option-check:hover { background: #edf1ff; }
-    .option-bet { background: #fdf0c9; border: 1px solid #f2d88f; color: #6b4a12; }
-    .option-bet:hover { background: #f8e2ac; }
-    .option-raise { background: #fde1d6; border: 1px solid #f3b8a1; color: #6a2f17; }
-    .option-raise:hover { background: #f8d0bf; }
+    .option-fold { background: #f8ced7; border: 1px solid #eda6b5; color: #7f2b3d; }
+    .option-fold:hover { background: #f5bbc6; }
+    .option-call { background: #caf7d0; border: 1px solid #9edbb1; color: #1d5b3f; }
+    .option-call:hover { background: #bcefd0; }
+    .option-check { background: #d9e6fb; border: 1px solid #b5cbf1; color: #2a4874; }
+    .option-check:hover { background: #c9dbf6; }
+    .option-bet { background: #f7e6ca; border: 1px solid #e8cfa2; color: #6b4b1a; }
+    .option-bet:hover { background: #f4dab4; }
+    .option-raise { background: #f9c9b5; border: 1px solid #f1a68a; color: #7a3a20; }
+    .option-raise:hover { background: #f6b99c; }
     #btn-new { background: #2f6bff; border: 1px solid #2a5de0; color: #ffffff; text-align: center; }
     #btn-new:hover { background: #2657d1; }
     #btn-end { background: #f3f6ff; border: 1px solid #ccd8ff; color: #253260; text-align: center; }
@@ -275,9 +289,9 @@ class TrainerApp(App[None]):
                 yield Static("", id="hand", classes="card-panel")
             with Horizontal(id="board-row"):
                 yield Static("", id="board", classes="card-panel")
-        with Container(classes="section"):
-            yield Label("Choose your action:")
-            yield Grid(id="options")
+            with Container(id="options-block"):
+                yield Static("Choose your action:", classes="options-title")
+                yield Grid(id="options")
         with Container(classes="section"):
             yield Label("Feedback:")
             yield Static("", id="feedback")
@@ -502,26 +516,15 @@ class TrainerApp(App[None]):
                     "[b #1b2d55]Session wrapped[/]\n[dim]Start a fresh hand when you're ready.[/]"
                 )
             return
-        total_ev_best = sum(r["best_ev"] for r in records)
-        total_ev_chosen = sum(r["chosen_ev"] for r in records)
-        total_ev_lost = total_ev_best - total_ev_chosen
-        avg_ev_lost = total_ev_lost / len(records)
-        hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
-        hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
-        hands_answered = len(hand_ids) if hand_ids else len(records)
-        score_pct = 0.0
-
-        def _room_term(rec: dict[str, Any]) -> float:
-            room_ev = rec.get("room_ev")
-            if room_ev is not None:
-                return max(1e-9, room_ev)
-            worst_ev = rec.get("worst_ev")
-            baseline = worst_ev if worst_ev is not None else rec["chosen_ev"]
-            return max(1e-9, rec["best_ev"] - baseline)
-
-        room = sum(_room_term(r) for r in records)
-        if room > 1e-9:
-            score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room))
+        stats = summarize_records(records)
+        total_ev_chosen = stats.total_ev_chosen
+        total_ev_best = stats.total_ev_best
+        total_ev_lost = stats.total_ev_lost
+        avg_ev_lost = stats.avg_ev_lost
+        hits = stats.hits
+        hands_answered = stats.hands
+        score_pct = stats.score_pct
+        avg_loss_pct = stats.avg_loss_pct
         msg = (
             f"[b #1b2d55]Session summary[/]\n"
             f"Hands answered: {hands_answered}\n"
@@ -530,6 +533,7 @@ class TrainerApp(App[None]):
             f"Total EV (best): {total_ev_best:.2f} bb\n"
             f"Total EV lost: {total_ev_lost:.2f} bb\n"
             f"Avg EV lost/decision: {avg_ev_lost:.2f} bb\n"
+            f"Avg EV lost (% pot): {avg_loss_pct:.2f}%\n"
             f"Score (0–100): {score_pct:.0f}"
         )
         if self._feedback_panel:

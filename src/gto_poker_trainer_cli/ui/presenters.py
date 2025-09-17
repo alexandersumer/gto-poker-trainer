@@ -7,6 +7,7 @@ from rich.table import Table
 
 from ..core.interfaces import Presenter
 from ..core.models import Option
+from ..core.scoring import summarize_records
 from ..dynamic.cards import canonical_hand_abbrev, format_card_ascii
 from ..dynamic.generator import Node
 
@@ -147,24 +148,15 @@ class RichPresenter(Presenter):
         if not records:
             self.console.print("No hands answered.")
             return
-        total_ev_best = sum(r["best_ev"] for r in records)
-        total_ev_chosen = sum(r["chosen_ev"] for r in records)
-        total_ev_lost = total_ev_best - total_ev_chosen
-        avg_ev_lost = total_ev_lost / len(records)
-        hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
-        hands_answered = len(hand_ids) if hand_ids else len(records)
-
-        def _room_term(rec: dict) -> float:
-            room_ev = rec.get("room_ev")
-            if room_ev is not None:
-                return max(1e-9, room_ev)
-            worst_ev = rec.get("worst_ev")
-            baseline = worst_ev if worst_ev is not None else rec["chosen_ev"]
-            return max(1e-9, rec["best_ev"] - baseline)
-
-        room = sum(_room_term(r) for r in records)
-        score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room)) if room > 1e-9 else 100.0
-        hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
+        stats = summarize_records(records)
+        total_ev_chosen = stats.total_ev_chosen
+        total_ev_best = stats.total_ev_best
+        total_ev_lost = stats.total_ev_lost
+        avg_ev_lost = stats.avg_ev_lost
+        hands_answered = stats.hands
+        score_pct = stats.score_pct
+        hits = stats.hits
+        avg_loss_pct = stats.avg_loss_pct
 
         summary = Table(title="Session Summary", show_header=False)
         summary.add_row("Hands answered:", str(hands_answered))
@@ -173,6 +165,7 @@ class RichPresenter(Presenter):
         summary.add_row("Total EV (best possible):", f"{total_ev_best:.2f} bb")
         summary.add_row("Total EV lost:", f"{total_ev_lost:.2f} bb")
         summary.add_row("Average EV lost/decision:", f"{avg_ev_lost:.2f} bb")
+        summary.add_row("Average EV lost (% pot):", f"{avg_loss_pct:.2f}%")
         summary.add_row("Score (0–100):", f"{score_pct:.0f}")
         self.console.print("\n")
         self.console.print(summary)

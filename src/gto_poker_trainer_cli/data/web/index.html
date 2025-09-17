@@ -190,9 +190,12 @@
             </div>
           </div>
           <div class="text-sm mt-5 text-secondary" id="meta"></div>
-        </div>
 
-        <div id="options" class="grid grid-cols-1 gap-3 max-w-xl mx-auto"></div>
+          <div class="options-block mt-6 pt-5 border-t border-[#d7ddea]/70">
+            <div class="text-xs font-semibold uppercase eyebrow text-muted tracking-[0.18em]">Choose your action</div>
+            <div id="options" class="mt-3 grid grid-cols-1 gap-2 max-w-xl mx-auto"></div>
+          </div>
+        </div>
 
         <div class="flex flex-col sm:flex-row gap-2 sm:justify-end">
           <button id="btn-summary" class="hidden rounded-lg border border-[#d7ddea] bg-[#f3f4fa] px-4 py-2 text-sm font-semibold text-[#47516d] transition-colors duration-200 hover:bg-[#eaedf6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">
@@ -390,13 +393,13 @@
         const area = $('#options');
         if(area){
           const palette = {
-            fold: 'bg-[#f8e4eb] border-[#e8c2ce] hover:bg-[#f3d7e1] focus-visible:ring-[#f2b4c0]/55 text-[#6e2e45]',
-            call: 'bg-[#d2f0ed] border-[#9ed7cf] hover:bg-[#c2e8e3] focus-visible:ring-[#4ab6a5]/55 text-[#0f3d35]',
-            check: 'bg-[#f3f4fa] border-[#d4dae9] hover:bg-[#eaedf6] focus-visible:ring-[#838eaa]/45 text-[#25304b]',
-            bet: 'bg-[#fdf0c9] border-[#f2d88f] hover:bg-[#f8e2ac] focus-visible:ring-[#f5c464]/55 text-[#6b4a12]',
-            raise: 'bg-[#fde1d6] border-[#f3b8a1] hover:bg-[#f8d0bf] focus-visible:ring-[#f79b7b]/55 text-[#6a2f17]',
-            shove: 'bg-[#fcd4d8] border-[#f0a4b0] hover:bg-[#f6c2c9] focus-visible:ring-[#f47f91]/55 text-[#70233c]',
-            default: 'bg-[#fdf0c9] border-[#f2d88f] hover:bg-[#f8e2ac] focus-visible:ring-[#f5c464]/55 text-[#6b4a12]'
+            fold: 'bg-[#f8ced7] border-[#eda6b5] hover:bg-[#f5bbc6] focus-visible:ring-[#eda6b5]/55 text-[#7f2b3d]',
+            call: 'bg-[#caf7d0] border-[#9edbb1] hover:bg-[#bcefd0] focus-visible:ring-[#5cc59b]/45 text-[#1d5b3f]',
+            check: 'bg-[#d9e6fb] border-[#b5cbf1] hover:bg-[#c9dbf6] focus-visible:ring-[#6e92d6]/45 text-[#2a4874]',
+            bet: 'bg-[#f7e6ca] border-[#e8cfa2] hover:bg-[#f4dab4] focus-visible:ring-[#d7a864]/45 text-[#6b4b1a]',
+            raise: 'bg-[#f9c9b5] border-[#f1a68a] hover:bg-[#f6b99c] focus-visible:ring-[#e0805a]/50 text-[#7a3a20]',
+            shove: 'bg-[#f7b0b7] border-[#ea8e9a] hover:bg-[#f49da6] focus-visible:ring-[#e86f83]/55 text-[#7d2b3b]',
+            default: 'bg-[#f7e6ca] border-[#e8cfa2] hover:bg-[#f4dab4] focus-visible:ring-[#d7a864]/45 text-[#6b4b1a]'
           };
 
           const classifyTone = (label) => {
@@ -416,7 +419,7 @@
             const text = labelText.replace(/\s*\([^)]*\)$/, '');
             const b = document.createElement('button');
             b.type = 'button';
-            const base = 'option-card w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb] border shadow-sm shadow-[#1f2740]/10';
+            const base = 'option-card w-full rounded-lg px-3.5 py-2 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb] border shadow shadow-[#1f2740]/12';
             const tone = classifyTone(text);
             const color = palette[tone] || palette.default;
             b.className = `${base} ${color}`;

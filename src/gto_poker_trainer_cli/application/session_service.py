@@ -9,6 +9,7 @@ from typing import Any
 
 from ..core.formatting import format_option_label
 from ..core.models import Option
+from ..core.scoring import SummaryStats, summarize_records
 from ..dynamic.cards import format_card_ascii
 from ..dynamic.generator import Episode, Node, generate_episode
 from ..dynamic.policy import options_for, resolve_for
@@ -238,6 +239,7 @@ class SessionManager:
                 "hand_ended": getattr(chosen_feedback, "ends_hand", False),
                 "resolution_note": chosen_feedback.resolution_note,
                 "hand_index": state.hand_index,
+                "pot_bb": float(getattr(node, "pot_bb", 0.0)),
             }
             state.records.append(record)
             ends = getattr(chosen_feedback, "ends_hand", False)
@@ -348,21 +350,11 @@ def _snapshot(node: Node, option: Option) -> ActionSnapshot:
 
 
 def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
-    if not records:
-        return SummaryPayload(hands=0, decisions=0, hits=0, ev_lost=0.0, score=0.0)
-    total_ev_best = sum(r["best_ev"] for r in records)
-    total_ev_chosen = sum(r["chosen_ev"] for r in records)
-    total_ev_lost = total_ev_best - total_ev_chosen
-    hits = sum(1 for r in records if r["chosen_key"] == r["best_key"])
-    hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
-    hands = len(hand_ids) if hand_ids else len(records)
-    room = 0.0
-    for record in records:
-        room_ev = record.get("room_ev")
-        if room_ev is None:
-            worst_ev = record.get("worst_ev")
-            baseline = worst_ev if worst_ev is not None else record["chosen_ev"]
-            room_ev = max(1e-9, record["best_ev"] - baseline)
-        room += max(1e-9, room_ev)
-    score_pct = 100.0 * max(0.0, 1.0 - (total_ev_lost / room)) if room > 1e-9 else 100.0
-    return SummaryPayload(hands=hands, decisions=len(records), hits=hits, ev_lost=total_ev_lost, score=score_pct)
+    stats: SummaryStats = summarize_records(records)
+    return SummaryPayload(
+        hands=stats.hands,
+        decisions=stats.decisions,
+        hits=stats.hits,
+        ev_lost=stats.total_ev_lost,
+        score=stats.score_pct,
+    )

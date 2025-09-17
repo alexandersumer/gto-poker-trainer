@@ -59,8 +59,9 @@ def test_invalid_session_errors():
         manager.choose(sid, 999)
 
 
-def test_summary_scoring_uses_full_room_between_best_and_worst():
+def test_summary_scoring_matches_decision_scores():
     from gto_poker_trainer_cli.application.session_service import _summary_payload
+    from gto_poker_trainer_cli.core.scoring import decision_score
 
     records = [
         {
@@ -75,6 +76,7 @@ def test_summary_scoring_uses_full_room_between_best_and_worst():
             "hand_ended": False,
             "resolution_note": None,
             "hand_index": 0,
+            "pot_bb": 6.0,
         },
         {
             "street": "RIVER",
@@ -88,6 +90,7 @@ def test_summary_scoring_uses_full_room_between_best_and_worst():
             "hand_ended": True,
             "resolution_note": "Villain folds",
             "hand_index": 0,
+            "pot_bb": 12.0,
         },
     ]
 
@@ -97,7 +100,8 @@ def test_summary_scoring_uses_full_room_between_best_and_worst():
     assert summary.decisions == 2
     assert summary.hits == 0
     assert summary.ev_lost == pytest.approx(0.9)
-    assert summary.score == pytest.approx(52.63, rel=1e-3)
+    expected = sum(decision_score(r) for r in records) / len(records)
+    assert summary.score == pytest.approx(expected, rel=1e-3)
 
 
 def test_summary_counts_unique_hands():
