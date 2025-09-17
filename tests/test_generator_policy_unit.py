@@ -16,7 +16,7 @@ from gto_poker_trainer_cli.dynamic.policy import (
 
 
 def test_generate_episode_structure_and_contexts():
-    ep = generate_episode(random.Random(123), hero_seat="BB")
+    ep = generate_episode(random.Random(123))
     assert len(ep.nodes) == 4
     streets = [n.street for n in ep.nodes]
     assert streets == ["preflop", "flop", "turn", "river"]
@@ -59,16 +59,6 @@ def test_generate_episode_structure_and_contexts():
     board_cards = ep.nodes[-1].board
     all_cards = set(hero_cards) | set(villain_cards) | set(board_cards)
     assert len(all_cards) == len(hero_cards) + len(villain_cards) + len(board_cards)
-
-
-def test_generate_episode_respects_explicit_seat():
-    ep = generate_episode(random.Random(321), hero_seat="SB")
-    assert ep.hero_seat == "SB"
-    assert ep.villain_seat == "BB"
-    assert all(node.actor == "SB" for node in ep.nodes)
-    preflop_desc = ep.nodes[0].description
-    assert "BB opens" in preflop_desc
-    assert "You're SB" in preflop_desc
 
 
 def _assert_options_signature(opts: list[Option]):

@@ -30,13 +30,10 @@ def generate_episode(
     stacks_bb: float = 100.0,
     sb: float = 0.5,
     bb: float = 1.0,
-    hero_seat: str | None = None,
 ) -> Episode:
-    # Heads-up only. Hero randomly SB or BB unless overridden (used in tests).
-    if hero_seat is not None and hero_seat not in {"SB", "BB"}:
-        raise ValueError("hero_seat must be 'SB', 'BB', or None")
-    hero_pos = hero_seat or ("SB" if rng.random() < 0.5 else "BB")
-    villain_pos = "BB" if hero_pos == "SB" else "SB"
+    # Hero always defends the big blind so the action tree remains consistent.
+    hero_pos = "BB"
+    villain_pos = "SB"
     dealt: Dealt = deal_hand_and_board(rng)
     hero_cards = dealt.hero
     villain_cards = dealt.villain

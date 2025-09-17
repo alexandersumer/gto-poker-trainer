@@ -49,42 +49,6 @@ def test_session_manager_basic_flow():
     assert summary_direct == summary
 
 
-def test_seat_randomizes_once_then_alternates():
-    manager = SessionManager()
-    sid = manager.create_session(SessionConfig(hands=3, mc_trials=40, seed=2025))
-
-    first = manager.get_node(sid)
-    assert first.node is not None
-    seat1 = first.node.actor
-    assert seat1 in {"SB", "BB"}
-
-    def _advance_past_hand(current_hand: int) -> NodeResponse:
-        # Always choose index 0; preflop options start with Fold so the hand ends immediately.
-        choice = manager.choose(sid, 0)
-        next_resp = choice.next_payload
-        guard = 0
-        while not next_resp.done and next_resp.node is not None and next_resp.node.hand_no == current_hand:
-            choice = manager.choose(sid, 0)
-            next_resp = choice.next_payload
-            guard += 1
-            if guard > 8:
-                raise AssertionError("Did not advance hand as expected")
-        return next_resp
-
-    second = _advance_past_hand(current_hand=1)
-    assert not second.done
-    assert second.node is not None
-    seat2 = second.node.actor
-    assert seat2 in {"SB", "BB"}
-    assert seat2 != seat1
-
-    third = _advance_past_hand(current_hand=second.node.hand_no)
-    assert not third.done
-    assert third.node is not None
-    seat3 = third.node.actor
-    assert seat3 == seat1
-
-
 def test_invalid_session_errors():
     manager = SessionManager()
     with pytest.raises(KeyError):
