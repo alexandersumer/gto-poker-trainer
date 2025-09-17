@@ -108,13 +108,13 @@ class TrainerApp(App[None]):
     }
     .section {
         padding: 1;
-        background: #ffffff;
+        background: #f0f3fa;
         border: 1px solid #d7ddea;
         margin: 0 0 1 0;
     }
     #info {
         width: 100%;
-        background: #ffffff;
+        background: #f0f3fa;
         border: 1px solid #d7ddea;
     }
     #headline-row, #meta-row, #cards-row, #board-row { width: 100%; }
@@ -159,18 +159,18 @@ class TrainerApp(App[None]):
     .option-button { background: #f1f3fb; border: 1px solid #cdd4e6; color: #20283f; }
     .option-button:hover { background: #e7eaf5; }
     .option-button:focus { border: 1px solid #6c83f5; }
-    .option-fold { background: #f7ecf0; border: 1px solid #e5c8d0; color: #5b2940; }
-    .option-fold:hover { background: #f3e1e7; }
-    .option-call { background: #e9f2fa; border: 1px solid #c2d9ee; color: #1d3a56; }
-    .option-call:hover { background: #e0edf7; }
-    .option-check { background: #f1f3fb; border: 1px solid #cdd4e6; color: #20283f; }
-    .option-check:hover { background: #e7eaf5; }
-    .option-value { background: #eaf7f2; border: 1px solid #c6e4d7; color: #1d4337; }
-    .option-value:hover { background: #e2f1ec; }
+    .option-fold { background: #f8e4eb; border: 1px solid #e8c2ce; color: #6e2e45; }
+    .option-fold:hover { background: #f3d7e1; }
+    .option-call { background: #dfe9fc; border: 1px solid #bfd0f4; color: #1b3c68; }
+    .option-call:hover { background: #d4e1f9; }
+    .option-check { background: #f3f4fa; border: 1px solid #d4dae9; color: #25304b; }
+    .option-check:hover { background: #eaedf6; }
+    .option-value { background: #e1f6ee; border: 1px solid #bfe4d2; color: #1d4e3a; }
+    .option-value:hover { background: #d5f0e7; }
     #btn-new { background: #eef1f8; border: 1px solid #cdd4e6; color: #1f2740; }
     #btn-new:hover { background: #e2e6f2; }
-    #btn-end { background: #f7ecf0; border: 1px solid #e3c7d0; color: #5b2940; }
-    #btn-end:hover { background: #f3e1e7; }
+    #btn-end { background: #f8e4eb; border: 1px solid #e6bfc9; color: #6e2e45; }
+    #btn-end:hover { background: #f3d7e1; }
     #btn-quit { background: #f1f3fb; border: 1px solid #d9dfee; color: #3f4865; }
     #btn-quit:hover { background: #e5e8f4; }
     Label { text-align: left; width: 100%; color: #20283f; }

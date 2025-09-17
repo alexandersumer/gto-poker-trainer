@@ -95,9 +95,9 @@
       }
       input, select, textarea {
         color: var(--text-primary);
-        background: var(--surface-subtle);
+        background: #e9edf7;
         border-radius: 0.75rem;
-        border: 1px solid rgba(181, 192, 212, 0.65);
+        border: 1px solid #c7d3eb;
         padding: 0.55rem 0.9rem;
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
       }
@@ -165,19 +165,19 @@
           <h2 class="font-semibold mb-4 text-[clamp(1.25rem,2vw,1.45rem)] text-primary">Start a Session</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-secondary">
             <label class="block text-sm">Hands
-              <input id="inp-hands" type="number" min="1" value="3" class="mt-1 w-full" />
+              <input id="inp-hands" type="number" min="1" value="1" class="mt-1 w-full" />
             </label>
             <label class="block text-sm">Simulation depth
               <input id="inp-mc" type="number" min="40" step="10" value="120" class="mt-1 w-full" />
-              <span class="mt-2 block text-xs text-muted leading-relaxed">Higher trials = more precise equities, but each hand takes longer to compute.</span>
+              <span class="mt-2 block text-xs text-muted leading-relaxed">More trials give more accurate equity estimates, at the cost of extra compute time per hand.</span>
             </label>
           </div>
-          <button id="btn-start" class="mt-6 w-full rounded-xl bg-[#dee4ff] px-4 py-2.5 font-semibold text-[#1f2740] shadow-lg shadow-[#1f2740]/10 transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-[#f5f7fb]">Start</button>
+          <button id="btn-start" class="mt-6 w-full rounded-xl bg-[#d7ebf4] px-4 py-2.5 font-semibold text-[#1d3a56] shadow-lg shadow-[#1f2740]/10 transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7ec7c2] focus-visible:ring-offset-[#f5f7fb]">Start</button>
         </div>
       </section>
 
       <section id="panel-play" class="hidden space-y-4">
-        <div class="rounded-lg panel-box p-6 text-secondary">
+        <div class="rounded-lg panel-box bg-[#eff2f8] p-6 text-secondary">
           <div id="headline" class="text-sm uppercase eyebrow"></div>
           <div class="mt-4 space-y-4" id="card-summary">
             <div>
@@ -205,7 +205,7 @@
 
       <section id="panel-summary" class="hidden space-y-3">
         <div class="rounded-lg panel-box p-4" id="summary"></div>
-        <button id="btn-new" class="w-full rounded-md bg-[#e9f2fa] px-4 py-2 font-semibold text-[#1d3a56] transition-colors duration-200 hover:bg-[#e0edf7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7ec7c2] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">New Session</button>
+        <button id="btn-new" class="w-full rounded-md bg-[#e4edf7] px-4 py-2 font-semibold text-[#1b3c68] transition-colors duration-200 hover:bg-[#dbe6f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">New Session</button>
       </section>
     </main>
 
@@ -363,10 +363,10 @@
         const area = $('#options');
         if(area){
           const palette = {
-            Fold: 'bg-[#f7ecf0] border-[#e5c8d0] hover:bg-[#f3e1e7] focus-visible:ring-[#f2b4c0]/55 text-[#5b2940]',
-            Call: 'bg-[#e9f2fa] border-[#cfe0f0] hover:bg-[#e0edf7] focus-visible:ring-[#7ec7c2]/55 text-[#1d3a56]',
-            Check: 'bg-[#f1f3fb] border-[#cdd4e6] hover:bg-[#e7eaf5] focus-visible:ring-[#6c83f5]/50 text-[#20283f]',
-            'Check back': 'bg-[#f1f3fb] border-[#cdd4e6] hover:bg-[#e7eaf5] focus-visible:ring-[#6c83f5]/50 text-[#20283f]',
+            Fold: 'bg-[#f8e4eb] border-[#e8c2ce] hover:bg-[#f3d7e1] focus-visible:ring-[#f2b4c0]/55 text-[#6e2e45]',
+            Call: 'bg-[#dfe9fc] border-[#bfd0f4] hover:bg-[#d4e1f9] focus-visible:ring-[#6c83f5]/50 text-[#1b3c68]',
+            Check: 'bg-[#f3f4fa] border-[#d4dae9] hover:bg-[#eaedf6] focus-visible:ring-[#838eaa]/45 text-[#25304b]',
+            'Check back': 'bg-[#f3f4fa] border-[#d4dae9] hover:bg-[#eaedf6] focus-visible:ring-[#838eaa]/45 text-[#25304b]',
           };
           const fragment = document.createDocumentFragment();
           payload.options.forEach((option,i)=>{
@@ -377,7 +377,7 @@
             const b = document.createElement('button');
             b.type = 'button';
             const base = 'option-card w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb] border shadow-sm shadow-[#1f2740]/10';
-            const color = palette[toneKey] || 'bg-[#eaf7f2] border-[#c6e4d7] hover:bg-[#e2f1ec] focus-visible:ring-[#89d0b4]/55 text-[#1d4337]';
+            const color = palette[toneKey] || 'bg-[#e1f6ee] border-[#bfe4d2] hover:bg-[#d5f0e7] focus-visible:ring-[#7ec7c2]/50 text-[#1d4e3a]';
             b.className = `${base} ${color}`;
             b.style.animationDelay = `${i * 40}ms`;
             b.textContent = `${i + 1}. ${text}`;
