@@ -63,4 +63,40 @@ def test_format_option_label_uppercase_bb_text():
 def test_format_option_label_all_in_text():
     opt = Option("All-in for 100bb", 0.0, "")
     label = format_option_label(_node(pot=15.0), opt)
-    assert label == "Jam 100%"
+    assert label == "Jam (all-in)"
+
+
+def _preflop_node(pot: float = 3.5) -> Node:
+    return Node(
+        street="preflop",
+        description="preflop",
+        pot_bb=pot,
+        effective_bb=100.0,
+        hero_cards=[0, 1],
+        board=[],
+        actor="BB",
+        context={"open_size": 2.5},
+    )
+
+
+def test_format_option_label_preflop_call_uses_bb():
+    opt = Option("Call", 0.0, "", meta={"action": "call", "call_cost": 1.5})
+    label = format_option_label(_preflop_node(), opt)
+    assert label == "Call 1.50bb"
+
+
+def test_format_option_label_preflop_3bet_uses_bb():
+    opt = Option(
+        "3-bet",
+        0.0,
+        "",
+        meta={"action": "3bet", "raise_to": 12.0},
+    )
+    label = format_option_label(_preflop_node(), opt)
+    assert label == "3-bet to 12.00bb"
+
+
+def test_format_option_label_preflop_jam_literal():
+    opt = Option("Jam option", 0.0, "", meta={"action": "jam"})
+    label = format_option_label(_preflop_node(), opt)
+    assert label == "Jam (all-in)"

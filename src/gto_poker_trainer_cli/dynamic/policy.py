@@ -228,6 +228,41 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             )
         )
 
+    # Jam (all-in) option
+    jam_to = node.effective_bb
+    if jam_to > open_size:
+        risk = jam_to - 1.0
+        villain_call_cost = jam_to - open_size
+        pot_before_jam = pot_after_open
+        final_pot = pot_before_jam + risk + villain_call_cost
+        be_threshold = villain_call_cost / final_pot if final_pot > 0 else 1.0
+        fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        ev_called = avg_eq_when_called * final_pot - risk if continue_ratio else -risk
+        ev = fe * pot_before_jam + (1 - fe) * ev_called
+        why_jam = (
+            f"Villain folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
+            f"When called (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(avg_eq_when_called, 1)} equity "
+            f"→ EV {ev_called:.2f} bb."
+        )
+        options.append(
+            Option(
+                "Jam (all-in)",
+                ev,
+                why_jam,
+                ends_hand=True,
+                meta={
+                    "street": "preflop",
+                    "action": "jam",
+                    "raise_to": jam_to,
+                    "risk": risk,
+                    "villain_threshold": be_threshold,
+                    "combo_trials": combo_trials,
+                    "pot_before": pot_before_jam,
+                    "villain_call_cost": villain_call_cost,
+                },
+            )
+        )
+
     return options
 
 
@@ -300,11 +335,14 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
                     f"Full stack shove: villain folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
                     f"When called you have {_fmt_pct(eq_call, 1)} → EV {ev_called:.2f} bb."
                 ),
+                ends_hand=True,
                 meta={
                     "street": "flop",
                     "action": "jam",
                     "risk": risk,
                     "combo_trials": combo_trials,
+                    "villain_threshold": be_threshold,
+                    "pot_before": pot,
                 },
             )
         )
@@ -467,11 +505,14 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
                     f"Jam: villain folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
                     f"Calls (~{_fmt_pct(continue_ratio)}) give you {_fmt_pct(eq_call, 1)} → EV {ev_called:.2f} bb."
                 ),
+                ends_hand=True,
                 meta={
                     "street": "river",
                     "action": "jam",
                     "risk": risk,
                     "combo_trials": combo_trials,
+                    "villain_threshold": be_threshold,
+                    "pot_before": pot,
                 },
             )
         )
@@ -556,6 +597,36 @@ def _resolve_preflop(node: Node, option: Option, hand_state: dict[str, Any]) -> 
         _set_street_pot(hand_state, "flop", final_pot)
         return OptionResolution(note=f"Villain calls the 3-bet. Pot {final_pot:.2f}bb.")
 
+    if action in {"jam", "allin", "all-in"}:
+        jam_to = float(option.meta.get("raise_to", node.effective_bb))
+        risk = float(option.meta.get("risk", max(0.0, jam_to - 1.0)))
+        combo_trials = int(option.meta.get("combo_trials", _combo_trials(80)))
+        threshold = float(option.meta.get("villain_threshold", 0.5))
+        pot_before_jam = float(option.meta.get("pot_before", pot))
+        hand_state["hand_over"] = True
+        if villain_cards is None:
+            scoop = pot_before_jam + risk
+            return OptionResolution(
+                hand_ended=True,
+                note=f"You jam to {jam_to:.2f}bb. Villain action hidden. Pot {scoop:.2f}bb if they fold.",
+            )
+        hero_eq = hero_equity_vs_combo(hero_cards, [], villain_cards, combo_trials)
+        villain_eq = 1.0 - hero_eq
+        villain_text = format_cards_spaced(list(villain_cards))
+        if villain_eq < threshold:
+            scoop = pot_before_jam + risk
+            return OptionResolution(
+                hand_ended=True,
+                note=f"Villain folds to your jam. You win {scoop:.2f}bb.",
+                reveal_villain=True,
+            )
+        equity_note = _fmt_pct(hero_eq, 1)
+        return OptionResolution(
+            hand_ended=True,
+            note=f"Villain calls jam with {villain_text}. Your equity {equity_note}.",
+            reveal_villain=True,
+        )
+
     return OptionResolution(hand_ended=getattr(option, "ends_hand", False))
 
 
@@ -601,6 +672,29 @@ def _resolve_flop(node: Node, option: Option, hand_state: dict[str, Any]) -> Opt
         _set_street_pot(hand_state, "turn", final_pot)
         _rebuild_turn_node(hand_state, final_pot)
         return OptionResolution(note=f"Villain calls. Pot {final_pot:.2f}bb going to turn.")
+
+    if action in {"jam", "allin", "all-in"}:
+        risk = float(option.meta.get("risk", node.effective_bb))
+        threshold = float(option.meta.get("villain_threshold", 0.5))
+        combo_trials = int(option.meta.get("combo_trials", _combo_trials(60)))
+        hand_state["hand_over"] = True
+        if villain_cards is None:
+            return OptionResolution(hand_ended=True, note=f"You jam for {risk:.2f}bb. Villain action hidden.")
+        hero_eq = hero_equity_vs_combo(hero_cards, board, villain_cards, combo_trials)
+        villain_eq = 1.0 - hero_eq
+        villain_text = format_cards_spaced(list(villain_cards))
+        if villain_eq < threshold:
+            return OptionResolution(
+                hand_ended=True,
+                note=f"Villain folds to your jam. You win {pot:.2f}bb.",
+                reveal_villain=True,
+            )
+        equity_note = _fmt_pct(hero_eq, 1)
+        return OptionResolution(
+            hand_ended=True,
+            note=f"Villain calls jam with {villain_text}. Your equity {equity_note}.",
+            reveal_villain=True,
+        )
 
     return OptionResolution(hand_ended=getattr(option, "ends_hand", False))
 
@@ -733,6 +827,42 @@ def _resolve_river(node: Node, option: Option, hand_state: dict[str, Any]) -> Op
         return OptionResolution(
             hand_ended=True,
             note=chop_note,
+            reveal_villain=True,
+        )
+
+    if action in {"jam", "allin", "all-in"}:
+        risk = float(option.meta.get("risk", node.effective_bb))
+        threshold = float(option.meta.get("villain_threshold", 0.5))
+        combo_trials = int(option.meta.get("combo_trials", _combo_trials(50)))
+        hand_state["hand_over"] = True
+        if villain_cards is None:
+            return OptionResolution(hand_ended=True, note=f"You jam river for {risk:.2f}bb. Villain action hidden.")
+        hero_eq = hero_equity_vs_combo(hero_cards, board, villain_cards, combo_trials)
+        villain_eq = 1.0 - hero_eq
+        villain_text = format_cards_spaced(list(villain_cards))
+        if villain_eq < threshold:
+            return OptionResolution(
+                hand_ended=True,
+                note=f"Villain folds river jam. You win {pot:.2f}bb.",
+                reveal_villain=True,
+            )
+        final_pot = pot + 2 * risk
+        outcome = _showdown_outcome(hero_cards, board, villain_cards)
+        if outcome > 0.5:
+            return OptionResolution(
+                hand_ended=True,
+                note=f"Villain calls jam with {villain_text}. You win {final_pot:.2f}bb.",
+                reveal_villain=True,
+            )
+        if outcome < 0.5:
+            return OptionResolution(
+                hand_ended=True,
+                note=f"Villain calls jam with {villain_text}. You lose.",
+                reveal_villain=True,
+            )
+        return OptionResolution(
+            hand_ended=True,
+            note=f"Villain calls jam with {villain_text}. Pot split.",
             reveal_villain=True,
         )
 

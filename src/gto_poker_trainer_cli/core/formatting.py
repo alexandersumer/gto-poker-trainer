@@ -26,6 +26,8 @@ def format_option_label(node: Node, option: Option) -> str:
     action = str(meta.get("action") or "").lower()
 
     key = option.key.strip()
+    if node.street == "preflop":
+        return _format_preflop_label(node, key, action, meta)
     if not action:
         return _fallback_percent_label(key, node)
 
@@ -49,7 +51,7 @@ def format_option_label(node: Node, option: Option) -> str:
         return f"3-bet {_fmt_pct(pct)}"
 
     if action in {"jam", "allin", "all-in"}:
-        return "Jam 100%"
+        return "Jam (all-in)"
 
     if action == "call":
         amount = float(meta.get("call_cost", meta.get("villain_bet", 0.0)))
@@ -71,9 +73,13 @@ _BB_PATTERN = re.compile(r"([0-9]+(?:\.[0-9]+)?)\s*bb", re.IGNORECASE)
 
 
 def _fallback_percent_label(key: str, node: Node) -> str:
+    if node.street == "preflop":
+        if "all-in" in key.lower() or "jam" in key.lower():
+            return "Jam (all-in)"
+        return key
     key_lower = key.lower()
     if "all-in" in key_lower or "jam" in key_lower:
-        return "Jam 100%"
+        return "Jam (all-in)"
     if "%" in key_lower or "all-in" in key_lower:
         return key
 
@@ -93,4 +99,28 @@ def _fallback_percent_label(key: str, node: Node) -> str:
         return f"Bet {_fmt_pct(pct)}"
     if "call" in key_lower:
         return f"Call {_fmt_pct(pct)}"
+    return key
+
+
+def _format_preflop_label(node: Node, key: str, action: str, meta: dict[str, Any]) -> str:
+    _ = node
+    action = action or ""
+    action = action.lower()
+    if action in {"jam", "allin", "all-in"}:
+        return "Jam (all-in)"
+    if action == "fold" or key.lower().startswith("fold"):
+        return "Fold"
+    if action == "check":
+        return "Check"
+    if action == "call":
+        amount = float(meta.get("call_cost", 0.0))
+        return f"Call {amount:.2f}bb" if amount > 0 else "Call"
+    if action == "3bet":
+        raise_to = float(meta.get("raise_to", 0.0))
+        return f"3-bet to {raise_to:.2f}bb" if raise_to > 0 else key
+    if action == "raise":
+        raise_to = float(meta.get("raise_to", 0.0))
+        return f"Raise to {raise_to:.2f}bb" if raise_to > 0 else key
+    if "all-in" in key.lower() or "jam" in key.lower():
+        return "Jam (all-in)"
     return key

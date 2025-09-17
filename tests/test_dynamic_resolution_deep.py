@@ -110,6 +110,31 @@ def test_preflop_three_bet_strong_villain_continues():
     assert "calls" in (res.note or "").lower()
 
 
+def test_preflop_jam_resolves_and_folds_weak_villain():
+    hero = _str_cards(["As", "Ah"])
+    villain = _villain_tuple("7c", "2d")
+    board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
+    state = _make_hand_state(hero, villain, board[:0], pot=3.5, street="preflop")
+    node = Node(
+        street="preflop",
+        description="test",
+        pot_bb=3.5,
+        effective_bb=100.0,
+        hero_cards=hero,
+        board=[],
+        actor="BB",
+        context={"open_size": 2.5, "hand_state": state},
+    )
+
+    opts = preflop_options(node, random.Random(7), mc_trials=200)
+    jam_opt = next(o for o in opts if "Jam" in o.key)
+    res = resolve_for(node, jam_opt, random.Random(7))
+
+    assert res.hand_ended
+    assert "fold" in (res.note or "").lower()
+    assert state.get("hand_over", False)
+
+
 def test_turn_raise_can_force_fold():
     hero = _str_cards(["As", "Kd"])
     villain = _villain_tuple("7c", "2d")

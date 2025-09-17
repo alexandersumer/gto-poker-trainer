@@ -85,6 +85,7 @@ def test_policy_preflop_flop_turn_river_option_shapes():
     keys = [o.key for o in pf]
     assert keys[:2] == ["Fold", "Call"]
     assert any(k.startswith("3-bet to ") for k in keys[2:])
+    assert any("Jam" in k for k in keys)
     _assert_options_signature(pf)
 
     n_flop = Node(
