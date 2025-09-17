@@ -76,17 +76,19 @@ def villain_sb_open_range(open_size: float, blocked_cards: Iterable[int] | None 
     """Simple SB open-raise model by sizing.
 
     Smaller opens incentivise wider ranges; larger opens tighten up. The
-    percentages below are chosen to roughly mirror modern HU SB strategies.
+    percentages below align with contemporary HU solver guidance that opens
+    ≈85–90% of hands when min-raising and ≈70–80% when using larger 2.5–3.0bb
+    sizes at 100bb effective.
     """
 
     if open_size <= 2.0:
-        percent = 0.52
+        percent = 0.88
     elif open_size <= 2.3:
-        percent = 0.48
+        percent = 0.85
     elif open_size <= 2.7:
-        percent = 0.45
+        percent = 0.78
     else:
-        percent = 0.40
+        percent = 0.72
     return top_percent(percent, blocked_cards)
 
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,146 +7,211 @@
     <title>GTO Poker Trainer</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <style>
+
       :root {
         color-scheme: light;
-        --bg-primary: #f9fafb;
-        --bg-secondary: rgba(255, 255, 255, 0.92);
-        --bg-panel: rgba(255, 255, 255, 0.92);
-        --surface-subtle: #f3f4f6;
-        --border-panel: #e5e7eb;
-        --card-highlight: #ffffff;
-        --text-primary: #111827;
-        --text-secondary: #4b5563;
-        --text-muted: #6b7280;
         --min-tap: 44px;
         --safe-top: env(safe-area-inset-top, 0px);
         --safe-bottom: env(safe-area-inset-bottom, 0px);
 
+        /* Light theme tokens */
+        --theme-light-bg-primary: #f9fafb;
+        --theme-light-bg-secondary: rgba(255, 255, 255, 0.92);
+        --theme-light-bg-panel: rgba(255, 255, 255, 0.92);
+        --theme-light-surface-subtle: #f3f4f6;
+        --theme-light-border-panel: #e5e7eb;
+        --theme-light-card-highlight: #ffffff;
+        --theme-light-text-primary: #111827;
+        --theme-light-text-secondary: #4b5563;
+        --theme-light-text-muted: #6b7280;
+
         /* Action palette */
-        --btn-primary-bg: #eef2ff;
-        --btn-primary-text: #4338ca;
-        --btn-primary-hover: #e0e7ff;
-        --btn-primary-active: #c7d2fe;
-
-        --btn-info-bg: #e9f2ff;
-        --btn-info-text: #0b4f9c;
-        --btn-info-hover: #dde9ff;
-
-        --btn-danger-bg: #fdecec;
-        --btn-danger-text: #b42318;
-        --btn-danger-hover: #fad7d7;
-
-        --focus-ring: #a5b4fc;
+        --theme-light-btn-primary-bg: #eef2ff;
+        --theme-light-btn-primary-text: #4338ca;
+        --theme-light-btn-primary-hover: #e0e7ff;
+        --theme-light-btn-primary-active: #c7d2fe;
+        --theme-light-btn-info-bg: #e9f2ff;
+        --theme-light-btn-info-text: #0b4f9c;
+        --theme-light-btn-info-hover: #dde9ff;
+        --theme-light-btn-info-border: #c6dbff;
+        --theme-light-btn-danger-bg: #fdecec;
+        --theme-light-btn-danger-text: #b42318;
+        --theme-light-btn-danger-hover: #fad7d7;
+        --theme-light-btn-danger-border: #f8c4c4;
+        --theme-light-focus-ring: #a5b4fc;
 
         /* Additional semantic tokens */
-        --color-panel-soft: #eff2f8;
-        --color-chip-bg: #d7ebf4;
-        --color-chip-hover: #cee4ee;
-        --color-chip-text: #1d3a56;
-        --color-muted-bg: #f3f4fa;
-        --color-muted-hover: #eaedf6;
-        --color-muted-border: #d7ddea;
-        --color-muted-text: #47516d;
-        --color-surface-subtle-hover: #e7eaf1;
-        --color-secondary-bg: #e8ecf6;
-        --color-secondary-hover: #dfe4f2;
-        --color-secondary-border: #ccd5e6;
-        --color-secondary-text: #25304b;
-        --color-settings-hover: #f8fafc;
-        --color-divider-soft: rgba(215, 221, 234, 0.7);
-        --color-outline: #e5e7eb;
-        --color-progress: #6c83f5;
-        --color-input-bg: #e9edf7;
-        --color-input-border: #c7d3eb;
-        --color-focus-secondary: #7ec7c2;
-        --color-focus-primary: #6c83f5;
-        --color-focus-offset: #f5f7fb;
-        --color-shadow-elevated: rgba(31, 39, 64, 0.1);
-        --color-shadow-soft: rgba(15, 23, 42, 0.08);
-        --color-brand-mark-bg: #111827;
-        --color-brand-mark-fg: #ffffff;
-        --color-pill-border: rgba(15, 23, 42, 0.1);
-        --color-pill-bg: #ffffff;
-        --color-pill-text: #475569;
-        --color-pill-dot: #10b981;
-        --color-pill-dot-empty: #cbd5f5;
-        --color-subheader-text: #64748b;
-        --color-subheader-separator: rgba(148, 163, 184, 0.6);
+        --theme-light-color-panel-soft: #eff2f8;
+        --theme-light-color-chip-bg: #d7ebf4;
+        --theme-light-color-chip-hover: #cee4ee;
+        --theme-light-color-chip-text: #1d3a56;
+        --theme-light-color-muted-bg: #f3f4fa;
+        --theme-light-color-muted-hover: #eaedf6;
+        --theme-light-color-muted-border: #d7ddea;
+        --theme-light-color-muted-text: #47516d;
+        --theme-light-color-surface-subtle-hover: #e7eaf1;
+        --theme-light-color-secondary-bg: #e8ecf6;
+        --theme-light-color-secondary-hover: #dfe4f2;
+        --theme-light-color-secondary-border: #ccd5e6;
+        --theme-light-color-secondary-text: #25304b;
+        --theme-light-color-settings-hover: #f8fafc;
+        --theme-light-color-divider-soft: rgba(215, 221, 234, 0.7);
+        --theme-light-color-outline: #e5e7eb;
+        --theme-light-color-progress: #6c83f5;
+        --theme-light-color-input-bg: #e9edf7;
+        --theme-light-color-input-border: #c7d3eb;
+        --theme-light-color-focus-secondary: #7ec7c2;
+        --theme-light-color-focus-primary: #6c83f5;
+        --theme-light-color-focus-offset: #f5f7fb;
+        --theme-light-color-shadow-elevated: rgba(31, 39, 64, 0.1);
+        --theme-light-color-shadow-soft: rgba(15, 23, 42, 0.08);
+        --theme-light-color-brand-mark-bg: #111827;
+        --theme-light-color-brand-mark-fg: #ffffff;
+        --theme-light-color-pill-border: rgba(15, 23, 42, 0.1);
+        --theme-light-color-pill-bg: #ffffff;
+        --theme-light-color-pill-text: #475569;
+        --theme-light-color-pill-dot: #10b981;
+        --theme-light-color-pill-dot-empty: #cbd5f5;
+        --theme-light-color-subheader-text: #64748b;
+        --theme-light-color-subheader-separator: rgba(148, 163, 184, 0.6);
+        --theme-light-color-ghost-hover: #f4f6f8;
 
         /* Card suits */
-        --suit-spade: #111827;
-        --suit-heart: #e11d48;
-        --suit-diamond: #2563eb;
-        --suit-club: #16a34a;
+        --theme-light-suit-spade: #111827;
+        --theme-light-suit-heart: #e11d48;
+        --theme-light-suit-diamond: #2563eb;
+        --theme-light-suit-club: #16a34a;
       }
 
-      [data-theme="light"] {
-        /* Light theme mirrors root tokens */
+      :root:not([data-theme]),
+      :root[data-theme="light"] {
+        color-scheme: light;
+        --bg-primary: var(--theme-light-bg-primary);
+        --bg-secondary: var(--theme-light-bg-secondary);
+        --bg-panel: var(--theme-light-bg-panel);
+        --surface-subtle: var(--theme-light-surface-subtle);
+        --border-panel: var(--theme-light-border-panel);
+        --card-highlight: var(--theme-light-card-highlight);
+        --text-primary: var(--theme-light-text-primary);
+        --text-secondary: var(--theme-light-text-secondary);
+        --text-muted: var(--theme-light-text-muted);
+        --btn-primary-bg: var(--theme-light-btn-primary-bg);
+        --btn-primary-text: var(--theme-light-btn-primary-text);
+        --btn-primary-hover: var(--theme-light-btn-primary-hover);
+        --btn-primary-active: var(--theme-light-btn-primary-active);
+        --btn-info-bg: var(--theme-light-btn-info-bg);
+        --btn-info-text: var(--theme-light-btn-info-text);
+        --btn-info-hover: var(--theme-light-btn-info-hover);
+        --btn-info-border: var(--theme-light-btn-info-border);
+        --btn-danger-bg: var(--theme-light-btn-danger-bg);
+        --btn-danger-text: var(--theme-light-btn-danger-text);
+        --btn-danger-hover: var(--theme-light-btn-danger-hover);
+        --btn-danger-border: var(--theme-light-btn-danger-border);
+        --focus-ring: var(--theme-light-focus-ring);
+        --color-panel-soft: var(--theme-light-color-panel-soft);
+        --color-chip-bg: var(--theme-light-color-chip-bg);
+        --color-chip-hover: var(--theme-light-color-chip-hover);
+        --color-chip-text: var(--theme-light-color-chip-text);
+        --color-muted-bg: var(--theme-light-color-muted-bg);
+        --color-muted-hover: var(--theme-light-color-muted-hover);
+        --color-muted-border: var(--theme-light-color-muted-border);
+        --color-muted-text: var(--theme-light-color-muted-text);
+        --color-surface-subtle-hover: var(--theme-light-color-surface-subtle-hover);
+        --color-secondary-bg: var(--theme-light-color-secondary-bg);
+        --color-secondary-hover: var(--theme-light-color-secondary-hover);
+        --color-secondary-border: var(--theme-light-color-secondary-border);
+        --color-secondary-text: var(--theme-light-color-secondary-text);
+        --color-settings-hover: var(--theme-light-color-settings-hover);
+        --color-divider-soft: var(--theme-light-color-divider-soft);
+        --color-outline: var(--theme-light-color-outline);
+        --color-progress: var(--theme-light-color-progress);
+        --color-input-bg: var(--theme-light-color-input-bg);
+        --color-input-border: var(--theme-light-color-input-border);
+        --color-focus-secondary: var(--theme-light-color-focus-secondary);
+        --color-focus-primary: var(--theme-light-color-focus-primary);
+        --color-focus-offset: var(--theme-light-color-focus-offset);
+        --color-shadow-elevated: var(--theme-light-color-shadow-elevated);
+        --color-shadow-soft: var(--theme-light-color-shadow-soft);
+        --color-brand-mark-bg: var(--theme-light-color-brand-mark-bg);
+        --color-brand-mark-fg: var(--theme-light-color-brand-mark-fg);
+        --color-pill-border: var(--theme-light-color-pill-border);
+        --color-pill-bg: var(--theme-light-color-pill-bg);
+        --color-pill-text: var(--theme-light-color-pill-text);
+        --color-pill-dot: var(--theme-light-color-pill-dot);
+        --color-pill-dot-empty: var(--theme-light-color-pill-dot-empty);
+        --color-subheader-text: var(--theme-light-color-subheader-text);
+        --color-subheader-separator: var(--theme-light-color-subheader-separator);
+        --color-ghost-hover: var(--theme-light-color-ghost-hover);
+        --suit-spade: var(--theme-light-suit-spade);
+        --suit-heart: var(--theme-light-suit-heart);
+        --suit-diamond: var(--theme-light-suit-diamond);
+        --suit-club: var(--theme-light-suit-club);
       }
 
-      [data-theme="dark"] {
-        /* Placeholder: use light palette until dark mode values are defined */
-        --bg-primary: #f9fafb;
-        --bg-secondary: rgba(255, 255, 255, 0.92);
-        --bg-panel: rgba(255, 255, 255, 0.92);
-        --surface-subtle: #f3f4f6;
-        --border-panel: #e5e7eb;
-        --card-highlight: #ffffff;
-        --text-primary: #111827;
-        --text-secondary: #4b5563;
-        --text-muted: #6b7280;
-        --btn-primary-bg: #eef2ff;
-        --btn-primary-text: #4338ca;
-        --btn-primary-hover: #e0e7ff;
-        --btn-primary-active: #c7d2fe;
-        --btn-info-bg: #e9f2ff;
-        --btn-info-text: #0b4f9c;
-        --btn-info-hover: #dde9ff;
-        --btn-info-border: #c6dbff;
-        --btn-danger-bg: #fdecec;
-        --btn-danger-text: #b42318;
-        --btn-danger-hover: #fad7d7;
-        --btn-danger-border: #f8c4c4;
-        --focus-ring: #a5b4fc;
-        --color-panel-soft: #eff2f8;
-        --color-chip-bg: #d7ebf4;
-        --color-chip-hover: #cee4ee;
-        --color-chip-text: #1d3a56;
-        --color-muted-bg: #f3f4fa;
-        --color-muted-hover: #eaedf6;
-        --color-muted-border: #d7ddea;
-        --color-muted-text: #47516d;
-        --color-surface-subtle-hover: #e7eaf1;
-        --color-secondary-bg: #e8ecf6;
-        --color-secondary-hover: #dfe4f2;
-        --color-secondary-border: #ccd5e6;
-        --color-secondary-text: #25304b;
-        --color-settings-hover: #f8fafc;
-        --color-divider-soft: rgba(215, 221, 234, 0.7);
-        --color-outline: #e5e7eb;
-        --color-progress: #6c83f5;
-        --color-input-bg: #e9edf7;
-        --color-input-border: #c7d3eb;
-        --color-focus-secondary: #7ec7c2;
-        --color-focus-primary: #6c83f5;
-        --color-focus-offset: #f5f7fb;
-        --color-shadow-elevated: rgba(31, 39, 64, 0.1);
-        --color-shadow-soft: rgba(15, 23, 42, 0.08);
-        --color-brand-mark-bg: #111827;
-        --color-brand-mark-fg: #ffffff;
-        --color-pill-border: rgba(15, 23, 42, 0.1);
-        --color-pill-bg: #ffffff;
-        --color-pill-text: #475569;
-        --color-pill-dot: #10b981;
-        --color-pill-dot-empty: #cbd5f5;
-        --color-subheader-text: #64748b;
-        --color-subheader-separator: rgba(148, 163, 184, 0.6);
-        --color-ghost-hover: #f4f6f8;
-        --suit-spade: #111827;
-        --suit-heart: #e11d48;
-        --suit-diamond: #2563eb;
-        --suit-club: #16a34a;
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --bg-primary: var(--theme-dark-bg-primary, var(--theme-light-bg-primary));
+        --bg-secondary: var(--theme-dark-bg-secondary, var(--theme-light-bg-secondary));
+        --bg-panel: var(--theme-dark-bg-panel, var(--theme-light-bg-panel));
+        --surface-subtle: var(--theme-dark-surface-subtle, var(--theme-light-surface-subtle));
+        --border-panel: var(--theme-dark-border-panel, var(--theme-light-border-panel));
+        --card-highlight: var(--theme-dark-card-highlight, var(--theme-light-card-highlight));
+        --text-primary: var(--theme-dark-text-primary, var(--theme-light-text-primary));
+        --text-secondary: var(--theme-dark-text-secondary, var(--theme-light-text-secondary));
+        --text-muted: var(--theme-dark-text-muted, var(--theme-light-text-muted));
+        --btn-primary-bg: var(--theme-dark-btn-primary-bg, var(--theme-light-btn-primary-bg));
+        --btn-primary-text: var(--theme-dark-btn-primary-text, var(--theme-light-btn-primary-text));
+        --btn-primary-hover: var(--theme-dark-btn-primary-hover, var(--theme-light-btn-primary-hover));
+        --btn-primary-active: var(--theme-dark-btn-primary-active, var(--theme-light-btn-primary-active));
+        --btn-info-bg: var(--theme-dark-btn-info-bg, var(--theme-light-btn-info-bg));
+        --btn-info-text: var(--theme-dark-btn-info-text, var(--theme-light-btn-info-text));
+        --btn-info-hover: var(--theme-dark-btn-info-hover, var(--theme-light-btn-info-hover));
+        --btn-info-border: var(--theme-dark-btn-info-border, var(--theme-light-btn-info-border));
+        --btn-danger-bg: var(--theme-dark-btn-danger-bg, var(--theme-light-btn-danger-bg));
+        --btn-danger-text: var(--theme-dark-btn-danger-text, var(--theme-light-btn-danger-text));
+        --btn-danger-hover: var(--theme-dark-btn-danger-hover, var(--theme-light-btn-danger-hover));
+        --btn-danger-border: var(--theme-dark-btn-danger-border, var(--theme-light-btn-danger-border));
+        --focus-ring: var(--theme-dark-focus-ring, var(--theme-light-focus-ring));
+        --color-panel-soft: var(--theme-dark-color-panel-soft, var(--theme-light-color-panel-soft));
+        --color-chip-bg: var(--theme-dark-color-chip-bg, var(--theme-light-color-chip-bg));
+        --color-chip-hover: var(--theme-dark-color-chip-hover, var(--theme-light-color-chip-hover));
+        --color-chip-text: var(--theme-dark-color-chip-text, var(--theme-light-color-chip-text));
+        --color-muted-bg: var(--theme-dark-color-muted-bg, var(--theme-light-color-muted-bg));
+        --color-muted-hover: var(--theme-dark-color-muted-hover, var(--theme-light-color-muted-hover));
+        --color-muted-border: var(--theme-dark-color-muted-border, var(--theme-light-color-muted-border));
+        --color-muted-text: var(--theme-dark-color-muted-text, var(--theme-light-color-muted-text));
+        --color-surface-subtle-hover: var(--theme-dark-color-surface-subtle-hover, var(--theme-light-color-surface-subtle-hover));
+        --color-secondary-bg: var(--theme-dark-color-secondary-bg, var(--theme-light-color-secondary-bg));
+        --color-secondary-hover: var(--theme-dark-color-secondary-hover, var(--theme-light-color-secondary-hover));
+        --color-secondary-border: var(--theme-dark-color-secondary-border, var(--theme-light-color-secondary-border));
+        --color-secondary-text: var(--theme-dark-color-secondary-text, var(--theme-light-color-secondary-text));
+        --color-settings-hover: var(--theme-dark-color-settings-hover, var(--theme-light-color-settings-hover));
+        --color-divider-soft: var(--theme-dark-color-divider-soft, var(--theme-light-color-divider-soft));
+        --color-outline: var(--theme-dark-color-outline, var(--theme-light-color-outline));
+        --color-progress: var(--theme-dark-color-progress, var(--theme-light-color-progress));
+        --color-input-bg: var(--theme-dark-color-input-bg, var(--theme-light-color-input-bg));
+        --color-input-border: var(--theme-dark-color-input-border, var(--theme-light-color-input-border));
+        --color-focus-secondary: var(--theme-dark-color-focus-secondary, var(--theme-light-color-focus-secondary));
+        --color-focus-primary: var(--theme-dark-color-focus-primary, var(--theme-light-color-focus-primary));
+        --color-focus-offset: var(--theme-dark-color-focus-offset, var(--theme-light-color-focus-offset));
+        --color-shadow-elevated: var(--theme-dark-color-shadow-elevated, var(--theme-light-color-shadow-elevated));
+        --color-shadow-soft: var(--theme-dark-color-shadow-soft, var(--theme-light-color-shadow-soft));
+        --color-brand-mark-bg: var(--theme-dark-color-brand-mark-bg, var(--theme-light-color-brand-mark-bg));
+        --color-brand-mark-fg: var(--theme-dark-color-brand-mark-fg, var(--theme-light-color-brand-mark-fg));
+        --color-pill-border: var(--theme-dark-color-pill-border, var(--theme-light-color-pill-border));
+        --color-pill-bg: var(--theme-dark-color-pill-bg, var(--theme-light-color-pill-bg));
+        --color-pill-text: var(--theme-dark-color-pill-text, var(--theme-light-color-pill-text));
+        --color-pill-dot: var(--theme-dark-color-pill-dot, var(--theme-light-color-pill-dot));
+        --color-pill-dot-empty: var(--theme-dark-color-pill-dot-empty, var(--theme-light-color-pill-dot-empty));
+        --color-subheader-text: var(--theme-dark-color-subheader-text, var(--theme-light-color-subheader-text));
+        --color-subheader-separator: var(--theme-dark-color-subheader-separator, var(--theme-light-color-subheader-separator));
+        --color-ghost-hover: var(--theme-dark-color-ghost-hover, var(--theme-light-color-ghost-hover));
+        --suit-spade: var(--theme-dark-suit-spade, var(--theme-light-suit-spade));
+        --suit-heart: var(--theme-dark-suit-heart, var(--theme-light-suit-heart));
+        --suit-diamond: var(--theme-dark-suit-diamond, var(--theme-light-suit-diamond));
+        --suit-club: var(--theme-dark-suit-club, var(--theme-light-suit-club));
       }
+
       body {
         min-height: 100vh;
         margin: 0;
@@ -404,9 +469,9 @@
       .app-header .brand-mark {
         display: inline-grid;
         place-items: center;
-        width: 2.25rem;
-        height: 2.25rem;
-        border-radius: 1rem;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 1.1rem;
         background: #111827;
         color: #ffffff;
         font-size: 1rem;
@@ -458,34 +523,19 @@
         font-weight: 600;
         color: var(--text-primary);
       }
-      .settings-button {
-        display: inline-grid;
-        place-items: center;
-        width: 2.25rem;
-        height: 2.25rem;
-        border-radius: 0.9rem;
-        border: 1px solid var(--color-pill-border);
-        background: var(--color-pill-bg);
-        font-size: 1.1rem;
-        transition: background 0.18s ease, transform 0.18s ease;
-      }
-      .settings-button:hover {
-        background: var(--color-settings-hover);
-      }
-      .settings-button:active {
-        transform: scale(0.97);
-      }
       .subheader {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        height: 38px;
         font-size: 13px;
         color: var(--color-subheader-text);
-        gap: 0.5rem;
-        flex-wrap: wrap;
+        gap: 0.75rem;
+        flex-wrap: nowrap;
+        min-height: 38px;
       }
       .subheader .stateline {
+        flex: 1 1 auto;
+        min-width: 0;
         font-weight: 500;
         color: var(--text-secondary);
         overflow: hidden;
@@ -498,10 +548,9 @@
       .subheader .stats {
         display: flex;
         align-items: center;
+        flex: 0 0 auto;
         gap: 0.75rem;
         white-space: nowrap;
-        margin-left: auto;
-        flex-wrap: wrap;
       }
       .subheader .stats span strong {
         color: var(--text-primary);
@@ -571,7 +620,7 @@
         height: 52px;
       }
       .density-compact .subheader {
-        height: 34px;
+        min-height: 34px;
         font-size: 12.5px;
       }
       .option-card {
@@ -607,7 +656,7 @@
       }
     </style>
   </head>
-  <body data-theme="light">
+  <body>
     <div id="progress-bar" aria-hidden="true"></div>
     <header class="app-header">
       <div class="max-w-2xl mx-auto px-4">
@@ -622,7 +671,6 @@
               <span class="pill-label">Answered</span>
               <strong id="stats-count">0</strong>
             </span>
-            <button type="button" class="settings-button" aria-label="Settings">⚙︎</button>
           </div>
         </div>
         <div class="subheader">
@@ -696,6 +744,88 @@
     </main>
 
     <script>
+
+      const ThemeController = (() => {
+        const STORAGE_KEY = 'gto-poker-trainer.theme';
+        const DEFAULT = 'light';
+        const SUPPORTED = new Set(['light', 'dark']);
+        const listeners = new Set();
+        const root = document.documentElement;
+        const themeMeta = document.querySelector('meta[name="theme-color"]');
+
+        const readStored = () => {
+          try {
+            return localStorage.getItem(STORAGE_KEY);
+          } catch (error) {
+            return null;
+          }
+        };
+
+        const writeStored = (value) => {
+          try {
+            localStorage.setItem(STORAGE_KEY, value);
+          } catch (error) {
+            /* ignore storage errors */
+          }
+        };
+
+        const notify = (value) => {
+          for (const listener of listeners) {
+            try {
+              listener(value);
+            } catch (error) {
+              console.error('Theme listener failed', error);
+            }
+          }
+        };
+
+        const apply = (value, { persist = false } = {}) => {
+          const next = SUPPORTED.has(value) ? value : DEFAULT;
+          if (!root.dataset.theme || root.dataset.theme !== next) {
+            root.dataset.theme = next;
+          }
+          if (themeMeta) {
+            const bg = getComputedStyle(root).getPropertyValue('--bg-primary').trim();
+            if (bg) {
+              themeMeta.setAttribute('content', bg);
+            }
+          }
+          if (persist) {
+            writeStored(next);
+          }
+          notify(next);
+          return next;
+        };
+
+        const set = (value, options) => apply(value, { persist: true, ...(options || {}) });
+        const preview = (value, options) => apply(value, { persist: false, ...(options || {}) });
+        const get = () => root.dataset.theme || DEFAULT;
+        const onChange = (fn) => {
+          if (typeof fn !== 'function') {
+            return () => undefined;
+          }
+          listeners.add(fn);
+          return () => listeners.delete(fn);
+        };
+
+        const init = () => {
+          const preset = root.dataset.theme;
+          const stored = readStored();
+          const initial = SUPPORTED.has(preset)
+            ? preset
+            : SUPPORTED.has(stored)
+            ? stored
+            : DEFAULT;
+          apply(initial, { persist: false });
+        };
+
+        init();
+
+        return { get, set, preview, onChange, supported: () => Array.from(SUPPORTED) };
+      })();
+
+      window.GTOTheme = ThemeController;
+
       const $ = (sel) => document.querySelector(sel);
       const fmt = (value, maxDecimals = 2) => {
         const num = Number(value);
