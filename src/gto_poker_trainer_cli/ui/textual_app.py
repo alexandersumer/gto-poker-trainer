@@ -7,7 +7,7 @@ from typing import Any
 
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Grid, Horizontal
 from textual.reactive import reactive
 from textual.widgets import Button, Footer, Header, Label, Static
 
@@ -86,17 +86,15 @@ class TrainerApp(App[None]):
     Screen {
         layout: vertical;
     }
-    # Title bar
-    # Main content splits into info (top) and options/feedback (bottom)
-    # Keep mobile-friendly spacing and readable buttons
     .section { padding: 1; }
-    # Cards row
-    # Options: vertical list of large buttons
-    # Feedback: static text area
-    # Footer shows key hints
-    # Buttons compact but readable
-    Button { width: auto; min-width: 20; min-height: 2; padding: 0 1; margin: 0 1 0.5 0; }
-    # Labels wrap
+    #info { width: 100%; }
+    #headline-row, #meta-row, #cards-row, #board-row { width: 100%; }
+    .headline-col { width: 100%; }
+    .meta-panel { width: 100%; }
+    .card-panel { width: 100%; padding: 0; font-family: monospace; }
+    #options { layout: grid; grid-columns: 1fr 1fr; grid-gutter: 0 1; }
+    #controls { column-gap: 1; }
+    Button { width: 100%; min-height: 2; padding: 0 1; margin: 0 0 0.5 0; }
     Label { text-align: left; width: 100%; }
     #board { white-space: pre-wrap; }
     #options { align-horizontal: left; }
@@ -118,12 +116,13 @@ class TrainerApp(App[None]):
     # Cached widget references populated on mount to avoid hot-path lookups
     _title_label: Label | None = None
     _headline_label: Label | None = None
-    _meta_label: Label | None = None
-    _hand_label: Label | None = None
-    _board_label: Label | None = None
-    _options_container: Vertical | None = None
+    _meta_panel: Static | None = None
+    _hand_panel: Static | None = None
+    _board_panel: Static | None = None
+    _options_container: Grid | None = None
     _feedback_panel: Static | None = None
     _pending_restart: bool = False
+    _idle_after_stop: bool = False
 
     def __init__(self, *, hands: int = 1, mc_trials: int = 120, solver_csv: str | None = None) -> None:
         super().__init__()
@@ -133,20 +132,25 @@ class TrainerApp(App[None]):
     # --- Compose UI ---
     def compose(self) -> ComposeResult:  # type: ignore[override]
         yield Header(show_clock=False)
-        with Container(classes="section"):
+        with Container(classes="section", id="info"):
             yield Label("GTO Poker Trainer", id="title")
-            yield Label("", id="headline")
-            yield Label("", id="meta")
-            yield Label("", id="hand")
-            yield Label("", id="board")
+            with Horizontal(id="headline-row"):
+                yield Label("", id="headline", classes="headline-col")
+            with Horizontal(id="meta-row"):
+                yield Static("", id="meta", classes="meta-panel")
+            with Horizontal(id="cards-row"):
+                yield Static("", id="hand", classes="card-panel")
+            with Horizontal(id="board-row"):
+                yield Static("", id="board", classes="card-panel")
         with Container(classes="section"):
             yield Label("Choose your action:")
-            yield Vertical(id="options")
+            yield Grid(id="options")
         with Container(classes="section"):
             yield Label("Feedback:")
             yield Static("", id="feedback")
-        with Horizontal(classes="section"):
+        with Horizontal(classes="section", id="controls"):
             yield Button("Start Fresh Hand", id="btn-new", variant="success")
+            yield Button("End Session", id="btn-end", variant="warning")
             yield Button("Quit", id="btn-quit", variant="error")
         yield Footer()
 
@@ -154,10 +158,10 @@ class TrainerApp(App[None]):
     def on_mount(self) -> None:  # type: ignore[override]
         self._title_label = self.query_one("#title", Label)
         self._headline_label = self.query_one("#headline", Label)
-        self._meta_label = self.query_one("#meta", Label)
-        self._hand_label = self.query_one("#hand", Label)
-        self._board_label = self.query_one("#board", Label)
-        self._options_container = self.query_one("#options", Vertical)
+        self._meta_panel = self.query_one("#meta", Static)
+        self._hand_panel = self.query_one("#hand", Static)
+        self._board_panel = self.query_one("#board", Static)
+        self._options_container = self.query_one("#options", Grid)
         self._feedback_panel = self.query_one("#feedback", Static)
 
         self._presenter = _TextualPresenter(self)
@@ -201,13 +205,16 @@ class TrainerApp(App[None]):
         finally:
             if self._engine_thread is current:
                 self._engine_thread = None
+            if self._idle_after_stop:
+                self._idle_after_stop = False
+                self.call_from_thread(self._show_idle_prompt)
 
     # --- Presenter-driven UI updates ---
     def show_session_start(self, total_hands: int) -> None:
         if self._headline_label:
             self._headline_label.update(f"Session start — {total_hands} hand(s)")
-        if self._meta_label:
-            self._meta_label.update("")
+        if self._meta_panel:
+            self._meta_panel.update("")
 
     def show_hand_start(self, hand_index: int, total_hands: int) -> None:
         if self._headline_label:
@@ -255,17 +262,17 @@ class TrainerApp(App[None]):
         if isinstance(bet, (int, float)):
             pct = 100.0 * float(bet) / max(1e-9, P)
             meta_lines.append(f"Facing bet: {float(bet):.2f} bb ({pct:.0f}% pot)")
-        if self._meta_label:
-            self._meta_label.update("\n".join(meta_lines))
+        if self._meta_panel:
+            self._meta_panel.update("\n".join(meta_lines))
 
         hand_str = self._format_cards_colored(node.hero_cards)
-        if self._hand_label:
-            self._hand_label.update(
-                f"Your hand: {hand_str} [dim]({canonical_hand_abbrev(node.hero_cards)})[/]"
+        if self._hand_panel:
+            self._hand_panel.update(
+                f"Hero: {hand_str} [dim]({canonical_hand_abbrev(node.hero_cards)})[/]"
             )
-        if self._board_label:
+        if self._board_panel:
             board_rows = self._format_board_rows(node.board)
-            self._board_label.update(f"Board:\n{board_rows}")
+            self._board_panel.update(f"Board\n{board_rows}")
 
         # Render actions as buttons
         if self._options_container:
@@ -337,18 +344,42 @@ class TrainerApp(App[None]):
             if self._pending_restart:
                 return
             self._pending_restart = True
+            self._idle_after_stop = False
             if hasattr(self, "_presenter"):
                 self._presenter.cancel_session()
             self._queue_restart_when_idle()
             return
 
         self._pending_restart = False
+        self._idle_after_stop = False
         self._start_engine_session()
+
+    def _show_idle_prompt(self) -> None:
+        if self._headline_label:
+            self._headline_label.update("Session stopped — press Start Fresh Hand to resume")
+        if self._meta_panel:
+            self._meta_panel.update("")
+        if self._options_container:
+            self._options_container.remove_children()
+        if self._feedback_panel:
+            self._feedback_panel.update("[dim]Session ended at your request.[/]")
 
     # --- UI events ---
     @on(Button.Pressed, "#btn-new")
     def _on_new(self) -> None:
         self._request_restart()
+
+    @on(Button.Pressed, "#btn-end")
+    def _on_end(self) -> None:
+        if self._engine_thread and self._engine_thread.is_alive():
+            self._pending_restart = False
+            self._idle_after_stop = True
+            if self._feedback_panel:
+                self._feedback_panel.update("[dim]Ending session…[/]")
+            if hasattr(self, "_presenter"):
+                self._presenter.cancel_session()
+        else:
+            self._show_idle_prompt()
 
     @on(Button.Pressed, "#btn-quit")
     def _on_quit(self) -> None:
