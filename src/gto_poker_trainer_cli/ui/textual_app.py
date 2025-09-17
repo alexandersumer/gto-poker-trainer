@@ -169,8 +169,8 @@ class TrainerApp(App[None]):
     .option-value:hover { background: #f1e2ca; }
     #btn-new { background: #eef1f8; border: 1px solid #cdd4e6; color: #1f2740; }
     #btn-new:hover { background: #e2e6f2; }
-    #btn-end { background: #f8e4eb; border: 1px solid #e6bfc9; color: #6e2e45; }
-    #btn-end:hover { background: #f3d7e1; }
+    #btn-end { background: #e8ecf6; border: 1px solid #ccd5e6; color: #25304b; }
+    #btn-end:hover { background: #dfe4f2; }
     #btn-quit { background: #f1f3fb; border: 1px solid #d9dfee; color: #3f4865; }
     #btn-quit:hover { background: #e5e8f4; }
     Label { text-align: left; width: 100%; color: #20283f; }
