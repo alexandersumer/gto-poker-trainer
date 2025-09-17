@@ -38,7 +38,110 @@
 
         --focus-ring: #a5b4fc;
 
+        /* Additional semantic tokens */
+        --color-panel-soft: #eff2f8;
+        --color-chip-bg: #d7ebf4;
+        --color-chip-hover: #cee4ee;
+        --color-chip-text: #1d3a56;
+        --color-muted-bg: #f3f4fa;
+        --color-muted-hover: #eaedf6;
+        --color-muted-border: #d7ddea;
+        --color-muted-text: #47516d;
+        --color-surface-subtle-hover: #e7eaf1;
+        --color-secondary-bg: #e8ecf6;
+        --color-secondary-hover: #dfe4f2;
+        --color-secondary-border: #ccd5e6;
+        --color-secondary-text: #25304b;
+        --color-settings-hover: #f8fafc;
+        --color-divider-soft: rgba(215, 221, 234, 0.7);
+        --color-outline: #e5e7eb;
+        --color-progress: #6c83f5;
+        --color-input-bg: #e9edf7;
+        --color-input-border: #c7d3eb;
+        --color-focus-secondary: #7ec7c2;
+        --color-focus-primary: #6c83f5;
+        --color-focus-offset: #f5f7fb;
+        --color-shadow-elevated: rgba(31, 39, 64, 0.1);
+        --color-shadow-soft: rgba(15, 23, 42, 0.08);
+        --color-brand-mark-bg: #111827;
+        --color-brand-mark-fg: #ffffff;
+        --color-pill-border: rgba(15, 23, 42, 0.1);
+        --color-pill-bg: #ffffff;
+        --color-pill-text: #475569;
+        --color-pill-dot: #10b981;
+        --color-pill-dot-empty: #cbd5f5;
+        --color-subheader-text: #64748b;
+        --color-subheader-separator: rgba(148, 163, 184, 0.6);
+
         /* Card suits */
+        --suit-spade: #111827;
+        --suit-heart: #e11d48;
+        --suit-diamond: #2563eb;
+        --suit-club: #16a34a;
+      }
+
+      [data-theme="light"] {
+        /* Light theme mirrors root tokens */
+      }
+
+      [data-theme="dark"] {
+        /* Placeholder: use light palette until dark mode values are defined */
+        --bg-primary: #f9fafb;
+        --bg-secondary: rgba(255, 255, 255, 0.92);
+        --bg-panel: rgba(255, 255, 255, 0.92);
+        --surface-subtle: #f3f4f6;
+        --border-panel: #e5e7eb;
+        --card-highlight: #ffffff;
+        --text-primary: #111827;
+        --text-secondary: #4b5563;
+        --text-muted: #6b7280;
+        --btn-primary-bg: #eef2ff;
+        --btn-primary-text: #4338ca;
+        --btn-primary-hover: #e0e7ff;
+        --btn-primary-active: #c7d2fe;
+        --btn-info-bg: #e9f2ff;
+        --btn-info-text: #0b4f9c;
+        --btn-info-hover: #dde9ff;
+        --btn-info-border: #c6dbff;
+        --btn-danger-bg: #fdecec;
+        --btn-danger-text: #b42318;
+        --btn-danger-hover: #fad7d7;
+        --btn-danger-border: #f8c4c4;
+        --focus-ring: #a5b4fc;
+        --color-panel-soft: #eff2f8;
+        --color-chip-bg: #d7ebf4;
+        --color-chip-hover: #cee4ee;
+        --color-chip-text: #1d3a56;
+        --color-muted-bg: #f3f4fa;
+        --color-muted-hover: #eaedf6;
+        --color-muted-border: #d7ddea;
+        --color-muted-text: #47516d;
+        --color-surface-subtle-hover: #e7eaf1;
+        --color-secondary-bg: #e8ecf6;
+        --color-secondary-hover: #dfe4f2;
+        --color-secondary-border: #ccd5e6;
+        --color-secondary-text: #25304b;
+        --color-settings-hover: #f8fafc;
+        --color-divider-soft: rgba(215, 221, 234, 0.7);
+        --color-outline: #e5e7eb;
+        --color-progress: #6c83f5;
+        --color-input-bg: #e9edf7;
+        --color-input-border: #c7d3eb;
+        --color-focus-secondary: #7ec7c2;
+        --color-focus-primary: #6c83f5;
+        --color-focus-offset: #f5f7fb;
+        --color-shadow-elevated: rgba(31, 39, 64, 0.1);
+        --color-shadow-soft: rgba(15, 23, 42, 0.08);
+        --color-brand-mark-bg: #111827;
+        --color-brand-mark-fg: #ffffff;
+        --color-pill-border: rgba(15, 23, 42, 0.1);
+        --color-pill-bg: #ffffff;
+        --color-pill-text: #475569;
+        --color-pill-dot: #10b981;
+        --color-pill-dot-empty: #cbd5f5;
+        --color-subheader-text: #64748b;
+        --color-subheader-separator: rgba(148, 163, 184, 0.6);
+        --color-ghost-hover: #f4f6f8;
         --suit-spade: #111827;
         --suit-heart: #e11d48;
         --suit-diamond: #2563eb;
@@ -68,7 +171,7 @@
         left: 0;
         width: 100%;
         height: 3px;
-        background: #6c83f5;
+        background: var(--color-progress);
         transform: scaleX(0);
         transform-origin: left;
         opacity: 0;
@@ -114,11 +217,14 @@
         color: var(--text-primary);
         border-radius: 1.25rem;
       }
+      .panel-soft {
+        background: var(--color-panel-soft);
+      }
       input, select, textarea {
         color: var(--text-primary);
-        background: #e9edf7;
+        background: var(--color-input-bg);
         border-radius: 0.75rem;
-        border: 1px solid #c7d3eb;
+        border: 1px solid var(--color-input-border);
         padding: 0.55rem 0.9rem;
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
       }
@@ -137,7 +243,7 @@
         box-shadow: none;
       }
       #options button {
-        box-shadow: 0 6px 12px rgba(17, 24, 39, 0.08);
+        box-shadow: 0 6px 12px var(--color-shadow-soft);
       }
       #options button:focus-visible {
         outline: none;
@@ -149,6 +255,9 @@
         padding: 0.9rem 1.15rem;
         font-weight: 600;
         text-align: left;
+        color: var(--text-primary);
+        background: var(--card-highlight);
+        box-shadow: 0 6px 12px var(--color-shadow-soft);
         transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
       }
       .btn-primary {
@@ -162,14 +271,14 @@
       .btn-info {
         background: var(--btn-info-bg);
         color: var(--btn-info-text);
-        border-color: #c6dbff;
+        border-color: var(--btn-info-border);
       }
       .btn-info:hover { background: var(--btn-info-hover); }
 
       .btn-danger {
         background: var(--btn-danger-bg);
         color: var(--btn-danger-text);
-        border-color: #f8c4c4;
+        border-color: var(--btn-danger-border);
       }
       .btn-danger:hover { background: var(--btn-danger-hover); }
 
@@ -178,22 +287,75 @@
         color: var(--text-secondary);
         border-color: var(--border-panel);
       }
-      .btn-neutral:hover { background: #e7eaf1; }
+      .btn-neutral:hover { background: var(--color-surface-subtle-hover); }
 
-      .btn-secondary {
-        background: #ffffff;
-        color: var(--btn-primary-text);
-        border: 1px solid rgba(67, 56, 202, 0.18);
+      .btn-chip {
+        background: var(--color-chip-bg);
+        color: var(--color-chip-text);
+        border: 1px solid transparent;
+        box-shadow: 0 10px 20px var(--color-shadow-elevated);
       }
-      .btn-secondary:hover { background: #f4f6ff; }
-      .btn-secondary:active { background: #eef2ff; }
+      .btn-chip:hover {
+        background: var(--color-chip-hover);
+      }
+      .btn-chip:focus-visible {
+        outline: 2px solid var(--color-focus-secondary);
+        outline-offset: 2px;
+      }
+
+      .btn-muted {
+        background: var(--color-muted-bg);
+        color: var(--color-muted-text);
+        border: 1px solid var(--color-muted-border);
+      }
+      .btn-muted:hover {
+        background: var(--color-muted-hover);
+      }
+      .btn-muted:focus-visible {
+        outline: 2px solid var(--color-focus-primary);
+        outline-offset: 2px;
+      }
+
+      .btn-secondary-tone {
+        background: var(--color-secondary-bg);
+        color: var(--color-secondary-text);
+        border: 1px solid var(--color-secondary-border);
+      }
+      .btn-secondary-tone:hover {
+        background: var(--color-secondary-hover);
+      }
+      .btn-secondary-tone:focus-visible {
+        outline: 2px solid var(--color-focus-primary);
+        outline-offset: 2px;
+      }
+
+      .btn-ghost {
+        background: var(--color-muted-bg);
+        color: var(--color-muted-text);
+        border: 1px solid transparent;
+      }
+      .btn-ghost:hover {
+        border-color: var(--color-muted-border);
+      }
+      .btn-ghost:focus-visible {
+        outline: 2px solid var(--color-focus-primary);
+        outline-offset: 2px;
+      }
+
+      .border-divider-soft {
+        border-color: var(--color-divider-soft) !important;
+      }
+
+      .border-outline {
+        border: 1px solid var(--color-outline) !important;
+      }
 
       .btn-tertiary {
-        background: #ffffff;
-        color: #475569;
+        background: var(--card-highlight);
+        color: var(--text-secondary);
         border: 1px solid rgba(15, 23, 42, 0.12);
       }
-      .btn-tertiary:hover { background: #f4f6f8; }
+      .btn-tertiary:hover { background: var(--color-ghost-hover); }
 
       .feedback-success {
         background: var(--success-bg) !important;
@@ -273,12 +435,12 @@
         gap: 0.4rem;
         padding: 0.35rem 0.75rem;
         border-radius: 9999px;
-        border: 1px solid rgba(15, 23, 42, 0.1);
-        background: #ffffff;
+        border: 1px solid var(--color-pill-border);
+        background: var(--color-pill-bg);
         font-size: 12px;
         font-weight: 500;
-        color: #475569;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        color: var(--color-pill-text);
+        box-shadow: 0 1px 2px var(--color-shadow-soft);
       }
       .header-pill.is-empty {
         opacity: 0.75;
@@ -287,10 +449,10 @@
         width: 0.375rem;
         height: 0.375rem;
         border-radius: 9999px;
-        background: #10b981;
+        background: var(--color-pill-dot);
       }
       .header-pill.is-empty .status-dot {
-        background: #cbd5f5;
+        background: var(--color-pill-dot-empty);
       }
       .header-pill strong {
         font-weight: 600;
@@ -302,13 +464,13 @@
         width: 2.25rem;
         height: 2.25rem;
         border-radius: 0.9rem;
-        border: 1px solid rgba(15, 23, 42, 0.1);
-        background: #ffffff;
+        border: 1px solid var(--color-pill-border);
+        background: var(--color-pill-bg);
         font-size: 1.1rem;
         transition: background 0.18s ease, transform 0.18s ease;
       }
       .settings-button:hover {
-        background: #f8fafc;
+        background: var(--color-settings-hover);
       }
       .settings-button:active {
         transform: scale(0.97);
@@ -319,7 +481,7 @@
         justify-content: space-between;
         height: 38px;
         font-size: 13px;
-        color: #64748b;
+        color: var(--color-subheader-text);
         gap: 0.5rem;
         flex-wrap: wrap;
       }
@@ -358,7 +520,7 @@
       .subheader .stats span + span::before {
         content: '•';
         margin: 0 0.6rem;
-        color: rgba(148, 163, 184, 0.6);
+        color: var(--color-subheader-separator);
         font-weight: 500;
       }
 
@@ -445,7 +607,7 @@
       }
     </style>
   </head>
-  <body>
+  <body data-theme="light">
     <div id="progress-bar" aria-hidden="true"></div>
     <header class="app-header">
       <div class="max-w-2xl mx-auto px-4">
@@ -476,7 +638,7 @@
 
     <main class="screen max-w-2xl min-h-[720px] mx-auto p-4 pb-[calc(4rem+var(--safe-bottom))]">
       <section id="panel-start" class="page-section space-y-4">
-        <div class="rounded-lg panel-box bg-[#eff2f8] p-6 text-secondary">
+        <div class="rounded-lg panel-box panel-soft p-6 text-secondary">
           <h2 class="font-semibold mb-4 text-[clamp(1.25rem,2vw,1.45rem)] text-primary">Start a Session</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-secondary">
             <label class="block text-sm">Hands
@@ -487,12 +649,12 @@
               <span class="mt-2 block text-xs text-muted leading-relaxed">More trials give more accurate equity estimates, at the cost of extra compute time per hand.</span>
             </label>
           </div>
-          <button id="btn-start" class="mt-6 w-full rounded-xl bg-[#d7ebf4] px-4 py-2.5 font-semibold text-[#1d3a56] shadow-lg shadow-[#1f2740]/10 transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7ec7c2] focus-visible:ring-offset-[#f5f7fb]">Start</button>
+          <button id="btn-start" class="mt-6 w-full rounded-xl px-4 py-2.5 font-semibold transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none btn-chip">Start</button>
         </div>
       </section>
 
       <section id="panel-play" class="page-section hidden space-y-4">
-        <div class="rounded-lg panel-box bg-[#eff2f8] p-6 text-secondary">
+        <div class="rounded-lg panel-box panel-soft p-6 text-secondary">
           <div class="mt-2 space-y-4 stack" id="card-summary">
             <div>
               <div class="text-xs font-semibold uppercase eyebrow section-heading">Your hand</div>
@@ -504,31 +666,31 @@
             </div>
           </div>
 
-          <div class="options-block mt-6 pt-5 border-t border-[#d7ddea]/70">
+          <div class="options-block mt-6 pt-5 border-t border-divider-soft">
             <div class="section-heading text-xs font-semibold uppercase eyebrow text-muted tracking-[0.18em]">Choose your action</div>
             <div id="options" class="actions mt-3 grid grid-cols-1 gap-2 max-w-xl mx-auto"></div>
           </div>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-2 sm:justify-end" id="primary-controls">
-          <button id="btn-summary" class="hidden rounded-lg border border-[#d7ddea] bg-[#f3f4fa] px-4 py-2 text-sm font-semibold text-[#47516d] transition-colors duration-200 hover:bg-[#eaedf6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">
+          <button id="btn-summary" class="hidden rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn-muted">
             View summary
           </button>
         </div>
 
         <div id="feedback" class="hidden rounded-lg panel-box p-5 result-panel"></div>
         <div class="mt-3 flex justify-center" id="end-session-container">
-          <button id="btn-end" class="rounded-lg border border-[#ccd5e6] bg-[#e8ecf6] px-4 py-2 text-sm font-semibold text-[#25304b] transition-colors duration-200 hover:bg-[#dfe4f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">
+          <button id="btn-end" class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn-secondary-tone">
             End Session
           </button>
         </div>
       </section>
 
       <section id="panel-summary" class="page-section hidden space-y-4">
-        <div class="rounded-lg panel-box bg-[#eff2f8] p-6 text-secondary" id="summary"></div>
+        <div class="rounded-lg panel-box panel-soft p-6 text-secondary" id="summary"></div>
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <button id="btn-new" class="w-full sm:w-auto rounded-md bg-[#d7ebf4] px-4 py-2 font-semibold text-[#1d3a56] transition-colors duration-200 hover:bg-[#cee4ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7ec7c2] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">Start new session</button>
-          <button id="btn-summary-close" class="w-full sm:w-auto rounded-md border border-transparent bg-[#f3f4fa] px-4 py-2 text-sm font-medium text-[#47516d] transition-colors duration-200 hover:border-[#cdd4e6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c83f5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f7fb]">Back to results</button>
+          <button id="btn-new" class="w-full sm:w-auto rounded-md px-4 py-2 font-semibold transition-colors duration-200 focus-visible:outline-none btn-chip">Start new session</button>
+          <button id="btn-summary-close" class="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline-none btn-ghost">Back to results</button>
         </div>
       </section>
     </main>
@@ -745,9 +907,9 @@
             if (lower.includes('fold')) return 'btn-tertiary';
             if (lower.includes('call')) return 'btn-primary';
             if (lower.includes('check')) return 'btn-primary';
-            if (lower.includes('all-in') || lower.includes('jam')) return 'btn-secondary';
-            if (lower.includes('raise') || lower.includes('3-bet') || lower.includes('4-bet')) return 'btn-secondary';
-            if (lower.includes('bet')) return 'btn-secondary';
+            if (lower.includes('all-in') || lower.includes('jam')) return 'btn-secondary-tone';
+            if (lower.includes('raise') || lower.includes('3-bet') || lower.includes('4-bet')) return 'btn-secondary-tone';
+            if (lower.includes('bet')) return 'btn-secondary-tone';
             return 'btn-neutral';
           };
           const fragment = document.createDocumentFragment();
@@ -841,22 +1003,22 @@
               </div>
             </div>
             <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div class="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3">
+              <div class="rounded-lg border border-outline bg-white px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Hands answered</dt>
                 <dd class="mt-1 text-lg font-semibold text-primary">${s.hands}</dd>
               </div>
-              <div class="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3">
+              <div class="rounded-lg border border-outline bg-white px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Best choices hit</dt>
                 <dd class="mt-1 text-lg font-semibold text-primary">${s.hits}</dd>
                 <dd class="text-xs text-muted">Accuracy per decision: ${accuracy}%</dd>
               </div>
-              <div class="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3">
+              <div class="rounded-lg border border-outline bg-white px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
                 <dd class="mt-1 text-lg font-semibold text-primary">${fmt(s.ev_lost)} bb</dd>
                 <dd class="text-xs text-muted">Avg / hand: ${avgEvLoss} bb</dd>
               </div>
             </dl>
-            <div class="mt-4 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-secondary">
+            <div class="mt-4 rounded-lg border border-outline bg-white px-4 py-3 text-sm text-secondary">
               Keep iterating: review the final hand’s feedback before starting a fresh session to reinforce the optimal line.
             </div>
           `;
