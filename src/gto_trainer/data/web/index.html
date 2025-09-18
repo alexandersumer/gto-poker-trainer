@@ -491,13 +491,18 @@
       .btn-primary:active { background: color-mix(in srgb, var(--brand) 88%, black 12%); }
 
       .btn-chip {
-        background: var(--brand);
-        color: var(--on-brand);
-        border: 1px solid color-mix(in srgb, var(--brand) 65%, transparent);
-        box-shadow: var(--shadow-soft);
+        background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-1) 30%);
+        color: var(--text-primary);
+        border: 1px solid color-mix(in srgb, var(--outline) 62%, transparent);
+        box-shadow: none;
       }
-      .btn-chip:hover { background: color-mix(in srgb, var(--brand) 88%, white 12%); }
-      .btn-chip:active { background: color-mix(in srgb, var(--brand) 88%, black 12%); }
+      .btn-chip:hover {
+        background: color-mix(in srgb, var(--surface-2) 62%, var(--surface-1) 38%);
+        border-color: color-mix(in srgb, var(--outline) 58%, var(--brand) 20%);
+      }
+      .btn-chip:active {
+        background: color-mix(in srgb, var(--surface-2) 58%, var(--surface-1) 42%);
+      }
 
       .btn-muted {
         background: var(--muted-bg);
@@ -1388,7 +1393,7 @@
               <p id="inp-mc-error" class="field-error-message" role="status" aria-live="polite" hidden></p>
             </div>
           </div>
-          <button id="btn-start" class="mt-6 w-full rounded-xl px-4 py-2.5 font-semibold transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none btn btn-chip">Start</button>
+          <button id="btn-start" class="mt-6 w-full rounded-xl px-4 py-2.5 font-semibold transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none btn btn-primary">Start</button>
         </div>
       </section>
 
@@ -1442,7 +1447,7 @@
       <section id="panel-summary" class="page-section hidden space-y-4">
         <div class="rounded-lg panel-box panel-soft p-6 text-secondary" id="summary"></div>
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <button id="btn-new" class="w-full sm:w-auto rounded-md px-4 py-2 font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-chip">Start new session</button>
+          <button id="btn-new" class="w-full sm:w-auto rounded-md px-4 py-2 font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-primary">Start new session</button>
           <button id="btn-summary-close" class="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline-none btn btn-ghost">Review last hand</button>
         </div>
       </section>
