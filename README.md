@@ -4,7 +4,7 @@ GTO Trainer is a heads-up no-limit hold’em practice environment with both a Te
 
 ## Project status
 
-- **Renamed** – The codebase, CLI, and deployment were renamed from **GTO Poker Trainer** to **GTO Trainer** so the branding matches everywhere.
+- **Branding** – The codebase, CLI, and deployment all present as **GTO Trainer**.
 - **Demo** – A Render-hosted preview lives at `https://gto-trainer.onrender.com/`. Render free instances sleep between requests, so expect a short cold-start delay or run the web app locally for a faster experience.
 - **Runtime target** – The project pins Python **3.12.11** across CLI, tests, and CI to keep the solver output deterministic.
 
