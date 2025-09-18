@@ -47,6 +47,7 @@ def _run_server() -> Iterator[str]:
 
 def test_browser_flow_shows_initial_hand() -> None:
     console_errors: list[str] = []
+    page_errors: list[str] = []
 
     with _run_server() as base_url, sync_playwright() as p:
         browser = p.chromium.launch()
@@ -56,6 +57,7 @@ def test_browser_flow_shows_initial_hand() -> None:
             "console",
             lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
         )
+        page.on("pageerror", lambda exc: page_errors.append(str(exc)))
 
         page.goto(base_url, wait_until="domcontentloaded")
         page.click("#btn-start")
@@ -73,5 +75,6 @@ def test_browser_flow_shows_initial_hand() -> None:
         assert "preparing a fresh scenario" not in status
 
         assert not console_errors, f"Console errors captured: {console_errors}"
+        assert not page_errors, f"Page errors captured: {page_errors}"
 
         browser.close()

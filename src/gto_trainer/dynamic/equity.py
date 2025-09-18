@@ -76,7 +76,7 @@ _TREYS_CACHE = [Card.new(card_int_to_str(c)) for c in range(52)]
 _MIN_MONTE_TRIALS = 0
 _MAX_MONTE_TRIALS = 1000
 _MONTE_CHUNK = 150
-_TARGET_STD_ERROR = 0.03
+_TARGET_STD_ERROR = 0.025
 
 # Exposed for tests to introspect how many trials were used in the most recent
 # adaptive Monte Carlo run. Not relied upon by runtime logic.

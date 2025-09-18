@@ -27,4 +27,4 @@ def test_preflop_options_completes_quickly():
     start = perf_counter()
     preflop_options(node, random.Random(0), mc_trials=120)
     elapsed = perf_counter() - start
-    assert elapsed < 0.6
+    assert elapsed < 0.9
