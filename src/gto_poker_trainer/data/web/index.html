@@ -35,16 +35,16 @@
         --surface-2: #141B23;
         --surface-3: #0F172A;
         --border: #2A3645;
-        --field-bg: color-mix(in srgb, var(--surface-1) 82%, var(--surface-3) 18%);
-        --field-bg-hover: color-mix(in srgb, var(--surface-1) 70%, var(--surface-2) 30%);
-        --field-border: color-mix(in srgb, var(--border) 62%, transparent);
-        --field-border-hover: color-mix(in srgb, var(--border) 58%, var(--brand) 14%);
-        --field-border-focus: color-mix(in srgb, var(--brand) 62%, transparent);
-        --field-placeholder: color-mix(in srgb, var(--text-tertiary) 64%, transparent);
+        --field-bg: color-mix(in srgb, var(--surface-2) 55%, var(--surface-1) 45%);
+        --field-bg-hover: color-mix(in srgb, var(--surface-2) 62%, var(--surface-1) 38%);
+        --field-border: color-mix(in srgb, var(--outline) 85%, transparent);
+        --field-border-hover: color-mix(in srgb, var(--outline) 78%, var(--brand) 18%);
+        --field-border-focus: color-mix(in srgb, var(--brand) 46%, var(--outline) 54%);
+        --field-placeholder: color-mix(in srgb, var(--text-tertiary) 72%, transparent);
         --field-helper: color-mix(in srgb, var(--text-secondary) 78%, transparent);
-        --field-disabled-bg: color-mix(in srgb, var(--surface-2) 82%, var(--surface-1) 18%);
-        --field-disabled-border: color-mix(in srgb, var(--border) 60%, transparent);
-        --field-error-border: color-mix(in srgb, var(--error) 70%, transparent);
+        --field-disabled-bg: color-mix(in srgb, var(--surface-2) 78%, var(--surface-1) 22%);
+        --field-disabled-border: color-mix(in srgb, var(--outline) 70%, transparent);
+        --field-error-border: color-mix(in srgb, var(--error) 48%, var(--outline) 52%);
         --shadow-soft: 0 18px 34px rgba(11, 15, 20, 0.4);
         --shadow-card: 0 1px 0 rgba(7, 11, 16, 0.35), 0 12px 24px rgba(7, 11, 16, 0.35);
         --text-primary: #E6EDF3;
@@ -238,18 +238,18 @@
         box-shadow: var(--shadow-soft);
       }
       .panel-box {
-        background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-        border: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+        background: color-mix(in srgb, var(--surface-2) 68%, var(--surface-1) 32%);
+        border: 1px solid color-mix(in srgb, var(--outline) 90%, transparent);
         box-shadow: var(--shadow-card);
         color: var(--text-primary);
         border-radius: var(--radius-lg);
       }
       .panel-soft {
-        background: color-mix(in srgb, var(--surface-1) 80%, var(--surface-2) 20%);
+        background: color-mix(in srgb, var(--surface-2) 58%, var(--surface-1) 42%);
       }
       .surface-card {
-        background: color-mix(in srgb, var(--surface-1) 82%, var(--surface-2) 18%);
-        border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+        background: color-mix(in srgb, var(--surface-2) 64%, var(--surface-1) 36%);
+        border: 1px solid color-mix(in srgb, var(--outline) 85%, transparent);
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-card);
         color: var(--text-primary);
@@ -272,20 +272,30 @@
         background: var(--field-bg);
         border-radius: var(--radius-md);
         border: 1px solid var(--field-border);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--field-border) 38%, transparent);
         padding: 0.5rem 0.85rem;
         font-weight: 600;
-        transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        letter-spacing: -0.005em;
+        transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
         min-height: calc(var(--min-tap) - 10px);
+        appearance: none;
+        caret-color: var(--text-primary);
       }
       input::placeholder,
       textarea::placeholder {
         color: var(--field-placeholder);
         font-weight: 500;
+        opacity: 0.64;
+      }
+      input:not(:placeholder-shown)::placeholder,
+      textarea:not(:placeholder-shown)::placeholder {
+        opacity: 0;
       }
       input:hover,
       select:hover,
       textarea:hover {
         border-color: var(--field-border-hover);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--field-border-hover) 48%, transparent);
         background: var(--field-bg-hover);
       }
       input:focus-visible,
@@ -293,27 +303,129 @@
       textarea:focus-visible {
         outline: none;
         border-color: var(--field-border-focus);
-        box-shadow: 0 0 0 calc(var(--focus-ring) + 1px) color-mix(in srgb, var(--field-border-focus) 28%, transparent);
-        background: color-mix(in srgb, var(--field-bg) 92%, var(--brand) 8%);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--field-border-focus) 60%, transparent), 0 0 0 calc(var(--focus-ring)) color-mix(in srgb, var(--field-border-focus) 24%, transparent);
+        background: var(--field-bg);
       }
       input:disabled,
       select:disabled,
       textarea:disabled {
         background: var(--field-disabled-bg);
         border-color: var(--field-disabled-border);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--field-disabled-border) 32%, transparent);
         color: color-mix(in srgb, var(--text-secondary) 65%, var(--text-tertiary) 35%);
       }
       input.error,
       select.error,
       textarea.error {
         border-color: var(--field-error-border);
-        box-shadow: 0 0 0 calc(var(--focus-ring)) color-mix(in srgb, var(--error) 18%, transparent);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--field-error-border) 52%, transparent), 0 0 0 calc(var(--focus-ring) - 1px) color-mix(in srgb, var(--field-error-border) 18%, transparent);
+      }
+      input:-webkit-autofill {
+        transition: background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s;
+        box-shadow: inset 0 0 0px 1000px var(--field-bg) !important;
+        -webkit-text-fill-color: var(--text-primary) !important;
+      }
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button {
+        appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+      .field-shell {
+        position: relative;
+        width: 100%;
+      }
+      .field-shell input,
+      .field-shell select,
+      .field-shell textarea {
+        width: 100%;
+        padding-right: 3.6rem;
+      }
+      .field-shell:focus-within input,
+      .field-shell:focus-within select,
+      .field-shell:focus-within textarea {
+        background: var(--field-bg);
+      }
+      .field-stepper {
+        position: absolute;
+        inset-block: 6px;
+        right: 6px;
+        display: inline-flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 2px;
+        padding: 2px;
+        border-radius: calc(var(--radius-md) - 4px);
+        border: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
+        background: color-mix(in srgb, var(--surface-2) 60%, var(--surface-1) 40%);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--outline) 22%, transparent);
+        pointer-events: auto;
+      }
+      .field-stepper button {
+        flex: 1 1 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        font-weight: 700;
+        border-radius: calc(var(--radius-sm) - 2px);
+        min-width: 28px;
+        transition: background-color 0.18s ease, color 0.18s ease;
+        cursor: pointer;
+      }
+      .field-stepper button:hover {
+        background: color-mix(in srgb, var(--ghost-hover) 78%, transparent);
+        color: var(--text-primary);
+      }
+      .field-stepper button:focus-visible {
+        outline: 2px solid var(--field-border-focus);
+        outline-offset: 1px;
+      }
+      .field-stepper button:active {
+        transform: translateY(0.5px);
+      }
+      .field-shell input:disabled + .field-stepper,
+      .field-shell select:disabled + .field-stepper,
+      .field-shell textarea:disabled + .field-stepper {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+      .field-shell:focus-within .field-stepper {
+        border-color: var(--field-border-focus);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--field-border-focus) 35%, transparent);
+      }
+      .field-shell input.error + .field-stepper,
+      .field-shell select.error + .field-stepper,
+      .field-shell textarea.error + .field-stepper {
+        border-color: var(--field-error-border);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--field-error-border) 36%, transparent);
       }
       .field-helper {
         color: var(--field-helper);
         font-size: 12px;
         line-height: 1.5;
         max-inline-size: 54ch;
+      }
+      .field-error-message {
+        font-size: 12px;
+        margin: 2px 0 0;
+        color: color-mix(in srgb, var(--error) 66%, var(--text-primary) 34%);
+      }
+      .field-error-message[hidden] {
+        display: none;
+      }
+      .field-group.has-error .field-label {
+        color: var(--text-primary);
+      }
+      .field-group.has-error input,
+      .field-group.has-error select,
+      .field-group.has-error textarea {
+        color: var(--text-primary);
       }
       .field-helper.long {
         display: -webkit-box;
@@ -1081,16 +1193,30 @@
           <h2 class="font-semibold mb-4 text-[clamp(1.25rem,2vw,1.45rem)] text-primary">Start a Session</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" role="group" aria-labelledby="start-session-fields">
             <p id="start-session-fields" class="sr-only">Session configuration</p>
-            <label class="field-group" for="inp-hands">
-              <span class="field-label">Hands</span>
-              <input id="inp-hands" type="number" min="1" value="3" placeholder="e.g., 3" class="w-full" inputmode="numeric" aria-describedby="helper-hands" />
-              <span id="helper-hands" class="field-helper">Choose how many scenarios play back-to-back.</span>
-            </label>
-            <label class="field-group" for="inp-mc">
-              <span class="field-label">Depth</span>
-              <input id="inp-mc" type="number" min="40" step="10" value="120" placeholder="e.g., 120" class="w-full" inputmode="numeric" aria-describedby="helper-depth" />
-              <span id="helper-depth" class="field-helper long">More trials yield tighter EV estimates but extend the compute per hand.</span>
-            </label>
+            <div class="field-group" data-field-group="inp-hands">
+              <label class="field-label" for="inp-hands">Hands</label>
+              <div class="field-shell">
+                <input id="inp-hands" type="number" min="1" value="3" data-default="3" placeholder="e.g., 3" class="w-full" inputmode="numeric" aria-describedby="helper-hands inp-hands-error" />
+                <div class="field-stepper" aria-hidden="true">
+                  <button type="button" class="field-stepper__btn" data-step="-1" data-target="inp-hands" aria-label="Decrease hands" aria-controls="inp-hands">−</button>
+                  <button type="button" class="field-stepper__btn" data-step="1" data-target="inp-hands" aria-label="Increase hands" aria-controls="inp-hands">+</button>
+                </div>
+              </div>
+              <p id="helper-hands" class="field-helper">Choose how many scenarios play back-to-back.</p>
+              <p id="inp-hands-error" class="field-error-message" role="status" aria-live="polite" hidden></p>
+            </div>
+            <div class="field-group" data-field-group="inp-mc">
+              <label class="field-label" for="inp-mc">Depth</label>
+              <div class="field-shell">
+                <input id="inp-mc" type="number" min="40" step="10" value="120" data-default="120" placeholder="e.g., 120" class="w-full" inputmode="numeric" aria-describedby="helper-depth inp-mc-error" />
+                <div class="field-stepper" aria-hidden="true">
+                  <button type="button" class="field-stepper__btn" data-step="-1" data-target="inp-mc" aria-label="Decrease depth" aria-controls="inp-mc">−</button>
+                  <button type="button" class="field-stepper__btn" data-step="1" data-target="inp-mc" aria-label="Increase depth" aria-controls="inp-mc">+</button>
+                </div>
+              </div>
+              <p id="helper-depth" class="field-helper long">More trials yield tighter EV estimates but extend the compute per hand.</p>
+              <p id="inp-mc-error" class="field-error-message" role="status" aria-live="polite" hidden></p>
+            </div>
           </div>
           <button id="btn-start" class="mt-6 w-full rounded-xl px-4 py-2.5 font-semibold transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none btn btn-chip">Start</button>
         </div>
@@ -1545,6 +1671,29 @@
         return slot;
       };
 
+      const chipLabel = (descriptor) => {
+        if(!descriptor) return '';
+        if(descriptor.meta){
+          if(/%/.test(descriptor.meta)){
+            return descriptor.meta.replace(/\s*pot/i, '').replace(/\s+/g, ' ').trim();
+          }
+          return descriptor.meta.replace(/\s+bb$/i, ' bb').trim();
+        }
+        if(typeof descriptor.numeric === 'number' && Number.isFinite(descriptor.numeric)){
+          return `${fmt(descriptor.numeric, descriptor.numeric < 10 ? 1 : 0)}bb`;
+        }
+        return descriptor.primary;
+      };
+
+      const raiseVerb = (descriptor, { isFacingBet }) => {
+        if(!descriptor) return isFacingBet ? 'Raise' : 'Bet';
+        if(descriptor.action === 'bet') return 'Bet';
+        if(descriptor.action === '3bet') return '3-bet';
+        if(descriptor.action === 'raise') return isFacingBet ? 'Raise' : 'Bet';
+        if(descriptor.action === 'all-in') return 'All-in';
+        return descriptor.primary || (isFacingBet ? 'Raise' : 'Bet');
+      };
+
       const formatBetLabel = (descriptor, { isFacingBet, includeSize }) => {
         if(!descriptor){
           return { label: isFacingBet ? 'Raise' : 'Bet', meta: '' };
@@ -1567,6 +1716,15 @@
           return { label: verb, meta: descriptor.meta };
         }
         return { label: verb, meta: '' };
+      };
+
+      const sortBySizing = (a, b) => {
+        const aNum = typeof a?.numeric === 'number' ? a.numeric : null;
+        const bNum = typeof b?.numeric === 'number' ? b.numeric : null;
+        if(aNum !== null && bNum !== null && Number.isFinite(aNum) && Number.isFinite(bNum)){
+          return aNum - bNum;
+        }
+        return a.index - b.index;
       };
 
       const renderActions = (options, node) => {
@@ -2008,25 +2166,173 @@
         }
       };
 
-      const readInt = (selector, {fallback, min}) => {
-        const el = $(selector);
-        if(!el) return fallback;
-        const raw = parseInt(el.value || '', 10);
-        if(Number.isNaN(raw)) return fallback;
-        return Math.max(min, raw);
+      const findFieldGroup = (id) => document.querySelector(`[data-field-group="${id}"]`);
+
+      const setFieldError = (id, message) => {
+        const input = document.getElementById(id);
+        const group = findFieldGroup(id);
+        const errorEl = document.getElementById(`${id}-error`);
+        const hasMessage = Boolean(message);
+        if(group){
+          group.classList.toggle('has-error', hasMessage);
+        }
+        if(input){
+          input.classList.toggle('error', hasMessage);
+          if(hasMessage){
+            input.setAttribute('aria-invalid', 'true');
+          } else {
+            input.removeAttribute('aria-invalid');
+          }
+        }
+        if(errorEl){
+          errorEl.textContent = message || '';
+          errorEl.hidden = !hasMessage;
+        }
       };
+
+      const normalizeNumberField = (id, { fallback, min } = {}) => {
+        const input = document.getElementById(id);
+        if(!input){
+          return { value: fallback, hadError: false };
+        }
+        const trimmed = (input.value || '').trim();
+        const defaultAttr = Number.parseInt(input.dataset.default || '', 10);
+        const fallbackValue = Number.isNaN(defaultAttr) ? fallback : defaultAttr;
+        let value = typeof fallbackValue === 'number' ? fallbackValue : typeof fallback === 'number' ? fallback : 0;
+        let hadError = false;
+        let message = '';
+
+        if(trimmed === ''){
+          if(typeof fallbackValue === 'number'){
+            input.value = String(fallbackValue);
+            value = fallbackValue;
+          } else if(typeof fallback === 'number'){
+            input.value = String(fallback);
+            value = fallback;
+          } else {
+            input.value = '';
+          }
+          setFieldError(id, '');
+          return { value, hadError };
+        }
+
+        const parsed = Number.parseInt(trimmed, 10);
+        if(Number.isNaN(parsed)){
+          hadError = true;
+          message = 'Enter a number.';
+        } else {
+          value = parsed;
+          if(typeof min === 'number' && parsed < min){
+            hadError = true;
+            value = min;
+            message = `Minimum is ${min}.`;
+          }
+        }
+
+        input.value = String(value);
+        setFieldError(id, message);
+        return { value, hadError };
+      };
+
+      const setupNumericField = (id, options = {}) => {
+        const input = document.getElementById(id);
+        if(!input) return;
+        if(options?.fallback !== undefined && !input.dataset.default){
+          input.dataset.default = String(options.fallback);
+        }
+        const originalPlaceholder = input.getAttribute('placeholder');
+        if(originalPlaceholder && !input.dataset.placeholder){
+          input.dataset.placeholder = originalPlaceholder;
+        }
+        const syncPlaceholder = () => {
+          if(!input.dataset.placeholder) return;
+          if(input.value.trim()){
+            if(input.placeholder) input.placeholder = '';
+          } else if(input.placeholder !== input.dataset.placeholder){
+            input.placeholder = input.dataset.placeholder;
+          }
+        };
+        syncPlaceholder();
+        input.addEventListener('input', () => {
+          syncPlaceholder();
+          if(!input.classList.contains('error')) return;
+          const trimmed = input.value.trim();
+          if(trimmed === ''){
+            setFieldError(id, '');
+            return;
+          }
+          const parsed = Number.parseInt(trimmed, 10);
+          if(!Number.isNaN(parsed) && (options.min === undefined || parsed >= options.min)){
+            setFieldError(id, '');
+          }
+        });
+        input.addEventListener('blur', () => {
+          normalizeNumberField(id, options);
+          syncPlaceholder();
+        });
+      };
+
+      const numericFieldConfigs = {
+        'inp-hands': { fallback: 3, min: 1 },
+        'inp-mc': { fallback: 120, min: 40 }
+      };
+
+      Object.entries(numericFieldConfigs).forEach(([id, config]) => {
+        setupNumericField(id, config);
+      });
+
+      const handleStepperClick = (event) => {
+        const btn = event.target.closest('.field-stepper__btn');
+        if(!btn) return;
+        const targetId = btn.dataset.target;
+        if(!targetId) return;
+        const input = document.getElementById(targetId);
+        if(!input || input.disabled) return;
+        event.preventDefault();
+        const stepAttr = Number.parseInt(input.step || '0', 10);
+        const directionAttr = Number.parseInt(btn.dataset.step || '0', 10);
+        const step = Number.isNaN(stepAttr) || stepAttr === 0 ? 1 : stepAttr;
+        const direction = Number.isNaN(directionAttr) || directionAttr === 0 ? 1 : directionAttr;
+        const defaultAttr = Number.parseInt(input.dataset.default || '', 10);
+        const fallbackValue = Number.isNaN(defaultAttr) ? step : defaultAttr;
+        let current = Number.parseInt(input.value || '', 10);
+        if(Number.isNaN(current)){
+          current = fallbackValue;
+        }
+        let next = current + direction * step;
+        const minAttr = Number.parseInt(input.min || '', 10);
+        if(!Number.isNaN(minAttr)){
+          next = Math.max(minAttr, next);
+        }
+        const maxAttr = Number.parseInt(input.max || '', 10);
+        if(!Number.isNaN(maxAttr)){
+          next = Math.min(maxAttr, next);
+        }
+        input.value = String(next);
+        setFieldError(targetId, '');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.focus({ preventScroll: true });
+      };
+
+      document.addEventListener('click', handleStepperClick);
 
       const start = async () => {
         if(startBusy) return;
         startBusy = true;
         setStartButtonState(true);
         try{
-          const hands = readInt('#inp-hands', {fallback: 3, min: 1});
-          const handsInput = $('#inp-hands');
-          if(handsInput) handsInput.value = String(hands);
-          const mc = readInt('#inp-mc', {fallback: 120, min: 40});
-          const mcInput = $('#inp-mc');
-          if(mcInput) mcInput.value = String(mc);
+          const handsResult = normalizeNumberField('inp-hands', numericFieldConfigs['inp-hands']);
+          const depthResult = normalizeNumberField('inp-mc', numericFieldConfigs['inp-mc']);
+          if(handsResult.hadError || depthResult.hadError){
+            const focusTarget = handsResult.hadError ? $('#inp-hands') : $('#inp-mc');
+            setStartButtonState(false);
+            startBusy = false;
+            focusTarget?.focus({ preventScroll: true });
+            return;
+          }
+          const hands = handsResult.value;
+          const mc = depthResult.value;
           const data = await api('/api/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands, mc})});
           sid = data.session;
           answered = 0;
