@@ -190,7 +190,14 @@
       main {
         flex: 1;
         width: min(860px, calc(100% - 2.5rem));
-        padding-bottom: 4rem;
+        padding-top: var(--space-1);
+        padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+      }
+      main .page-section {
+        margin-top: var(--space-1);
+      }
+      main .page-section > * + * {
+        margin-top: var(--space-1);
       }
       #progress-bar {
         position: fixed;
@@ -766,6 +773,21 @@
         border-radius: var(--radius-lg);
         border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
         box-shadow: var(--shadow-card);
+      }
+      #panel-play .panel-box.panel-soft {
+        padding: var(--space-2) var(--space-2) calc(var(--space-2) + 2px);
+      }
+      #panel-play .panel-soft > * + * {
+        margin-top: var(--space-1);
+      }
+      #feedback {
+        margin-top: var(--space-1);
+      }
+      #feedback-banner {
+        margin-top: var(--space-1);
+      }
+      #primary-controls {
+        margin-top: var(--space-1);
       }
       .action-area.is-hidden {
         display: none;
