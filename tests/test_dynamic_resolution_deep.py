@@ -7,7 +7,30 @@ from gto_trainer.dynamic.generator import Node
 from gto_trainer.dynamic.policy import preflop_options, resolve_for, river_options, turn_options
 
 
-def _make_hand_state(hero: list[int], villain: tuple[int, int], board: list[int], *, pot: float, street: str) -> dict:
+def _make_hand_state(
+    hero: list[int],
+    villain: tuple[int, int],
+    board: list[int],
+    *,
+    pot: float,
+    street: str,
+    hero_contrib: float | None = None,
+    villain_contrib: float | None = None,
+    hero_stack: float | None = None,
+    villain_stack: float | None = None,
+) -> dict:
+    if hero_contrib is None and villain_contrib is None:
+        hero_contrib = pot / 2
+        villain_contrib = pot - hero_contrib
+    elif hero_contrib is None:
+        hero_contrib = pot - (villain_contrib or 0.0)
+    elif villain_contrib is None:
+        villain_contrib = pot - hero_contrib
+
+    hero_stack_val = hero_stack if hero_stack is not None else max(0.0, 100.0 - hero_contrib)
+    villain_stack_val = villain_stack if villain_stack is not None else max(0.0, 100.0 - villain_contrib)
+    effective_stack = min(hero_stack_val, villain_stack_val)
+
     return {
         "pot": pot,
         "hero_cards": tuple(hero),
@@ -17,6 +40,11 @@ def _make_hand_state(hero: list[int], villain: tuple[int, int], board: list[int]
         "board_index": len(board),
         "history": [],
         "nodes": {},
+        "hero_contrib": hero_contrib,
+        "villain_contrib": villain_contrib,
+        "hero_stack": hero_stack_val,
+        "villain_stack": villain_stack_val,
+        "effective_stack": effective_stack,
     }
 
 
@@ -32,7 +60,15 @@ def test_preflop_call_updates_state_and_pot():
     hero = _str_cards(["As", "Kd"])
     villain = _villain_tuple("Qh", "Js")
     board = _str_cards(["2c", "7d", "Jh", "9s", "3d"])
-    state = _make_hand_state(hero, villain, board[:0], pot=3.5, street="preflop")
+    state = _make_hand_state(
+        hero,
+        villain,
+        board[:0],
+        pot=3.5,
+        street="preflop",
+        hero_contrib=1.0,
+        villain_contrib=2.5,
+    )
     node = Node(
         street="preflop",
         description="test",
@@ -61,7 +97,15 @@ def test_preflop_three_bet_folds_weak_villain():
     villain = _villain_tuple("7c", "2d")
     board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
     initial_pot = 3.5
-    state = _make_hand_state(hero, villain, board[:0], pot=initial_pot, street="preflop")
+    state = _make_hand_state(
+        hero,
+        villain,
+        board[:0],
+        pot=initial_pot,
+        street="preflop",
+        hero_contrib=1.0,
+        villain_contrib=initial_pot - 1.0,
+    )
     node = Node(
         street="preflop",
         description="test",
@@ -88,7 +132,15 @@ def test_preflop_three_bet_strong_villain_continues():
     villain = _villain_tuple("As", "Ad")
     board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
     initial_pot = 3.5
-    state = _make_hand_state(hero, villain, board[:0], pot=initial_pot, street="preflop")
+    state = _make_hand_state(
+        hero,
+        villain,
+        board[:0],
+        pot=initial_pot,
+        street="preflop",
+        hero_contrib=1.0,
+        villain_contrib=initial_pot - 1.0,
+    )
     node = Node(
         street="preflop",
         description="test",
@@ -115,7 +167,15 @@ def test_preflop_jam_resolves_and_folds_weak_villain():
     hero = _str_cards(["As", "Ah"])
     villain = _villain_tuple("7c", "2d")
     board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
-    state = _make_hand_state(hero, villain, board[:0], pot=3.5, street="preflop")
+    state = _make_hand_state(
+        hero,
+        villain,
+        board[:0],
+        pot=3.5,
+        street="preflop",
+        hero_contrib=1.0,
+        villain_contrib=2.5,
+    )
     node = Node(
         street="preflop",
         description="test",
@@ -141,7 +201,15 @@ def test_turn_raise_can_force_fold():
     hero = _str_cards(["As", "Kd"])
     villain = _villain_tuple("7c", "2d")
     board = _str_cards(["Ad", "Kh", "Qc", "2s"])
-    state = _make_hand_state(hero, villain, board[:4], pot=10.0, street="turn")
+    state = _make_hand_state(
+        hero,
+        villain,
+        board[:4],
+        pot=10.0,
+        street="turn",
+        hero_contrib=5.0,
+        villain_contrib=5.0,
+    )
     node = Node(
         street="turn",
         description="turn",

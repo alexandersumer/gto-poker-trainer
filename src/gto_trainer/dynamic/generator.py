@@ -64,21 +64,17 @@ class EpisodeBuilder:
         villain_range = _SB_VILLAIN_RANGE if self._tree_seats.villain == SB else _BB_VILLAIN_RANGE
         ctx = self._hand_context(villain_range=villain_range, dealt=dealt)
 
-        pot_pre = self._sb + self._bb
-        pot_after_open = pot_pre + (ctx.open_size - self._sb)
-
         hand_state = self._base_state(
             ctx,
             street="preflop",
-            pot=pot_after_open,
             board_index=0,
         )
 
         preflop = Node(
             street="preflop",
             description=(f"{self._rival_label} opens {ctx.open_size:.1f}bb."),
-            pot_bb=pot_after_open,
-            effective_bb=self._stacks,
+            pot_bb=hand_state["pot"],
+            effective_bb=hand_state["effective_stack"],
             hero_cards=ctx.hero_cards,
             board=[],
             actor=self._display_seats.hero,
@@ -89,8 +85,7 @@ class EpisodeBuilder:
             ),
         )
 
-        pot_flop = pot_after_open + (ctx.open_size - 1.0)
-        postflop = self._postflop_nodes(pot_flop, ctx, hand_state)
+        postflop = self._postflop_nodes(ctx, hand_state)
         hand_state["nodes"] = {
             "preflop": preflop,
             "flop": postflop[0],
@@ -125,9 +120,14 @@ class EpisodeBuilder:
         ctx: _HandContext,
         *,
         street: str,
-        pot: float,
         board_index: int,
     ) -> dict:
+        hero_contrib, villain_contrib = self._initial_contributions(ctx)
+        hero_stack = max(0.0, self._stacks - hero_contrib)
+        villain_stack = max(0.0, self._stacks - villain_contrib)
+        pot = hero_contrib + villain_contrib
+        effective_stack = min(hero_stack, villain_stack)
+
         return {
             "pot": pot,
             "hero_cards": tuple(ctx.hero_cards),
@@ -139,6 +139,11 @@ class EpisodeBuilder:
             "hero_seat": self._display_seats.hero,
             "villain_seat": self._display_seats.villain,
             "villain_range": ctx.villain_range,
+            "hero_contrib": hero_contrib,
+            "villain_contrib": villain_contrib,
+            "hero_stack": hero_stack,
+            "villain_stack": villain_stack,
+            "effective_stack": effective_stack,
         }
 
     def _node_context(
@@ -160,7 +165,6 @@ class EpisodeBuilder:
 
     def _postflop_nodes(
         self,
-        pot_flop: float,
         ctx: _HandContext,
         hand_state: dict,
     ) -> list[Node]:
@@ -169,8 +173,8 @@ class EpisodeBuilder:
         flop_node = Node(
             street="flop",
             description=f"{flop_desc}; {self._rival_label} checks.",
-            pot_bb=pot_flop,
-            effective_bb=self._stacks,
+            pot_bb=hand_state["pot"],
+            effective_bb=hand_state["effective_stack"],
             hero_cards=ctx.hero_cards,
             board=flop_cards,
             actor=self._display_seats.hero,
@@ -181,15 +185,16 @@ class EpisodeBuilder:
             ),
         )
 
-        pot_turn = pot_flop
-        bet_turn = round(0.5 * pot_turn, 2)
+        bet_turn = round(0.5 * hand_state["pot"], 2)
         turn_board = ctx.board[:4]
         turn_desc = " ".join(format_card_ascii(card, upper=True) for card in turn_board)
         turn_node = Node(
             street="turn",
-            description=(f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."),
-            pot_bb=pot_turn,
-            effective_bb=self._stacks,
+            description=(
+                f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {hand_state['pot']:.2f}bb."
+            ),
+            pot_bb=hand_state["pot"],
+            effective_bb=hand_state["effective_stack"],
             hero_cards=ctx.hero_cards,
             board=turn_board,
             actor=self._display_seats.hero,
@@ -200,13 +205,12 @@ class EpisodeBuilder:
             ),
         )
 
-        pot_river = pot_turn + 2 * bet_turn
         river_desc = " ".join(format_card_ascii(card, upper=True) for card in ctx.board)
         river_node = Node(
             street="river",
             description=f"{river_desc}; choose your bet.",
-            pot_bb=pot_river,
-            effective_bb=self._stacks,
+            pot_bb=hand_state["pot"],
+            effective_bb=hand_state["effective_stack"],
             hero_cards=ctx.hero_cards,
             board=ctx.board,
             actor=self._display_seats.hero,
@@ -218,6 +222,19 @@ class EpisodeBuilder:
         )
 
         return [flop_node, turn_node, river_node]
+
+    def _initial_contributions(self, ctx: _HandContext) -> tuple[float, float]:
+        hero_contrib = self._blind_for(self._display_seats.hero)
+        villain_contrib = self._blind_for(self._display_seats.villain)
+
+        opener_blind = self._blind_for(self._display_seats.villain)
+        additional = max(0.0, ctx.open_size - opener_blind)
+        villain_contrib += additional
+
+        return hero_contrib, villain_contrib
+
+    def _blind_for(self, seat: str) -> float:
+        return self._sb if seat == SB else self._bb
 
 
 def generate_episode(

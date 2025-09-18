@@ -46,14 +46,32 @@ def test_generate_episode_structure_and_contexts_bb_defense():
     m = re.search(r"opens\s+([0-9]+\.[0-9])bb", n_pf.description)
     assert m, f"could not parse open size from: {n_pf.description}"
     open_sz = float(m.group(1))
-    # Flop pot should equal preflop pot-after-open plus BB call amount (open_sz - 1)
-    assert abs(n_flop.pot_bb - (n_pf.pot_bb + (open_sz - 1.0))) < 1e-6
-    # If flop checks through, turn pot remains the same
-    assert abs(n_turn.pot_bb - n_flop.pot_bb) < 1e-6
-    # Turn bet is 50% pot
-    assert abs(float(n_turn.context["bet"]) - round(0.5 * n_turn.pot_bb, 2)) < 1e-9
-    # River pot after a turn call increases by 2× the bet
-    assert abs(n_river.pot_bb - (n_turn.pot_bb + 2 * float(n_turn.context["bet"]))) < 1e-6
+    blind_hero = 1.0
+    call_cost = open_sz - blind_hero
+
+    # Before any hero action, all streets share the same initial pot
+    assert n_pf.pot_bb == pytest.approx(n_flop.pot_bb)
+    assert n_flop.pot_bb == pytest.approx(n_turn.pot_bb)
+    assert n_turn.pot_bb == pytest.approx(n_river.pot_bb)
+
+    # Simulate the default line: call preflop, check flop, call turn
+    sim_rng = random.Random(999)
+    pf_opts = options_for(n_pf, sim_rng, 120)
+    call_opt = next(o for o in pf_opts if o.meta and o.meta.get("action") == "call")
+    resolve_for(n_pf, call_opt, sim_rng)
+    assert n_flop.pot_bb == pytest.approx(n_pf.pot_bb + call_cost)
+
+    flop_opts = options_for(n_flop, sim_rng, 120)
+    check_opt = next(o for o in flop_opts if o.meta and o.meta.get("action") == "check")
+    resolve_for(n_flop, check_opt, sim_rng)
+    assert n_turn.pot_bb == pytest.approx(n_flop.pot_bb)
+
+    turn_opts = options_for(n_turn, sim_rng, 120)
+    call_turn = next(o for o in turn_opts if o.meta and o.meta.get("action") == "call")
+    resolve_for(n_turn, call_turn, sim_rng)
+    expected_turn_bet = float(n_turn.context["bet"])
+    assert expected_turn_bet == pytest.approx(round(0.5 * n_flop.pot_bb, 2))
+    assert n_river.pot_bb == pytest.approx(n_turn.pot_bb + expected_turn_bet)
 
     # Rival hole cards are unique and never duplicated on board or hero hand.
     villain_cards = hand_states[0]["villain_cards"]
@@ -87,11 +105,30 @@ def test_generate_episode_structure_and_contexts_sb_ip():
     match = re.search(r"opens\s+([0-9]+\.[0-9])bb", n_pf.description)
     assert match, f"could not parse open size from: {n_pf.description}"
     open_sz = float(match.group(1))
-    assert abs(n_flop.pot_bb - (n_pf.pot_bb + (open_sz - 1.0))) < 1e-6
-    assert abs(n_turn.pot_bb - n_flop.pot_bb) < 1e-6
+    blind_hero = 0.5
+    call_cost = open_sz - blind_hero
+
+    assert n_pf.pot_bb == pytest.approx(n_flop.pot_bb)
+    assert n_flop.pot_bb == pytest.approx(n_turn.pot_bb)
+    assert n_turn.pot_bb == pytest.approx(n_river.pot_bb)
+
+    sim_rng = random.Random(314)
+    pf_opts = options_for(n_pf, sim_rng, 120)
+    call_opt = next(o for o in pf_opts if o.meta and o.meta.get("action") == "call")
+    resolve_for(n_pf, call_opt, sim_rng)
+    assert n_flop.pot_bb == pytest.approx(n_pf.pot_bb + call_cost)
+
+    flop_opts = options_for(n_flop, sim_rng, 120)
+    check_opt = next(o for o in flop_opts if o.meta and o.meta.get("action") == "check")
+    resolve_for(n_flop, check_opt, sim_rng)
+    assert n_turn.pot_bb == pytest.approx(n_flop.pot_bb)
+
+    turn_opts = options_for(n_turn, sim_rng, 120)
+    call_turn = next(o for o in turn_opts if o.meta and o.meta.get("action") == "call")
+    resolve_for(n_turn, call_turn, sim_rng)
     bet_turn = float(n_turn.context["bet"])
-    assert bet_turn == pytest.approx(round(0.5 * n_turn.pot_bb, 2))
-    assert n_river.pot_bb == pytest.approx(n_turn.pot_bb + 2 * bet_turn)
+    assert bet_turn == pytest.approx(round(0.5 * n_flop.pot_bb, 2))
+    assert n_river.pot_bb == pytest.approx(n_turn.pot_bb + bet_turn)
 
     hand_state = hand_states[0]
     villain_cards = hand_state["villain_cards"]
@@ -224,6 +261,11 @@ def test_flop_resolution_folds_weak_villain_combo():
         "full_board": tuple(full_board),
         "street": "flop",
         "nodes": {},
+        "hero_contrib": 3.0,
+        "villain_contrib": 3.0,
+        "hero_stack": 97.0,
+        "villain_stack": 97.0,
+        "effective_stack": 97.0,
     }
     flop_board = full_board[:3]
     node = Node(
@@ -260,6 +302,11 @@ def test_flop_resolution_continues_when_villain_strong():
         "full_board": tuple(full_board),
         "street": "flop",
         "nodes": {},
+        "hero_contrib": 2.5,
+        "villain_contrib": 2.5,
+        "hero_stack": 97.5,
+        "villain_stack": 97.5,
+        "effective_stack": 97.5,
     }
     flop_board = full_board[:3]
     node = Node(
