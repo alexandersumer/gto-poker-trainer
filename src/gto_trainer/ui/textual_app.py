@@ -307,9 +307,9 @@ class TrainerApp(App[None]):
     _config: AppConfig
     CARD_STYLES = {
         0: "#1f2740",  # spades – deep indigo
-        1: "#b34e60",  # hearts – slightly richer rose
-        2: "#1b5f96",  # diamonds – deeper coastal blue
-        3: "#246b58",  # clubs – fuller evergreen
+        1: "#9c3d4f",  # hearts – tempered crimson
+        2: "#185482",  # diamonds – cooled navy teal
+        3: "#295f4b",  # clubs – grounded evergreen
     }
 
     # Cached widget references populated on mount to avoid hot-path lookups
