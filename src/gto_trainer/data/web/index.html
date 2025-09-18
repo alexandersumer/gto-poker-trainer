@@ -1794,13 +1794,6 @@
         });
       };
 
-      const createPlaceholder = () => {
-        const slot = document.createElement('div');
-        slot.className = 'action-slot is-placeholder';
-        slot.setAttribute('aria-hidden', 'true');
-        return slot;
-      };
-
       const chipLabel = (descriptor) => {
         if(!descriptor) return '';
         if(descriptor.meta){
@@ -1923,7 +1916,6 @@
 
         const appendMainButton = (slotKey, descriptor, variant, override = {}) => {
           if(!descriptor){
-            mainRow.appendChild(createPlaceholder());
             return null;
           }
           const btn = document.createElement('button');
