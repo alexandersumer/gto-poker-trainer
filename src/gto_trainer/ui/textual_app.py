@@ -142,8 +142,8 @@ _BASE_CSS = """
         width: 100%;
         padding: 1 2;
         font-family: monospace;
-        background: #ffffff;
-        border: 1px dashed #c8d5f2;
+        background: #f1f4fb;
+        border: 1px dashed #c3cde3;
         color: #1b2d55;
     }
     #options {
@@ -215,7 +215,7 @@ _POST_ACTION_CSS = """
     #btn-quit:hover { background: #eef2f9; }
     Label { text-align: left; width: 100%; color: #1b233d; }
     Static { color: #2d3b62; }
-    #board { white-space: pre-wrap; background: #ffffff; border: 1px dashed #c8d5f2; color: #1b2d55; }
+    #board { white-space: pre-wrap; background: #f1f4fb; border: 1px dashed #c3cde3; color: #1b2d55; }
     #feedback {
         background: #ffffff;
         border: 1px solid #d9e0f3;
@@ -307,9 +307,9 @@ class TrainerApp(App[None]):
     _config: AppConfig
     CARD_STYLES = {
         0: "#1f2740",  # spades – deep indigo
-        1: "#c14657",  # hearts – vivid crimson rose
-        2: "#2f73d2",  # diamonds – bright sapphire blue
-        3: "#2f8a5e",  # clubs – saturated evergreen
+        1: "#d24a5f",  # hearts – punchy crimson
+        2: "#2d6fe6",  # diamonds – vibrant cobalt
+        3: "#2c9a6d",  # clubs – lively jade
     }
 
     # Cached widget references populated on mount to avoid hot-path lookups

@@ -222,9 +222,9 @@ class RichPresenter(Presenter):
         # Tailored four-color deck palette tuned for readability on both light/dark terminals.
         colors = {
             0: "bold white",  # spades – bright neutral
-            1: "bold #c14657",  # hearts – vivid crimson rose
-            2: "bold #2f73d2",  # diamonds – bright sapphire blue
-            3: "bold #2f8a5e",  # clubs – saturated evergreen
+            1: "bold #d24a5f",  # hearts – punchy crimson
+            2: "bold #2d6fe6",  # diamonds – vibrant cobalt
+            3: "bold #2c9a6d",  # clubs – lively jade
         }
         # Keep original order for streets (flop/turn/river)
         parts: list[str] = []

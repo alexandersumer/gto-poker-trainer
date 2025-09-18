@@ -69,12 +69,12 @@
         --outline: #2E3A49;
         --ghost-hover: #1A2330;
         --progress: #1D4ED8;
-        --card-face: #F6F8FB;
-        --card-edge: #DCE3EA;
+        --card-face: #E9EDF5;
+        --card-edge: #D1DAE6;
         --suit-spade: #273347;
-        --suit-heart: #c14657;
-        --suit-club: #2f8a5e;
-        --suit-diamond: #2f73d2;
+        --suit-heart: #d24a5f;
+        --suit-club: #2c9a6d;
+        --suit-diamond: #2d6fe6;
         --action-neutral-text: #E5E7EB;
         --action-neutral-bg: #374151;
         --action-neutral-border: #4B5563;
@@ -143,12 +143,12 @@
         --outline: #DCE2EA;
         --ghost-hover: #F1F4F8;
         --progress: #1D4ED8;
-        --card-face: #FFFFFF;
-        --card-edge: #E5EAF0;
+        --card-face: #FAFBFE;
+        --card-edge: #DEE4EE;
         --suit-spade: #1F2737;
-        --suit-heart: #b23f50;
-        --suit-club: #2c7f57;
-        --suit-diamond: #2c6bcb;
+        --suit-heart: #c33f55;
+        --suit-club: #2d8f62;
+        --suit-diamond: #2d6fe0;
         --action-neutral-text: #1F2937;
         --action-neutral-bg: #E5E7EB;
         --action-neutral-border: #D1D5DB;
@@ -194,14 +194,14 @@
       main {
         flex: 1;
         width: min(860px, calc(100% - 2.5rem));
-        padding-top: calc(var(--space-1) / 2);
+        padding-top: calc(var(--space-1) * 0.35);
         padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
       }
       main .page-section {
-        margin-top: calc(var(--space-1) / 2);
+        margin-top: calc(var(--space-1) * 0.45);
       }
       main .page-section > * + * {
-        margin-top: calc(var(--space-1) * 0.75);
+        margin-top: calc(var(--space-1) * 0.6);
       }
       #progress-bar {
         position: fixed;
@@ -232,18 +232,18 @@
         justify-content: center;
         border-radius: var(--radius-sm);
         border: 1px solid var(--card-edge);
-        padding: 0.45rem 0.9rem;
+        padding: 0.38rem 0.72rem;
         font-size: clamp(1.15rem, 3.4vw, 1.45rem);
         font-weight: 700;
         letter-spacing: 0.4px;
-        margin: 0 0.2rem 0.2rem 0;
+        margin: 0 0.18rem 0.18rem 0;
         background: var(--card-face);
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
         line-height: 1;
       }
       .poker-card {
-        min-width: clamp(48px, 8.5vw, 66px);
-        min-height: clamp(64px, 11vw, 80px);
+        min-width: clamp(44px, 7.6vw, 60px);
+        min-height: clamp(60px, 10.4vw, 74px);
       }
       .card.s { color: var(--suit-spade); }
       .card.c { color: var(--suit-club); }
@@ -573,8 +573,8 @@
         backdrop-filter: blur(12px);
         background: var(--surface-1);
         border-bottom: 1px solid var(--border);
-        padding-top: max(8px, var(--safe-top));
-        padding-bottom: 8px;
+        padding-top: max(6px, var(--safe-top));
+        padding-bottom: 6px;
       }
       .app-header__inner {
         max-width: 42rem;
@@ -582,30 +582,30 @@
         padding-inline: 1rem;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
       }
       .app-header .top-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        min-height: 56px;
+        min-height: 52px;
       }
       .app-header .brand {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.45rem;
       }
       .app-header .brand-mark {
         display: inline-grid;
         place-items: center;
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 1.1rem;
+        width: 2.35rem;
+        height: 2.35rem;
+        border-radius: 1rem;
         background: var(--brand);
         color: var(--on-brand);
-        font-size: 1rem;
+        font-size: 0.95rem;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.24);
-        padding: 0.5rem;
+        padding: 0.45rem;
       }
       .app-header .wordmark {
         font-size: 16px;
@@ -627,8 +627,8 @@
       .header-pill {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        padding: 0.35rem 0.75rem;
+        gap: 0.36rem;
+        padding: 0.3rem 0.7rem;
         border-radius: 9999px;
         border: 1px solid var(--muted-border);
         background: var(--muted-bg);
@@ -704,7 +704,7 @@
       .status-bar {
         display: flex;
         align-items: center;
-        min-height: 44px;
+        min-height: 42px;
         font-size: 0.85rem;
         color: var(--text-secondary);
       }
@@ -716,9 +716,9 @@
       .status-chips {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
         width: 100%;
-        padding: 4px 0;
+        padding: 3px 0;
       }
       .status-chip {
         display: inline-flex;
@@ -748,8 +748,8 @@
         font-weight: 600;
       }
       .status-line {
-        margin-top: calc(var(--space-1) * 0.75);
-        margin-bottom: var(--space-1);
+        margin-top: calc(var(--space-1) * 0.6);
+        margin-bottom: calc(var(--space-1) * 0.85);
         font-size: 0.9rem;
         font-weight: 500;
         color: var(--text-primary);
@@ -775,15 +775,15 @@
         font-weight: 500;
       }
       #panel-play > * + * {
-        margin-top: var(--space-1);
+        margin-top: calc(var(--space-1) * 0.85);
       }
       .action-area {
         position: sticky;
         bottom: calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
         display: flex;
         flex-direction: column;
-        gap: calc(var(--space-1) * 0.8);
-        padding: calc(var(--space-1) - 2px) calc(var(--space-1)) calc(var(--space-1) + env(safe-area-inset-bottom, 0px) - 2px);
+        gap: calc(var(--space-1) * 0.75);
+        padding: calc(var(--space-1) - 3px) calc(var(--space-1)) calc(var(--space-1) + env(safe-area-inset-bottom, 0px) - 3px);
         background: transparent;
         border-radius: var(--radius-md);
         border: 0;
@@ -1264,10 +1264,10 @@
         gap: 6px;
       }
       .density-compact .poker-card {
-        min-width: clamp(42px, 7vw, 52px);
-        min-height: clamp(54px, 9vw, 64px);
+        min-width: clamp(38px, 6.4vw, 48px);
+        min-height: clamp(50px, 8.6vw, 60px);
         font-size: clamp(1.05rem, 3.2vw, 1.25rem);
-        padding: 0.38rem 0.75rem;
+        padding: 0.34rem 0.64rem;
       }
       .density-compact .action-area {
         gap: 6px;
