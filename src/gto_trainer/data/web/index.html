@@ -255,6 +255,20 @@
         background: color-mix(in srgb, var(--surface-2) 82%, var(--brand) 18%);
         border-color: color-mix(in srgb, var(--border) 78%, var(--brand) 22%);
       }
+      #panel-start {
+        --field-bg: color-mix(in srgb, var(--surface-2) 74%, var(--surface-1) 26%);
+        --field-bg-hover: color-mix(in srgb, var(--surface-2) 68%, var(--surface-1) 32%);
+        --field-border: color-mix(in srgb, var(--outline) 72%, transparent);
+        --field-border-hover: color-mix(in srgb, var(--outline) 58%, var(--brand) 18%);
+        --field-border-focus: color-mix(in srgb, var(--brand) 52%, var(--outline) 48%);
+      }
+      :root[data-theme="light"] #panel-start {
+        --field-bg: color-mix(in srgb, var(--surface-2) 70%, var(--brand) 30%);
+        --field-bg-hover: color-mix(in srgb, var(--surface-2) 62%, var(--brand) 38%);
+        --field-border: color-mix(in srgb, var(--border) 62%, var(--brand) 24%);
+        --field-border-hover: color-mix(in srgb, var(--border) 52%, var(--brand) 32%);
+        --field-border-focus: color-mix(in srgb, var(--brand) 58%, var(--border) 42%);
+      }
       .surface-card {
         background: color-mix(in srgb, var(--surface-2) 64%, var(--surface-1) 36%);
         border: 1px solid color-mix(in srgb, var(--outline) 85%, transparent);
@@ -1395,6 +1409,7 @@
       let lastActionSignature = '';
       let selectedMainAction = null;
       let selectedRaiseIndex = null;
+      let autoScrolledToPlay = false;
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
 
@@ -1540,17 +1555,10 @@
         } else {
           actionValue = `${villainSeat} to act`;
         }
-        const heroDetails = [];
-        if(typeof node?.effective_bb === 'number'){
-          heroDetails.push(`${formatBb(node.effective_bb)} eff`);
-        }
         const actionSummary = actionValue.replace(new RegExp(`^${villainSeat}\\s+`, 'i'), '').trim() || actionValue;
-        const items = [
-          { label: villainSeat, value: actionSummary },
+        return [
+          { label: 'Villain', value: actionSummary },
         ];
-        const heroValue = heroDetails.length ? `${heroSeat} • ${heroDetails.join(' • ')}` : heroSeat;
-        items.push({ label: 'You', value: heroValue });
-        return items;
       };
 
       const parseActionLabel = (label) => {
@@ -2082,6 +2090,7 @@
         if(target){ target.classList.remove('hidden'); }
         if(id === '#panel-start'){
           updateHeaderStatus(null);
+          autoScrolledToPlay = false;
           if(statusLineEl){
             statusLineEl.dataset.active = '';
             renderStatusLine([{ label: 'Status', value: 'Ready for a new hand' }]);
@@ -2294,6 +2303,7 @@
           answered = 0;
           pending = false;
           pendingSummary = null;
+          autoScrolledToPlay = false;
           updateStats();
           resetFeedback();
           setSummaryAvailability(false);
@@ -2361,10 +2371,17 @@
         if(clearFeedback){
           resetFeedback();
         }
-        if(window.innerWidth < 640){
+        if(window.innerWidth < 640 && !autoScrolledToPlay){
           window.requestAnimationFrame(()=>{
             const panel = $('#panel-play');
-            if(panel){ panel.scrollIntoView({behavior: 'smooth', block: 'start'}); }
+            if(panel){
+              const rect = panel.getBoundingClientRect();
+              const threshold = window.innerHeight * 0.25;
+              if(rect.top < -threshold || rect.top > threshold){
+                panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+              }
+              autoScrolledToPlay = true;
+            }
           });
         }
       };
@@ -2503,6 +2520,7 @@
           answered = 0;
           pending = false;
           pendingSummary = null;
+          autoScrolledToPlay = false;
           updateStats();
           resetFeedback();
           setStartButtonState(false);
