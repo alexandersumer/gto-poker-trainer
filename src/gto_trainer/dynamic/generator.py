@@ -190,9 +190,7 @@ class EpisodeBuilder:
         turn_desc = " ".join(format_card_ascii(card, upper=True) for card in turn_board)
         turn_node = Node(
             street="turn",
-            description=(
-                f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {hand_state['pot']:.2f}bb."
-            ),
+            description=(f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {hand_state['pot']:.2f}bb."),
             pot_bb=hand_state["pot"],
             effective_bb=hand_state["effective_stack"],
             hero_cards=ctx.hero_cards,
