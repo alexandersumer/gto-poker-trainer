@@ -838,9 +838,25 @@
         background: transparent;
         visibility: hidden;
       }
-      .action-slot.size-slot {
+      .action-slot.bet-slot {
         grid-column: 1 / -1;
         padding: 0;
+      }
+      .bet-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-1) 30%);
+        border: 1px solid color-mix(in srgb, var(--outline) 68%, transparent);
+        border-radius: var(--radius-md);
+        padding: var(--space-1) calc(var(--space-1) + 4px);
+      }
+      .bet-group__label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
       }
       .action-sizes {
         display: grid;
@@ -1259,6 +1275,13 @@
       .density-compact .size-chip {
         padding: 8px 0;
         font-size: 0.74rem;
+      }
+      .density-compact .bet-group {
+        gap: 6px;
+        padding: 10px;
+      }
+      .density-compact .bet-group__label {
+        font-size: 0.68rem;
       }
       .density-compact .status-bar {
         min-height: 40px;
@@ -1887,8 +1910,6 @@
         mainRow.className = 'action-main';
         const sizeRow = document.createElement('div');
         sizeRow.className = 'action-sizes';
-        sizeRow.setAttribute('role', 'group');
-        sizeRow.setAttribute('aria-label', 'Bet sizing');
         let sizeSlot = null;
 
         const mainButtons = {};
@@ -1954,37 +1975,6 @@
           return raiseOpts.find((d) => d.index === selectedRaiseIndex) || null;
         };
 
-        const updateBetButton = (button, includeSize = false) => {
-          if(!button) return;
-          const chosen = includeSize ? activeRaise() : primaryRaise;
-          const formatted = chosen ? formatBetLabel(chosen, { isFacingBet, includeSize: true }) : { label: '', meta: '' };
-          const displayLabel = 'Bet';
-          const displayMeta = ''; // keep button clean; sizing chips show details
-          const labelEl = button.querySelector('.action-label');
-          if(labelEl) labelEl.textContent = displayLabel;
-          let metaEl = button.querySelector('.action-meta');
-          if(displayMeta){
-            if(!metaEl){
-              metaEl = document.createElement('span');
-              metaEl.className = 'action-meta';
-              button.appendChild(metaEl);
-            }
-            metaEl.textContent = displayMeta;
-          } else if(metaEl){
-            metaEl.remove();
-          }
-          if(chosen){
-            button.dataset.optionIndex = String(chosen.index);
-            const datasetLabel = formatted.label || 'Bet';
-            button.dataset.optionLabel = datasetLabel.trim();
-            button.disabled = !!chosen.disabled;
-          } else {
-            button.dataset.optionIndex = '';
-            button.dataset.optionLabel = 'Bet';
-            button.disabled = true;
-          }
-        };
-
         const passiveButton = appendMainButton('passive', passiveOpt, 'action-neutral', {
           label: passiveOpt ? (passiveOpt.action === 'call' ? 'Call' : passiveOpt.action === 'check' ? 'Check' : 'Check/Call') : 'Check/Call',
           meta: '',
@@ -1999,16 +1989,21 @@
           });
         }
 
-        const betButton = appendMainButton('bet', primaryRaise, 'action-primary', {
-          label: 'Bet',
-          meta: '',
-        });
-
-        if(raiseOpts.length > 1){
+        if(raiseOpts.length){
+          sizeRow.setAttribute('role', 'group');
+          sizeRow.setAttribute('aria-label', isFacingBet ? 'Raise sizes' : 'Bet sizes');
+          const betGroup = document.createElement('div');
+          betGroup.className = 'bet-group';
+          const betLabel = document.createElement('div');
+          betLabel.className = 'bet-group__label';
+          betLabel.textContent = isFacingBet ? 'Raise' : 'Bet';
+          betGroup.appendChild(betLabel);
+          betGroup.appendChild(sizeRow);
           sizeSlot = document.createElement('div');
-          sizeSlot.className = 'action-slot size-slot';
-          sizeSlot.appendChild(sizeRow);
+          sizeSlot.className = 'action-slot bet-slot';
+          sizeSlot.appendChild(betGroup);
           mainRow.appendChild(sizeSlot);
+
           const ensured = ensureRaiseSelection();
           raiseOpts.forEach((descriptor) => {
             const chip = document.createElement('button');
@@ -2028,7 +2023,6 @@
               if(chip.disabled || pending) return;
               selectedRaiseIndex = descriptor.index;
               ensureRaiseSelection();
-              updateBetButton(betButton, true);
               Array.from(sizeRow.querySelectorAll('.size-chip')).forEach((nodeChip) => {
                 nodeChip.classList.toggle('is-selected', nodeChip === chip);
               });
@@ -2061,22 +2055,7 @@
           });
         }
 
-        const handleBetClick = () => {
-          const descriptor = raiseOpts.length ? raiseOpts[0] : primaryRaise;
-          if(descriptor){
-            choose(descriptor.index);
-          }
-        };
-
-        if(betButton){
-          betButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            handleBetClick();
-          });
-        }
-
         refreshMainArming();
-        updateBetButton(betButton, true);
 
         actionArea.appendChild(mainRow);
         announceAction('');
