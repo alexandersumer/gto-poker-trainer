@@ -341,69 +341,11 @@
       .field-shell select,
       .field-shell textarea {
         width: 100%;
-        padding-right: 3.6rem;
       }
       .field-shell:focus-within input,
       .field-shell:focus-within select,
       .field-shell:focus-within textarea {
         background: var(--field-bg);
-      }
-      .field-stepper {
-        position: absolute;
-        inset-block: 6px;
-        right: 6px;
-        display: inline-flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 2px;
-        padding: 2px;
-        border-radius: calc(var(--radius-md) - 4px);
-        border: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
-        background: color-mix(in srgb, var(--surface-2) 60%, var(--surface-1) 40%);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--outline) 22%, transparent);
-        pointer-events: auto;
-      }
-      .field-stepper button {
-        flex: 1 1 auto;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 0;
-        background: transparent;
-        color: var(--text-secondary);
-        font-size: 0.82rem;
-        font-weight: 700;
-        border-radius: calc(var(--radius-sm) - 2px);
-        min-width: 28px;
-        transition: background-color 0.18s ease, color 0.18s ease;
-        cursor: pointer;
-      }
-      .field-stepper button:hover {
-        background: color-mix(in srgb, var(--ghost-hover) 78%, transparent);
-        color: var(--text-primary);
-      }
-      .field-stepper button:focus-visible {
-        outline: 2px solid var(--field-border-focus);
-        outline-offset: 1px;
-      }
-      .field-stepper button:active {
-        transform: translateY(0.5px);
-      }
-      .field-shell input:disabled + .field-stepper,
-      .field-shell select:disabled + .field-stepper,
-      .field-shell textarea:disabled + .field-stepper {
-        opacity: 0.4;
-        pointer-events: none;
-      }
-      .field-shell:focus-within .field-stepper {
-        border-color: var(--field-border-focus);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--field-border-focus) 35%, transparent);
-      }
-      .field-shell input.error + .field-stepper,
-      .field-shell select.error + .field-stepper,
-      .field-shell textarea.error + .field-stepper {
-        border-color: var(--field-error-border);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--field-error-border) 36%, transparent);
       }
       .field-helper {
         color: var(--field-helper);
@@ -1009,6 +951,37 @@
         font-size: 1.05rem;
         font-weight: 600;
         color: var(--text-primary);
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .info-cards .card {
+        margin-bottom: 0;
+      }
+      #hand,
+      #board {
+        flex-wrap: nowrap;
+      }
+      #board {
+        overflow-x: auto;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+      #board::-webkit-scrollbar {
+        height: 4px;
+      }
+      #board::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--text-secondary) 35%, transparent);
+        border-radius: 999px;
+      }
+      @media (max-width: 480px) {
+        #board {
+          gap: 6px;
+        }
+        #board .card {
+          padding: 0.3rem 0.55rem;
+          font-size: 0.96rem;
+        }
       }
       .feedback-drawer {
         position: fixed;
@@ -1197,10 +1170,6 @@
               <label class="field-label" for="inp-hands">Hands</label>
               <div class="field-shell">
                 <input id="inp-hands" type="number" min="1" value="3" data-default="3" placeholder="e.g., 3" class="w-full" inputmode="numeric" aria-describedby="helper-hands inp-hands-error" />
-                <div class="field-stepper" aria-hidden="true">
-                  <button type="button" class="field-stepper__btn" data-step="-1" data-target="inp-hands" aria-label="Decrease hands" aria-controls="inp-hands">−</button>
-                  <button type="button" class="field-stepper__btn" data-step="1" data-target="inp-hands" aria-label="Increase hands" aria-controls="inp-hands">+</button>
-                </div>
               </div>
               <p id="helper-hands" class="field-helper">Choose how many scenarios play back-to-back.</p>
               <p id="inp-hands-error" class="field-error-message" role="status" aria-live="polite" hidden></p>
@@ -1209,10 +1178,6 @@
               <label class="field-label" for="inp-mc">Depth</label>
               <div class="field-shell">
                 <input id="inp-mc" type="number" min="40" step="10" value="120" data-default="120" placeholder="e.g., 120" class="w-full" inputmode="numeric" aria-describedby="helper-depth inp-mc-error" />
-                <div class="field-stepper" aria-hidden="true">
-                  <button type="button" class="field-stepper__btn" data-step="-1" data-target="inp-mc" aria-label="Decrease depth" aria-controls="inp-mc">−</button>
-                  <button type="button" class="field-stepper__btn" data-step="1" data-target="inp-mc" aria-label="Increase depth" aria-controls="inp-mc">+</button>
-                </div>
               </div>
               <p id="helper-depth" class="field-helper long">More trials yield tighter EV estimates but extend the compute per hand.</p>
               <p id="inp-mc-error" class="field-error-message" role="status" aria-live="polite" hidden></p>
@@ -1924,7 +1889,7 @@
             }
             chip.addEventListener('click', (event) => {
               event.preventDefault();
-              if(chip.disabled) return;
+              if(chip.disabled || pending) return;
               selectedMainAction = 'bet';
               selectedRaiseIndex = descriptor.index;
               ensureRaiseSelection();
@@ -1933,6 +1898,10 @@
                 nodeChip.classList.toggle('is-selected', nodeChip === chip);
               });
               refreshMainArming();
+              window.requestAnimationFrame(() => {
+                if(pending) return;
+                choose(descriptor.index);
+              });
             });
             sizeRow.appendChild(chip);
           });
@@ -2280,42 +2249,6 @@
       Object.entries(numericFieldConfigs).forEach(([id, config]) => {
         setupNumericField(id, config);
       });
-
-      const handleStepperClick = (event) => {
-        const btn = event.target.closest('.field-stepper__btn');
-        if(!btn) return;
-        const targetId = btn.dataset.target;
-        if(!targetId) return;
-        const input = document.getElementById(targetId);
-        if(!input || input.disabled) return;
-        event.preventDefault();
-        const stepAttr = Number.parseInt(input.step || '0', 10);
-        const directionAttr = Number.parseInt(btn.dataset.step || '0', 10);
-        const step = Number.isNaN(stepAttr) || stepAttr === 0 ? 1 : stepAttr;
-        const direction = Number.isNaN(directionAttr) || directionAttr === 0 ? 1 : directionAttr;
-        const defaultAttr = Number.parseInt(input.dataset.default || '', 10);
-        const fallbackValue = Number.isNaN(defaultAttr) ? step : defaultAttr;
-        let current = Number.parseInt(input.value || '', 10);
-        if(Number.isNaN(current)){
-          current = fallbackValue;
-        }
-        let next = current + direction * step;
-        const minAttr = Number.parseInt(input.min || '', 10);
-        if(!Number.isNaN(minAttr)){
-          next = Math.max(minAttr, next);
-        }
-        const maxAttr = Number.parseInt(input.max || '', 10);
-        if(!Number.isNaN(maxAttr)){
-          next = Math.min(maxAttr, next);
-        }
-        input.value = String(next);
-        setFieldError(targetId, '');
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        input.focus({ preventScroll: true });
-      };
-
-      document.addEventListener('click', handleStepperClick);
 
       const start = async () => {
         if(startBusy) return;
