@@ -954,6 +954,10 @@
       .feedback-line strong {
         color: var(--text-primary);
       }
+      .feedback-resolution {
+        font-size: 0.85rem;
+        color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+      }
       .feedback-detail {
         display: inline-flex;
         align-items: center;
@@ -1294,6 +1298,7 @@
           <div class="feedback-text">
             <span id="feedback-recommendation" class="feedback-line"></span>
             <span id="feedback-choice" class="feedback-line"></span>
+            <span id="feedback-resolution" class="feedback-line feedback-resolution hidden"></span>
           </div>
           <button type="button" id="feedback-detail" class="feedback-detail" aria-label="Show EV breakdown">ℹ︎</button>
         </div>
@@ -1438,6 +1443,7 @@
       const feedbackBanner = $('#feedback-banner');
       const feedbackRecommendation = $('#feedback-recommendation');
       const feedbackChoice = $('#feedback-choice');
+      const feedbackResolution = $('#feedback-resolution');
       const feedbackDetailBtn = $('#feedback-detail');
       const feedbackDrawer = $('#feedback-drawer');
       const feedbackDrawerBody = $('#feedback-drawer-body');
@@ -2099,9 +2105,19 @@
         const youLine = !correct && deltaValue
           ? `You: ${chosenLabel} (−${formatBb(deltaValue)})`
           : `You: ${chosenLabel}`;
+        const resolutionNote = feedback?.chosen?.resolution_note || '';
         feedbackBanner.dataset.state = correct ? 'correct' : 'incorrect';
         feedbackRecommendation.textContent = bestLine;
         feedbackChoice.textContent = youLine;
+        if(feedbackResolution){
+          if(resolutionNote){
+            feedbackResolution.textContent = resolutionNote;
+            feedbackResolution.classList.remove('hidden');
+          } else {
+            feedbackResolution.textContent = '';
+            feedbackResolution.classList.add('hidden');
+          }
+        }
         feedbackBanner.classList.remove('hidden');
       };
 
@@ -2111,6 +2127,10 @@
           feedbackBanner.removeAttribute('data-state');
           if(feedbackRecommendation) feedbackRecommendation.textContent = '';
           if(feedbackChoice) feedbackChoice.textContent = '';
+          if(feedbackResolution){
+            feedbackResolution.textContent = '';
+            feedbackResolution.classList.add('hidden');
+          }
         }
         lastFeedback = null;
         hideFeedbackDrawer();
@@ -2529,9 +2549,6 @@
                 <dd class="text-xs text-muted">Avg / hand: ${formatBb(avgEvLoss)}</dd>
               </div>
             </dl>
-            <div class="mt-4 surface-card px-4 py-3 text-sm text-secondary">
-              Keep iterating: review the final hand’s feedback before starting a fresh session to reinforce the optimal line.
-            </div>
           `;
         }
         pendingSummary = s;

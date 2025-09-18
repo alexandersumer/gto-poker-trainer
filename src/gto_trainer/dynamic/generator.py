@@ -51,6 +51,7 @@ class EpisodeBuilder:
         self._bb = bb
         self._display_seats = seats
         self._tree_seats = seats if seats.hero == BB else SeatAssignment(hero=BB, villain=SB)
+        self._rival_label = f"Rival ({self._display_seats.villain})"
 
     def build(self) -> Episode:
         return self._build_classic_tree()
@@ -76,8 +77,7 @@ class EpisodeBuilder:
         preflop = Node(
             street="preflop",
             description=(
-                f"Rival opens {ctx.open_size:.1f}bb. "
-                f"You're {self._display_seats.hero} with {int(self._stacks)}bb behind."
+                f"{self._rival_label} opens {ctx.open_size:.1f}bb."
             ),
             pot_bb=pot_after_open,
             effective_bb=self._stacks,
@@ -170,7 +170,7 @@ class EpisodeBuilder:
         flop_desc = " ".join(format_card_ascii(card, upper=True) for card in flop_cards)
         flop_node = Node(
             street="flop",
-            description=f"{flop_desc}; Rival checks.",
+            description=f"{flop_desc}; {self._rival_label} checks.",
             pot_bb=pot_flop,
             effective_bb=self._stacks,
             hero_cards=ctx.hero_cards,
@@ -189,7 +189,7 @@ class EpisodeBuilder:
         turn_desc = " ".join(format_card_ascii(card, upper=True) for card in turn_board)
         turn_node = Node(
             street="turn",
-            description=(f"{turn_desc}; Rival bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."),
+            description=(f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."),
             pot_bb=pot_turn,
             effective_bb=self._stacks,
             hero_cards=ctx.hero_cards,

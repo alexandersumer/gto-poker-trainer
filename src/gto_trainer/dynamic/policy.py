@@ -151,7 +151,7 @@ def _rebuild_turn_node(hand_state: dict[str, Any], pot: float) -> None:
     board_turn = turn_node.board
     board_str = " ".join(format_card_ascii(c, upper=True) for c in board_turn)
     villain_seat = str(hand_state.get("villain_seat", "SB"))
-    turn_node.description = f"{board_str}; {villain_seat} bets {bet_turn:.2f}bb into {pot:.2f}bb."
+    turn_node.description = f"{board_str}; Rival ({villain_seat}) bets {bet_turn:.2f}bb into {pot:.2f}bb."
 
 
 def _rebuild_river_node(hand_state: dict[str, Any], pot: float) -> None:
