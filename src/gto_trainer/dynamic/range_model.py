@@ -1,4 +1,4 @@
-"""Villain range modelling helpers.
+"""Rival range modelling helpers.
 
 The heuristics here aim for consistency and transparency rather than perfectly
 replicating commercial solvers. We rank every possible two-card holding via a

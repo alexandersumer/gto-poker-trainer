@@ -1,6 +1,6 @@
 # GTO Trainer
 
-GTO Trainer is a heads-up no-limit hold’em practice environment with both a Textual CLI and a FastAPI web UI. Each scenario deals a full villain hand, lets the opponent react street by street, and reports the EV delta for every action you take.
+GTO Trainer is a heads-up no-limit hold’em practice environment with both a Textual CLI and a FastAPI web UI. Each scenario deals a full rival hand, lets the opponent react street by street, and reports the EV delta for every action you take.
 
 ## Project status
 
@@ -78,4 +78,3 @@ CI runs the same trio as `make check` (`ruff format --check`, `ruff check`, `pyt
 ## License
 
 Proprietary (see `pyproject.toml`).
-

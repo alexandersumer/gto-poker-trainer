@@ -76,7 +76,7 @@ class EpisodeBuilder:
         preflop = Node(
             street="preflop",
             description=(
-                f"Villain opens {ctx.open_size:.1f}bb. "
+                f"Rival opens {ctx.open_size:.1f}bb. "
                 f"You're {self._display_seats.hero} with {int(self._stacks)}bb behind."
             ),
             pot_bb=pot_after_open,
@@ -170,7 +170,7 @@ class EpisodeBuilder:
         flop_desc = " ".join(format_card_ascii(card, upper=True) for card in flop_cards)
         flop_node = Node(
             street="flop",
-            description=f"{flop_desc}; Villain checks.",
+            description=f"{flop_desc}; Rival checks.",
             pot_bb=pot_flop,
             effective_bb=self._stacks,
             hero_cards=ctx.hero_cards,
@@ -189,7 +189,7 @@ class EpisodeBuilder:
         turn_desc = " ".join(format_card_ascii(card, upper=True) for card in turn_board)
         turn_node = Node(
             street="turn",
-            description=(f"{turn_desc}; Villain bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."),
+            description=(f"{turn_desc}; Rival bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."),
             pot_bb=pot_turn,
             effective_bb=self._stacks,
             hero_cards=ctx.hero_cards,

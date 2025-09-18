@@ -55,7 +55,7 @@ def test_generate_episode_structure_and_contexts_bb_defense():
     # River pot after a turn call increases by 2× the bet
     assert abs(n_river.pot_bb - (n_turn.pot_bb + 2 * float(n_turn.context["bet"]))) < 1e-6
 
-    # Villain hole cards are unique and never duplicated on board or hero hand.
+    # Rival hole cards are unique and never duplicated on board or hero hand.
     villain_cards = hand_states[0]["villain_cards"]
     assert isinstance(villain_cards, tuple) and len(villain_cards) == 2
     hero_cards = ep.nodes[0].hero_cards

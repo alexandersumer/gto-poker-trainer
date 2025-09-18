@@ -117,7 +117,7 @@ def test_summary_scoring_matches_decision_scores():
             "room_ev": 0.7,
             "ev_loss": 0.5,
             "hand_ended": True,
-            "resolution_note": "Villain folds",
+            "resolution_note": "Rival folds",
             "hand_index": 0,
             "pot_bb": 12.0,
         },
@@ -147,7 +147,7 @@ def test_summary_counts_unique_hands():
             "room_ev": 0.9,
             "ev_loss": 0.3,
             "hand_ended": True,
-            "resolution_note": "Villain folds to your 3-bet. Pot 4.00bb awarded (net +2.50bb).",
+            "resolution_note": "Rival folds to your 3-bet. Pot 4.00bb awarded (net +2.50bb).",
             "hand_index": 0,
         },
         {

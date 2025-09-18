@@ -49,7 +49,7 @@ def test_default_runs_play_and_shows_summary_and_loops_until_quit():
     )
     assert "GTO Trainer" in out
     assert "PREFLOP" in out
-    assert "FLOP" in out or "TURN" in out or "RIVER" in out or "Villain" in out
+    assert "FLOP" in out or "TURN" in out or "RIVER" in out or "Rival" in out
     assert "Session Summary" in out
     # Should have started a new session after the first summary
     assert out.count("Hand 1/1") >= 2

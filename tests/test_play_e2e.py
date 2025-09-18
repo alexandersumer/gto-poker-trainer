@@ -36,8 +36,8 @@ def test_play_shows_all_streets_and_summary_then_loops_until_quit():
     assert cp.returncode == 0, out
     assert "GTO Trainer" in out
     assert "PREFLOP" in out
-    # Dynamic opponent may end the hand early; ensure at least one post-flop update or villain note.
-    assert "FLOP" in out or "TURN" in out or "RIVER" in out or "Villain" in out
+    # Dynamic opponent may end the hand early; ensure at least one post-flop update or rival note.
+    assert "FLOP" in out or "TURN" in out or "RIVER" in out or "Rival" in out
     assert "Session Summary" in out
     # Verify next session started by seeing another hand header
     assert out.count("Hand 1/1") >= 2
