@@ -917,22 +917,22 @@
         border-color: var(--action-accent-selected-border);
       }
       .action-button.action-destructive {
-        background: var(--action-caution-bg);
-        border-color: var(--action-caution-border);
-        color: var(--action-caution-text);
+        background: color-mix(in srgb, var(--action-caution-bg) 70%, var(--surface-1) 30%);
+        border-color: color-mix(in srgb, var(--action-caution-border) 70%, transparent);
+        color: color-mix(in srgb, var(--action-caution-text) 85%, var(--text-primary) 15%);
       }
       .action-button.action-destructive:hover {
-        background: color-mix(in srgb, var(--action-caution-bg) 85%, var(--action-caution-selected-bg) 15%);
-        border-color: var(--action-caution-selected-border);
+        background: color-mix(in srgb, var(--action-caution-bg) 65%, var(--surface-1) 35%);
+        border-color: color-mix(in srgb, var(--action-caution-selected-border) 70%, transparent);
       }
       .action-button.action-negative {
-        background: var(--action-negative-bg);
-        border-color: var(--action-negative-border);
-        color: var(--action-negative-text);
+        background: color-mix(in srgb, var(--action-negative-bg) 70%, var(--surface-1) 30%);
+        border-color: color-mix(in srgb, var(--action-negative-border) 70%, transparent);
+        color: color-mix(in srgb, var(--action-negative-text) 85%, var(--text-primary) 15%);
       }
       .action-button.action-negative:hover {
-        background: color-mix(in srgb, var(--action-negative-bg) 85%, var(--action-negative-selected-bg) 15%);
-        border-color: var(--action-negative-selected-border);
+        background: color-mix(in srgb, var(--action-negative-bg) 65%, var(--surface-1) 35%);
+        border-color: color-mix(in srgb, var(--action-negative-selected-border) 70%, transparent);
       }
       .action-button[disabled] {
         opacity: 0.55;
