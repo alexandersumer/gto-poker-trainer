@@ -221,10 +221,10 @@
         justify-content: center;
         border-radius: var(--radius-sm);
         border: 1px solid var(--card-edge);
-        padding: 0.35rem 0.75rem;
+        padding: 0.35rem 0.72rem;
         font-weight: 700;
         letter-spacing: 0.4px;
-        margin: 0 0.25rem 0.25rem 0;
+        margin: 0 0.2rem 0.2rem 0;
         background: var(--card-face);
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
       }
@@ -246,6 +246,14 @@
       }
       .panel-soft {
         background: color-mix(in srgb, var(--surface-2) 58%, var(--surface-1) 42%);
+      }
+      #panel-start .panel-box {
+        background: color-mix(in srgb, var(--surface-2) 72%, var(--surface-1) 28%);
+        border-color: color-mix(in srgb, var(--outline) 82%, transparent);
+      }
+      :root[data-theme="light"] #panel-start .panel-box {
+        background: color-mix(in srgb, var(--surface-2) 82%, var(--brand) 18%);
+        border-color: color-mix(in srgb, var(--border) 78%, var(--brand) 22%);
       }
       .surface-card {
         background: color-mix(in srgb, var(--surface-2) 64%, var(--surface-1) 36%);
@@ -935,14 +943,14 @@
       .info-row {
         display: flex;
         align-items: center;
-        gap: var(--space-2);
+        gap: var(--space-1);
       }
       .info-label {
-        font-size: 0.72rem;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        text-transform: none;
         color: var(--text-tertiary);
-        min-width: 3.5rem;
+        min-width: 2.75rem;
       }
       .info-cards {
         display: flex;
@@ -955,7 +963,7 @@
         min-width: 0;
       }
       .info-cards .card {
-        margin-bottom: 0;
+        margin: 0;
       }
       #hand,
       #board {
@@ -975,12 +983,26 @@
         border-radius: 999px;
       }
       @media (max-width: 480px) {
-        #board {
+        .info-row {
           gap: 6px;
+          align-items: flex-start;
         }
+        .info-label {
+          font-size: 0.66rem;
+          letter-spacing: 0.08em;
+          min-width: 2.35rem;
+        }
+        .info-cards {
+          gap: 4px;
+        }
+        #hand,
+        #board {
+          gap: 4px;
+        }
+        #hand .card,
         #board .card {
-          padding: 0.3rem 0.55rem;
-          font-size: 0.96rem;
+          padding: 0.28rem 0.48rem;
+          font-size: 0.9rem;
         }
       }
       .feedback-drawer {
@@ -1191,11 +1213,11 @@
         <div class="rounded-lg panel-box panel-soft p-5">
           <div id="card-summary" class="info-card">
             <div class="info-row">
-              <span class="info-label">YOU</span>
+              <span class="info-label">Hand</span>
               <div id="hand" class="info-cards"></div>
             </div>
             <div class="info-row">
-              <span class="info-label">BOARD</span>
+              <span class="info-label">Board</span>
               <div id="board" class="info-cards"></div>
             </div>
           </div>
@@ -1518,16 +1540,17 @@
         } else {
           actionValue = `${villainSeat} to act`;
         }
-        const youParts = [heroSeat];
+        const heroDetails = [];
         if(typeof node?.effective_bb === 'number'){
-          youParts.push(`${formatBb(node.effective_bb)} eff`);
+          heroDetails.push(`${formatBb(node.effective_bb)} eff`);
         }
-        const potValue = typeof node?.pot_bb === 'number' ? formatBb(node.pot_bb) : '—';
-        return [
-          { label: 'Vs', value: actionValue },
-          { label: 'You', value: youParts.join(' • ') },
-          { label: 'Pot', value: potValue },
+        const actionSummary = actionValue.replace(new RegExp(`^${villainSeat}\\s+`, 'i'), '').trim() || actionValue;
+        const items = [
+          { label: villainSeat, value: actionSummary },
         ];
+        const heroValue = heroDetails.length ? `${heroSeat} • ${heroDetails.join(' • ')}` : heroSeat;
+        items.push({ label: 'You', value: heroValue });
+        return items;
       };
 
       const parseActionLabel = (label) => {
