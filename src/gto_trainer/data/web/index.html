@@ -2478,6 +2478,21 @@
         const node = payload.node;
         const descriptor = parseDescriptor(node);
         updateHeaderStatus(node);
+        const streetName = streetLabel(node.street);
+        const statusBits = [];
+        if(streetName && streetName.toLowerCase() != 'ready'){
+          statusBits.push(streetName);
+        }
+        if(node?.hand_no && node?.total_hands){
+          statusBits.push(`Hand ${node.hand_no}/${node.total_hands}`);
+        }
+        if(descriptor){
+          statusBits.push(descriptor);
+        }
+        if(!statusBits.length){
+          statusBits.push('Decision live');
+        }
+        setStatusMessage(statusBits.join(' — '));
         if(statusLineEl){
           statusLineEl.dataset.active = 'node';
           renderStatusLine(formatStatusLine(node, descriptor));
