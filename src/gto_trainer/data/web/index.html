@@ -817,6 +817,25 @@
       #primary-controls {
         margin-top: calc(var(--space-1) + 4px);
       }
+      .next-hand {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-1);
+        margin-top: calc(var(--space-1) + 4px);
+        padding: calc(var(--space-1) + 2px) calc(var(--space-1) + 6px);
+        background: color-mix(in srgb, var(--surface-2) 68%, var(--surface-1) 32%);
+        border: 1px solid color-mix(in srgb, var(--outline) 65%, transparent);
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+      }
+      .next-hand.hidden {
+        display: none;
+      }
+      .next-hand__text {
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
       .action-area.is-hidden {
         display: none;
       }
@@ -1370,9 +1389,6 @@
           <button id="btn-summary" class="hidden rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-muted">
             View summary
           </button>
-          <button id="btn-next-hand" class="hidden rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-chip">
-            Next hand
-          </button>
         </div>
 
         <div id="feedback-banner" class="feedback-banner hidden" role="status" aria-live="polite">
@@ -1382,6 +1398,13 @@
             <span id="feedback-resolution" class="feedback-line feedback-resolution hidden"></span>
           </div>
           <button type="button" id="feedback-detail" class="feedback-detail" aria-label="Show more feedback">More</button>
+        </div>
+
+        <div id="next-hand-container" class="next-hand hidden">
+          <span class="next-hand__text">Hand complete. Ready when you are.</span>
+          <button id="btn-next-hand" class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-chip">
+            Next hand
+          </button>
         </div>
 
         <div class="mt-3 flex justify-center" id="end-session-container">
@@ -1536,6 +1559,7 @@
       const endBtn = $('#btn-end');
       const summaryCloseBtn = $('#btn-summary-close');
       const newBtn = $('#btn-new');
+      const nextHandContainer = $('#next-hand-container');
       const nextHandBtn = $('#btn-next-hand');
       const actionAnnouncer = $('#action-announcer');
       let lastFeedback = null;
@@ -1545,17 +1569,15 @@
       let autoScrolledToPlay = false;
       let betGroupCounter = 0;
       let pendingNextPayload = null;
-      let autoAdvanceTimer = null;
 
       const clearNextHandQueue = () => {
-        if(autoAdvanceTimer){
-          clearTimeout(autoAdvanceTimer);
-          autoAdvanceTimer = null;
-        }
         pendingNextPayload = null;
         if(nextHandBtn){
           nextHandBtn.classList.add('hidden');
           nextHandBtn.disabled = false;
+        }
+        if(nextHandContainer){
+          nextHandContainer.classList.add('hidden');
         }
       };
 
@@ -1572,10 +1594,11 @@
         if(nextHandBtn){
           nextHandBtn.classList.remove('hidden');
           nextHandBtn.disabled = false;
+          window.requestAnimationFrame(() => nextHandBtn.focus({ preventScroll: true }));
         }
-        autoAdvanceTimer = window.setTimeout(() => {
-          advanceToNextHand();
-        }, 1600);
+        if(nextHandContainer){
+          nextHandContainer.classList.remove('hidden');
+        }
       };
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
