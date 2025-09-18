@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import random
 
+import gto_trainer.dynamic.policy as pol
 from gto_trainer.dynamic.cards import str_to_int
 from gto_trainer.dynamic.generator import Node
 from gto_trainer.dynamic.policy import preflop_options, resolve_for, river_options, turn_options
+from gto_trainer.dynamic.villain_strategy import VillainDecision
 
 
 def _make_hand_state(
@@ -92,7 +94,7 @@ def test_preflop_call_updates_state_and_pot():
     assert "call" in (res.note or "").lower()
 
 
-def test_preflop_three_bet_folds_weak_villain():
+def test_preflop_three_bet_folds_weak_villain(monkeypatch):
     hero = _str_cards(["As", "Ad"])
     villain = _villain_tuple("7c", "2d")
     board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
@@ -117,6 +119,11 @@ def test_preflop_three_bet_folds_weak_villain():
         context={"open_size": 2.5, "hand_state": state},
     )
 
+    monkeypatch.setattr(
+        pol.villain_strategy,
+        "decide_action",
+        lambda _meta, _cards, _rng: VillainDecision(folds=True),
+    )
     opts = preflop_options(node, random.Random(2), mc_trials=160)
     three_bet = next(o for o in opts if o.key.startswith("3-bet"))
     res = resolve_for(node, three_bet, random.Random(2))
@@ -127,7 +134,7 @@ def test_preflop_three_bet_folds_weak_villain():
     assert "net" in (res.note or "")
 
 
-def test_preflop_three_bet_strong_villain_continues():
+def test_preflop_three_bet_strong_villain_continues(monkeypatch):
     hero = _str_cards(["7c", "2d"])
     villain = _villain_tuple("As", "Ad")
     board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
@@ -152,6 +159,11 @@ def test_preflop_three_bet_strong_villain_continues():
         context={"open_size": 2.5, "hand_state": state},
     )
 
+    monkeypatch.setattr(
+        pol.villain_strategy,
+        "decide_action",
+        lambda _meta, _cards, _rng: VillainDecision(folds=False),
+    )
     opts = preflop_options(node, random.Random(3), mc_trials=160)
     three_bet = next(o for o in opts if o.key.startswith("3-bet"))
     res = resolve_for(node, three_bet, random.Random(3))
@@ -163,7 +175,7 @@ def test_preflop_three_bet_strong_villain_continues():
     assert "calls" in (res.note or "").lower()
 
 
-def test_preflop_jam_resolves_and_folds_weak_villain():
+def test_preflop_jam_resolves_and_folds_weak_villain(monkeypatch):
     hero = _str_cards(["As", "Ah"])
     villain = _villain_tuple("7c", "2d")
     board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
@@ -187,6 +199,11 @@ def test_preflop_jam_resolves_and_folds_weak_villain():
         context={"open_size": 2.5, "hand_state": state},
     )
 
+    monkeypatch.setattr(
+        pol.villain_strategy,
+        "decide_action",
+        lambda _meta, _cards, _rng: VillainDecision(folds=True),
+    )
     opts = preflop_options(node, random.Random(7), mc_trials=200)
     jam_opt = next(o for o in opts if "All-in" in o.key)
     res = resolve_for(node, jam_opt, random.Random(7))
@@ -197,7 +214,7 @@ def test_preflop_jam_resolves_and_folds_weak_villain():
     assert "net" in (res.note or "")
 
 
-def test_turn_raise_can_force_fold():
+def test_turn_raise_can_force_fold(monkeypatch):
     hero = _str_cards(["As", "Kd"])
     villain = _villain_tuple("7c", "2d")
     board = _str_cards(["Ad", "Kh", "Qc", "2s"])
@@ -221,6 +238,11 @@ def test_turn_raise_can_force_fold():
         context={"facing": "bet", "bet": 5.0, "open_size": 2.5, "hand_state": state},
     )
 
+    monkeypatch.setattr(
+        pol.villain_strategy,
+        "decide_action",
+        lambda _meta, _cards, _rng: VillainDecision(folds=True),
+    )
     opts = turn_options(node, random.Random(4), mc_trials=120)
     raise_opt = next(o for o in opts if o.key.startswith("Raise"))
     res = resolve_for(node, raise_opt, random.Random(4))
@@ -258,7 +280,7 @@ def test_turn_call_moves_to_river_when_villain_strong():
     assert "call" in (res.note or "").lower()
 
 
-def test_river_bet_call_reveals_villain():
+def test_river_bet_call_reveals_villain(monkeypatch):
     hero = _str_cards(["7c", "2d"])
     villain = _villain_tuple("As", "Ad")
     board = _str_cards(["Ad", "Kh", "Qc", "2s", "9d"])
@@ -274,6 +296,11 @@ def test_river_bet_call_reveals_villain():
         context={"facing": "oop-check", "open_size": 2.5, "hand_state": state},
     )
 
+    monkeypatch.setattr(
+        pol.villain_strategy,
+        "decide_action",
+        lambda _meta, _cards, _rng: VillainDecision(folds=False),
+    )
     opts = river_options(node, random.Random(6), mc_trials=120)
     bet_opt = next(o for o in opts if o.key.startswith("Bet 100"))
     res = resolve_for(node, bet_opt, random.Random(6))

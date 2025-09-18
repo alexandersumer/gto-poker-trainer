@@ -159,13 +159,13 @@ class RichPresenter(Presenter):
         avg_loss_pct = stats.avg_loss_pct
 
         summary = Table(title="Session Summary", show_header=False)
+        summary.add_row("Total EV lost:", f"{total_ev_lost:.2f} bb")
+        summary.add_row("Avg EV lost/decision:", f"{avg_ev_lost:.2f} bb")
+        summary.add_row("Avg EV lost (% pot):", f"{avg_loss_pct:.2f}%")
         summary.add_row("Hands answered:", str(hands_answered))
         summary.add_row("Best choices hit:", f"{hits} ({100.0 * hits / len(records):.0f}%)")
         summary.add_row("Total EV (chosen):", f"{total_ev_chosen:.2f} bb")
         summary.add_row("Total EV (best possible):", f"{total_ev_best:.2f} bb")
-        summary.add_row("Total EV lost:", f"{total_ev_lost:.2f} bb")
-        summary.add_row("Average EV lost/decision:", f"{avg_ev_lost:.2f} bb")
-        summary.add_row("Average EV lost (% pot):", f"{avg_loss_pct:.2f}%")
         summary.add_row("Score (0–100):", f"{score_pct:.0f}")
         self.console.print("\n")
         self.console.print(summary)

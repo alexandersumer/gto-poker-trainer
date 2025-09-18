@@ -6,8 +6,12 @@ from dataclasses import dataclass
 from typing import Any
 
 MIN_POT = 1e-6
-NOISE_FLOOR = 0.003  # 0.3% of pot ~ solver noise floor
-DECAY = 35.0  # Controls how aggressively large mistakes are penalised
+RATIO_NOISE_FLOOR = 0.003  # 0.3% of pot ~ solver noise floor
+RATIO_DECAY = 35.0  # Controls how aggressively large mistakes are penalised for ratio-based features
+
+# New EV-based scoring tuned around practical solver error margins.
+EV_NOISE_FLOOR = 0.02  # Ignore < 0.02 bb diffs as solver noise
+EV_DECAY = 2.0  # Higher = harsher punishment for bigger EV mistakes
 
 
 @dataclass(frozen=True)
@@ -50,11 +54,11 @@ def decision_loss_ratio(record: Mapping[str, Any]) -> float:
 
 
 def decision_score(record: Mapping[str, Any]) -> float:
-    ratio = decision_loss_ratio(record)
-    return _score_for_ratio(ratio)
+    ev_loss = max(0.0, _as_float(record.get("best_ev", 0.0)) - _as_float(record.get("chosen_ev", 0.0)))
+    return _score_for_ev_loss(ev_loss)
 
 
-def _score_for_ratio(ratio: float, *, noise_floor: float = NOISE_FLOOR, decay: float = DECAY) -> float:
+def _score_for_ratio(ratio: float, *, noise_floor: float = RATIO_NOISE_FLOOR, decay: float = RATIO_DECAY) -> float:
     adjusted = max(0.0, ratio - noise_floor)
     raw = 100.0 * math.exp(-decay * adjusted)
     if raw < 0.001:
@@ -62,6 +66,14 @@ def _score_for_ratio(ratio: float, *, noise_floor: float = NOISE_FLOOR, decay: f
     if raw > 100.0:
         return 100.0
     return raw
+
+
+def _score_for_ev_loss(ev_loss: float, *, noise_floor: float = EV_NOISE_FLOOR, decay: float = EV_DECAY) -> float:
+    adjusted = max(0.0, ev_loss - noise_floor)
+    raw = 100.0 * math.exp(-decay * adjusted)
+    if raw < 0.001:
+        return 0.0
+    return min(raw, 100.0)
 
 
 def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
@@ -90,7 +102,8 @@ def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
     avg_loss_ratio = sum(loss_ratios) / decisions
     avg_loss_pct = 100.0 * avg_loss_ratio
 
-    decision_scores = [_score_for_ratio(ratio) for ratio in loss_ratios]
+    ev_losses = [max(0.0, _as_float(r.get("best_ev", 0.0)) - _as_float(r.get("chosen_ev", 0.0))) for r in records]
+    decision_scores = [_score_for_ev_loss(loss) for loss in ev_losses]
     score_pct = sum(decision_scores) / decisions
 
     avg_ev_lost = total_ev_lost / decisions

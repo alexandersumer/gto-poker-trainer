@@ -594,13 +594,13 @@ class TrainerApp(App[None]):
         avg_loss_pct = stats.avg_loss_pct
         msg = (
             f"[b #1b2d55]Session summary[/]\n"
+            f"Total EV lost: {total_ev_lost:.2f} bb\n"
+            f"Avg EV lost/decision: {avg_ev_lost:.2f} bb\n"
+            f"Avg EV lost (% pot): {avg_loss_pct:.2f}%\n"
             f"Hands answered: {hands_answered}\n"
             f"Best choices hit: {hits} ({(100.0 * hits / len(records)):.0f}%)\n"
             f"Total EV (chosen): {total_ev_chosen:.2f} bb\n"
             f"Total EV (best): {total_ev_best:.2f} bb\n"
-            f"Total EV lost: {total_ev_lost:.2f} bb\n"
-            f"Avg EV lost/decision: {avg_ev_lost:.2f} bb\n"
-            f"Avg EV lost (% pot): {avg_loss_pct:.2f}%\n"
             f"Score (0–100): {score_pct:.0f}"
         )
         if self._feedback_panel:

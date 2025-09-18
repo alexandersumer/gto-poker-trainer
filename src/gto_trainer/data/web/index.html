@@ -232,10 +232,10 @@
         justify-content: center;
         border-radius: var(--radius-sm);
         border: 1px solid var(--card-edge);
-        padding: 0.38rem 0.72rem;
-        font-size: clamp(1.22rem, 3.6vw, 1.52rem);
+        padding: 0.42rem 0.76rem;
+        font-size: clamp(1.32rem, 3.8vw, 1.68rem);
         font-weight: 700;
-        letter-spacing: 0.4px;
+        letter-spacing: 0.32px;
         margin: 0 0.18rem 0.18rem 0;
         background: var(--card-face);
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
@@ -627,7 +627,7 @@
       .header-pill {
         display: inline-flex;
         align-items: center;
-        gap: 0.36rem;
+        gap: 0.5rem;
         padding: 0.3rem 0.7rem;
         border-radius: 9999px;
         border: 1px solid var(--muted-border);
@@ -636,6 +636,12 @@
         font-weight: 500;
         color: var(--text-secondary);
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+      }
+      .header-pill .pill-metric {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.1rem;
       }
       .header-pill.is-empty {
         opacity: 0.75;
@@ -652,6 +658,11 @@
       .header-pill strong {
         font-weight: 600;
         color: var(--text-primary);
+      }
+      .header-pill .pill-label {
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
       .theme-toggle {
         display: inline-flex;
@@ -1153,8 +1164,8 @@
         }
         #hand .card,
         #board .card {
-          padding: 0.28rem 0.48rem;
-          font-size: 0.9rem;
+          padding: 0.32rem 0.52rem;
+          font-size: 0.98rem;
         }
       }
       .feedback-drawer {
@@ -1266,8 +1277,8 @@
       .density-compact .poker-card {
         min-width: clamp(38px, 6.4vw, 48px);
         min-height: clamp(50px, 8.6vw, 60px);
-        font-size: clamp(1.12rem, 3.25vw, 1.32rem);
-        padding: 0.34rem 0.64rem;
+        font-size: clamp(1.2rem, 3.5vw, 1.44rem);
+        padding: 0.38rem 0.68rem;
       }
       .density-compact .action-area {
         gap: 6px;
@@ -1321,8 +1332,14 @@
           <div class="header-actions">
             <span id="stats" class="header-pill is-empty">
               <span class="status-dot" aria-hidden="true"></span>
-              <span class="pill-label">Answered</span>
-              <strong id="stats-count">0</strong>
+              <span class="pill-metric">
+                <span class="pill-label">Answered</span>
+                <strong id="stats-count">0</strong>
+              </span>
+              <span class="pill-metric">
+                <span class="pill-label">EV Lost</span>
+                <strong id="stats-ev">0.00 bb</strong>
+              </span>
             </span>
             <button id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" aria-pressed="true" title="Toggle dark mode">
               <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
@@ -1534,6 +1551,7 @@
       const headerStatus = $('#header-status');
       const statsPill = $('#stats');
       const statsCount = $('#stats-count');
+      const statsEv = $('#stats-ev');
       const statusChips = $('#status-chips');
       const statusChipDynamic = $('#status-chip-dynamic');
       const themeToggle = $('#theme-toggle');
@@ -1561,6 +1579,7 @@
       let betGroupCounter = 0;
       let pendingNextPayload = null;
       let nextHandButton = null;
+      let totalEvLost = 0;
 
       const clearNextHandQueue = () => {
         pendingNextPayload = null;
@@ -2183,6 +2202,9 @@
         const bestEv = typeof feedback?.best?.ev === 'number' ? formatBb(feedback.best.ev) : null;
         const chosenLabel = feedback?.chosen?.key || '—';
         const deltaValue = typeof feedback?.ev_loss === 'number' ? Math.abs(feedback.ev_loss) : null;
+        if(typeof feedback?.ev_loss === 'number' && Number.isFinite(feedback.ev_loss)){
+          totalEvLost += Math.max(0, feedback.ev_loss);
+        }
         const summaryLine = correct
           ? `Optimal: ${chosenLabel}`
           : deltaValue
@@ -2205,6 +2227,7 @@
           }
         }
         feedbackBanner.classList.remove('hidden');
+        updateStats();
       };
 
       const resetFeedback = () => {
@@ -2465,6 +2488,7 @@
           const data = await api('/api/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands, mc})});
           sid = data.session;
           answered = 0;
+          totalEvLost = 0;
           pending = false;
           pendingSummary = null;
           autoScrolledToPlay = false;
@@ -2620,8 +2644,8 @@
         if(sum){
           const decisions = s.decisions ?? answered;
           const accuracy = decisions ? Math.round((s.hits / decisions) * 100) : 0;
-          const totalEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
-          const avgEvLoss = s.hands ? totalEvLost / s.hands : totalEvLost;
+          const summaryEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
+          const avgEvLoss = s.hands ? summaryEvLost / s.hands : summaryEvLost;
           sum.innerHTML = `
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -2634,6 +2658,11 @@
             </div>
             <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div class="surface-card px-4 py-3">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
+                <dd class="mt-1 text-lg font-semibold text-primary">${formatBb(summaryEvLost)}</dd>
+                <dd class="text-xs text-muted">Avg / hand: ${formatBb(avgEvLoss)}</dd>
+              </div>
+              <div class="surface-card px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Hands answered</dt>
                 <dd class="mt-1 text-lg font-semibold text-primary">${s.hands}</dd>
               </div>
@@ -2642,15 +2671,14 @@
                 <dd class="mt-1 text-lg font-semibold text-primary">${s.hits}</dd>
                 <dd class="text-xs text-muted">Accuracy per decision: ${accuracy}%</dd>
               </div>
-              <div class="surface-card px-4 py-3">
-                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
-                <dd class="mt-1 text-lg font-semibold text-primary">${formatBb(totalEvLost)}</dd>
-                <dd class="text-xs text-muted">Avg / hand: ${formatBb(avgEvLoss)}</dd>
-              </div>
             </dl>
           `;
         }
         pendingSummary = s;
+        if(typeof s.ev_lost === 'number' && Number.isFinite(s.ev_lost)){
+          totalEvLost = Math.max(0, s.ev_lost);
+          updateStats();
+        }
         answered = s.decisions ?? answered;
         setSummaryAvailability(false);
         show('#panel-summary');
@@ -2671,8 +2699,15 @@
 
       const updateStats = () => {
         if(statsCount) statsCount.textContent = String(answered);
+        if(statsEv){
+          const safeTotal = Number.isFinite(totalEvLost) ? totalEvLost : 0;
+          const avg = answered ? safeTotal / answered : 0;
+          statsEv.textContent = formatBb(safeTotal);
+          statsEv.setAttribute('title', `Average EV lost/decision: ${formatBb(avg)}`);
+        }
         if(statsPill) {
-          statsPill.classList.toggle('is-empty', answered === 0);
+          const empty = answered === 0 && (!totalEvLost || Math.abs(totalEvLost) < 1e-9);
+          statsPill.classList.toggle('is-empty', empty);
         }
       };
 
@@ -2687,6 +2722,7 @@
         newBtn.addEventListener('click', () => {
           sid = null;
           answered = 0;
+          totalEvLost = 0;
           pending = false;
           pendingSummary = null;
           autoScrolledToPlay = false;

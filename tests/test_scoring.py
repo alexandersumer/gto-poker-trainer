@@ -25,7 +25,7 @@ def test_noise_floor_keeps_perfect_score() -> None:
     }
     stats = summarize_records([record])
     assert stats.decisions == 1
-    assert stats.score_pct > 99.0
+    assert stats.score_pct >= 99.0
     assert stats.avg_loss_pct < 0.1
 
 
@@ -39,7 +39,7 @@ def test_large_mistake_penalises_score() -> None:
         "hand_index": 0,
     }
     stats = summarize_records([record])
-    assert stats.score_pct < 40.0
+    assert stats.score_pct < 20.0
     assert stats.avg_loss_pct > 5.0
 
 
@@ -64,7 +64,7 @@ def test_average_score_across_records() -> None:
     ]
     stats = summarize_records(records)
     assert stats.decisions == 2
-    assert 60.0 < stats.score_pct < 90.0
+    assert 70.0 < stats.score_pct < 90.0
     assert stats.hands == 1
     # Ensure dedicated helper matches per-record score for the mistake entry
     mistake_score = decision_score(records[1])
