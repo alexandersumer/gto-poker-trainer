@@ -232,12 +232,18 @@
         justify-content: center;
         border-radius: var(--radius-sm);
         border: 1px solid var(--card-edge);
-        padding: 0.35rem 0.72rem;
+        padding: 0.45rem 0.9rem;
+        font-size: clamp(1.15rem, 3.4vw, 1.45rem);
         font-weight: 700;
         letter-spacing: 0.4px;
         margin: 0 0.2rem 0.2rem 0;
         background: var(--card-face);
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        line-height: 1;
+      }
+      .poker-card {
+        min-width: clamp(48px, 8.5vw, 66px);
+        min-height: clamp(64px, 11vw, 80px);
       }
       .card.s { color: var(--suit-spade); }
       .card.c { color: var(--suit-club); }
@@ -1258,8 +1264,10 @@
         gap: 6px;
       }
       .density-compact .poker-card {
-        width: clamp(36px, 7.2vw, 44px);
-        height: clamp(50px, 10vw, 60px);
+        min-width: clamp(42px, 7vw, 52px);
+        min-height: clamp(54px, 9vw, 64px);
+        font-size: clamp(1.05rem, 3.2vw, 1.25rem);
+        padding: 0.38rem 0.75rem;
       }
       .density-compact .action-area {
         gap: 6px;
