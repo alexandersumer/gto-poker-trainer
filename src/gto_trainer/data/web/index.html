@@ -71,8 +71,10 @@
         --progress: #1D4ED8;
         --card-face: #F6F8FB;
         --card-edge: #DCE3EA;
-        --suit-red: #EF4444;
-        --suit-black: #0F172A;
+        --suit-spade: #9BA8D1;
+        --suit-heart: #F5A7BA;
+        --suit-club: #7FC8A3;
+        --suit-diamond: #8ABFF0;
         --action-neutral-text: #E5E7EB;
         --action-neutral-bg: #374151;
         --action-neutral-border: #4B5563;
@@ -143,8 +145,10 @@
         --progress: #1D4ED8;
         --card-face: #FFFFFF;
         --card-edge: #E5EAF0;
-        --suit-red: #DC2626;
-        --suit-black: #111827;
+        --suit-spade: #4F5D83;
+        --suit-heart: #E58DAA;
+        --suit-club: #4FAE84;
+        --suit-diamond: #5FAAE3;
         --action-neutral-text: #1F2937;
         --action-neutral-bg: #E5E7EB;
         --action-neutral-border: #D1D5DB;
@@ -235,10 +239,10 @@
         background: var(--card-face);
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
       }
-      .card.s,
-      .card.c { color: var(--suit-black); }
-      .card.h,
-      .card.d { color: var(--suit-red); }
+      .card.s { color: var(--suit-spade); }
+      .card.c { color: var(--suit-club); }
+      .card.h { color: var(--suit-heart); }
+      .card.d { color: var(--suit-diamond); }
       .glass {
         backdrop-filter: blur(18px);
         background: color-mix(in srgb, var(--surface-1) 85%, transparent);
