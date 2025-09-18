@@ -12,6 +12,7 @@ def test_web_endpoints_session_flow():
     r = client.get("/")
     assert r.status_code == 200
     assert "GTO Trainer" in r.text
+    assert "flex: 0 0 auto" in r.text
 
     # Create a session for 2 hands
     r = client.post("/api/session", json={"hands": 2, "mc": 60})

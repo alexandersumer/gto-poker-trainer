@@ -329,8 +329,12 @@ class TrainerApp(App[None]):
     _idle_after_stop: bool = False
     _preparing_timer: Timer | None = None
     _preparing_frame_index: int = 0
+    _preparing_hint: str | None = None
     _current_hand_index: int = 0
     _total_hands: int = 0
+    _decisions_played: int = 0
+    _best_hits: int = 0
+    _total_ev_lost: float = 0.0
 
     def __init__(self, *, hands: int = 1, mc_trials: int = 120, solver_csv: str | None = None) -> None:
         super().__init__()
@@ -338,16 +342,23 @@ class TrainerApp(App[None]):
         self._pending_restart = False
         self._preparing_timer = None
         self._preparing_frame_index = 0
+        self._preparing_hint = None
         self._current_hand_index = 0
         self._total_hands = 0
+        self._decisions_played = 0
+        self._best_hits = 0
+        self._total_ev_lost = 0.0
 
     # --- Compose UI ---
     def _format_preparing_text(self) -> str:
         frame = self._PREPARING_FRAMES[self._preparing_frame_index]
-        return (
-            f"[b #1b2d55]Preparing a fresh hand {frame}[/]\n"
-            "[dim]Shuffling combos and loading dynamics…[/]"
-        )
+        lines = [
+            f"[b #1b2d55]Preparing a fresh hand {frame}[/]",
+            "[dim]Shuffling combos and loading dynamics…[/]",
+        ]
+        if self._preparing_hint:
+            lines.append(self._preparing_hint)
+        return "\n".join(lines)
 
     def _start_preparing_animation(self) -> None:
         if not self._status_panel:
@@ -364,6 +375,7 @@ class TrainerApp(App[None]):
         if self._preparing_timer:
             self._preparing_timer.stop()
             self._preparing_timer = None
+        self._preparing_hint = None
 
     def _tick_preparing_animation(self, timer: Timer) -> None:  # noqa: ARG002
         if not self._status_panel:
@@ -388,7 +400,20 @@ class TrainerApp(App[None]):
                 suffix = f" ({remaining} left)"
         return f"[b #2f6bff]Hand {index}/{self._total_hands}[/][dim]{suffix}[/]"
 
-    def _headline_for_state(self, *, street: str | None = None, info: str | None = None) -> str:
+    def _session_perf_fragment(self) -> str | None:
+        if self._decisions_played <= 0:
+            return None
+        accuracy_pct = (100.0 * self._best_hits) / self._decisions_played if self._decisions_played else 0.0
+        ev_delta = -self._total_ev_lost
+        return f"[#2d3b62]ΔEV {ev_delta:+.2f} bb[/]  [dim]Acc {self._best_hits}/{self._decisions_played} ({accuracy_pct:.0f}%)[/]"
+
+    def _headline_for_state(
+        self,
+        *,
+        street: str | None = None,
+        info: str | None = None,
+        stats: str | None = None,
+    ) -> str:
         fragments: list[str] = []
         progress = self._hand_progress_fragment()
         if progress:
@@ -397,6 +422,8 @@ class TrainerApp(App[None]):
             fragments.append(f"[b #1b2d55]{street}[/]")
         if info:
             fragments.append(info)
+        if stats:
+            fragments.append(stats)
         if not fragments:
             return "[b #1b2d55]GTO Trainer[/]"
         return "  [dim]•[/]  ".join(fragments)
@@ -411,22 +438,22 @@ class TrainerApp(App[None]):
                 return f"[#2d3b62]Facing open to {open_size:.2f} bb[/]"
             return "[#2d3b62]Preflop decision[/]"
         if facing == "check":
-            return "[#2d3b62]Villain checked[/]"
+            return "[#2d3b62]Check through[/]"
         if facing == "oop-check":
-            return "[#2d3b62]Villain checked to you[/]"
+            return "[#2d3b62]Check to hero[/]"
         if facing == "bet" or isinstance(bet, (int, float)):
             if isinstance(bet, (int, float)):
                 return f"[#2d3b62]Facing bet {bet:.2f} bb[/]"
             return "[#2d3b62]Facing a bet[/]"
         villain_range = ctx.get("villain_range")
         if isinstance(villain_range, str) and villain_range:
-            return f"[#2d3b62]Range hint: {villain_range}[/]"
+            return f"[#2d3b62]Range: {villain_range}[/]"
         return None
 
     def _build_headline(self, node: Node) -> str:
         street = node.street.title()
         info = self._describe_facing_action(node)
-        return self._headline_for_state(street=street, info=info)
+        return self._headline_for_state(street=street, info=info, stats=self._session_perf_fragment())
 
     def compose(self) -> ComposeResult:  # type: ignore[override]
         yield Header(show_clock=False)
@@ -540,34 +567,39 @@ class TrainerApp(App[None]):
     def show_session_start(self, total_hands: int) -> None:
         self._total_hands = total_hands
         self._current_hand_index = 0
-        self._stop_preparing_animation()
+        self._decisions_played = 0
+        self._best_hits = 0
+        self._total_ev_lost = 0.0
         if self._headline_label:
             plural = "s" if total_hands != 1 else ""
             info = f"[#2d3b62]{total_hands} hand{plural} queued[/]"
-            self._headline_label.update(self._headline_for_state(info=info))
+            self._headline_label.update(
+                self._headline_for_state(info=info, stats=self._session_perf_fragment())
+            )
         if self._meta_panel:
             self._meta_panel.update("")
-        if self._status_panel:
-            plural = "s" if total_hands != 1 else ""
-            self._status_panel.update(
-                f"[b #1b2d55]Session live[/]\n[dim]{total_hands} hand{plural} queued for play.[/]"
-            )
+        plural = "s" if total_hands != 1 else ""
+        self._preparing_hint = f"[dim]{total_hands} hand{plural} queued for play.[/]"
+        self._start_preparing_animation()
 
     def show_hand_start(self, hand_index: int, total_hands: int) -> None:
         self._current_hand_index = hand_index
         self._total_hands = total_hands
         if self._headline_label:
             self._headline_label.update(
-                self._headline_for_state(info="[#2d3b62]Generating scenario…[/]")
+                self._headline_for_state(
+                    info="[#2d3b62]Generating scenario…[/]",
+                    stats=self._session_perf_fragment(),
+                )
             )
         if self._feedback_panel:
             self._feedback_panel.update("")
         if self._options_container:
             self._options_container.remove_children()
-        if self._status_panel:
-            self._status_panel.update(
-                f"[b #1b2d55]Decision {hand_index}/{total_hands}[/]\n[dim]Trust your instincts and protect EV.[/]"
-            )
+        self._preparing_hint = (
+            f"[dim]Decision {hand_index}/{total_hands} — building tree and equities…[/]"
+        )
+        self._start_preparing_animation()
 
     def _render_card_token(self, card: int | None, *, placeholder: str = "--") -> str:
         if card is None:
@@ -590,6 +622,7 @@ class TrainerApp(App[None]):
 
     def show_node(self, node: Node, options: list[str]) -> None:
         # Headline and context
+        self._stop_preparing_animation()
         if self._headline_label:
             self._headline_label.update(self._build_headline(node))
 
@@ -652,6 +685,10 @@ class TrainerApp(App[None]):
     def show_step_feedback(self, _node: Node, chosen: Option, best: Option) -> None:
         correct = chosen.key == best.key
         ev_loss = best.ev - chosen.ev
+        self._decisions_played += 1
+        if correct:
+            self._best_hits += 1
+        self._total_ev_lost += max(0.0, ev_loss)
         lines = ["[b #1b2d55]Decision grade[/]"]
         if correct:
             lines.append(f"[green]Optimal[/] — {chosen.key} (EV {chosen.ev:.2f} bb)")
@@ -677,11 +714,24 @@ class TrainerApp(App[None]):
             else:
                 follow_up = "[dim]Review the feedback below before the next decision.[/]"
             self._status_panel.update(f"{tag}\n{follow_up}")
+        if self._headline_label:
+            self._headline_label.update(
+                self._headline_for_state(
+                    street=_node.street.title(),
+                    info=self._describe_facing_action(_node),
+                    stats=self._session_perf_fragment(),
+                )
+            )
 
     def show_summary(self, records: list[dict[str, Any]]) -> None:
         self._stop_preparing_animation()
         if self._headline_label:
-            self._headline_label.update("[b #1b2d55]Session summary[/]")
+            self._headline_label.update(
+                self._headline_for_state(
+                    info="[#2d3b62]Session summary[/]",
+                    stats=self._session_perf_fragment(),
+                )
+            )
         if not records:
             if self._feedback_panel:
                 self._feedback_panel.update("No hands answered.")

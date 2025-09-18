@@ -244,6 +244,7 @@
       .poker-card {
         min-width: clamp(44px, 7.6vw, 60px);
         min-height: clamp(60px, 10.4vw, 74px);
+        flex: 0 0 auto;
       }
       .card.s { color: var(--suit-spade); }
       .card.c { color: var(--suit-club); }
@@ -1123,6 +1124,11 @@
         #board .card {
           padding: 0.34rem 0.56rem;
           font-size: 1.04rem;
+        }
+        #hand .poker-card,
+        #board .poker-card {
+          min-width: clamp(40px, 7vw, 52px);
+          min-height: clamp(52px, 9vw, 64px);
         }
       }
       .feedback-drawer {

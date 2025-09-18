@@ -114,4 +114,22 @@ def test_build_headline_marks_final_hand():
     assert "Hand 3/3" in headline
     assert "(final)" in headline
     assert "River" in headline
-    assert "Villain checked to you" in headline
+    assert "Check to hero" in headline
+
+
+def test_session_perf_fragment_reports_accuracy_and_ev():
+    app = TrainerApp()
+    app._decisions_played = 4
+    app._best_hits = 3
+    app._total_ev_lost = 1.25
+    fragment = app._session_perf_fragment()
+    assert fragment is not None
+    assert "ΔEV -1.25 bb" in fragment
+    assert "Acc 3/4 (75%)" in fragment
+
+
+def test_preparing_text_includes_hint():
+    app = TrainerApp()
+    app._preparing_hint = "[dim]Custom hint[/]"
+    text = app._format_preparing_text()
+    assert "Custom hint" in text
