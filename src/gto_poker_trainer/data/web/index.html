@@ -73,6 +73,31 @@
         --card-edge: #DCE3EA;
         --suit-red: #EF4444;
         --suit-black: #0F172A;
+        --action-neutral-text: #E5E7EB;
+        --action-neutral-bg: #374151;
+        --action-neutral-border: #4B5563;
+        --action-neutral-selected-bg: #4A5568;
+        --action-neutral-selected-border: #60A5FA;
+        --action-accent-text: #DCE8FF;
+        --action-accent-bg: #22314A;
+        --action-accent-border: #4A6AA0;
+        --action-accent-selected-bg: #2D4166;
+        --action-accent-selected-border: #93B4F6;
+        --action-caution-text: #FFDCE1;
+        --action-caution-bg: #47232A;
+        --action-caution-border: #B86774;
+        --action-caution-selected-bg: #5A2F38;
+        --action-caution-selected-border: #DE8C98;
+        --action-negative-text: #FFDAD1;
+        --action-negative-bg: #4A2B27;
+        --action-negative-border: #B97E73;
+        --action-negative-selected-bg: #5E3A34;
+        --action-negative-selected-border: #E09A8B;
+        --chipbar-bg: #1F2937;
+        --chipbar-text: #EAEFF7;
+        --chipbar-border: color-mix(in srgb, #94A3B8 45%, transparent);
+        --chipbar-hover: #2B3648;
+        --chip-selected-border: #93B4F6;
       }
 
       :root[data-theme="light"] {
@@ -120,6 +145,31 @@
         --card-edge: #E5EAF0;
         --suit-red: #DC2626;
         --suit-black: #111827;
+        --action-neutral-text: #1F2937;
+        --action-neutral-bg: #E5E7EB;
+        --action-neutral-border: #D1D5DB;
+        --action-neutral-selected-bg: #D6DAE0;
+        --action-neutral-selected-border: #4C6FB3;
+        --action-accent-text: #16324F;
+        --action-accent-bg: #D7E3F8;
+        --action-accent-border: #9BB7E8;
+        --action-accent-selected-bg: #C7D6F4;
+        --action-accent-selected-border: #4A6AA0;
+        --action-caution-text: #5A1A1A;
+        --action-caution-bg: #F9D8DB;
+        --action-caution-border: #E9A3AC;
+        --action-caution-selected-bg: #F4C2C7;
+        --action-caution-selected-border: #D47D88;
+        --action-negative-text: #3C1F1F;
+        --action-negative-bg: #F4DAD4;
+        --action-negative-border: #E3A79B;
+        --action-negative-selected-bg: #E8C3BA;
+        --action-negative-selected-border: #CB8273;
+        --chipbar-bg: #EAEFF7;
+        --chipbar-text: #0F172A;
+        --chipbar-border: color-mix(in srgb, #94A3B8 35%, transparent);
+        --chipbar-hover: #DDE5F3;
+        --chip-selected-border: #4A6AA0;
       }
 
       body {
@@ -526,26 +576,73 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      .status-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+        padding: 4px 0;
+      }
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--chipbar-text);
+        background: color-mix(in srgb, var(--chipbar-bg) 88%, transparent);
+        border: 1px solid var(--chipbar-border);
+      }
+      #status-chip-dynamic {
+        display: contents;
+      }
+      .status-chip .chip-label {
+        color: color-mix(in srgb, var(--chipbar-text) 75%, transparent);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.7rem;
+      }
+      .status-chip .chip-value {
+        color: var(--chipbar-text);
+        font-weight: 600;
+      }
       .status-line {
         margin-top: var(--space-2);
         margin-bottom: var(--space-2);
-        font-size: 0.92rem;
+        font-size: 0.9rem;
         font-weight: 500;
         color: var(--text-primary);
         display: flex;
-        align-items: center;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 6px;
       }
-      .status-line span {
+      .status-line .status-item {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .status-line .status-label {
         color: var(--text-secondary);
+        font-weight: 600;
+        min-width: 2.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.76rem;
+      }
+      .status-line .status-value {
+        color: var(--text-primary);
         font-weight: 500;
       }
       .action-area {
+        position: sticky;
+        bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
         display: flex;
         flex-direction: column;
         gap: var(--space-2);
-        padding: var(--space-2) var(--space-2) var(--space-1);
+        padding: var(--space-2) var(--space-2) calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
         background: color-mix(in srgb, var(--surface-2) 92%, transparent);
         border-radius: var(--radius-lg);
         border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
@@ -556,8 +653,8 @@
       }
       .action-main {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
       }
       .action-slot {
         min-height: calc(var(--min-tap) - 4px);
@@ -568,18 +665,10 @@
         background: transparent;
         visibility: hidden;
       }
-      .action-support {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .action-support:empty {
-        min-height: 0;
-      }
       .action-sizes {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+        gap: 10px;
         min-height: calc(var(--min-tap) - 8px);
       }
       .action-sizes.is-hidden {
@@ -589,7 +678,7 @@
         min-height: calc(var(--min-tap) - 4px);
         border-radius: var(--radius-md);
         border: 1px solid var(--field-border);
-        background: var(--surface-1);
+        background: color-mix(in srgb, var(--surface-1) 92%, transparent);
         color: var(--text-primary);
         font: 600 var(--text-size-body)/1.25 var(--font-sans);
         padding: 10px 14px;
@@ -614,70 +703,97 @@
         color: var(--field-helper);
         font-weight: 500;
       }
-      .action-button.action-ghost {
-        background: transparent;
-        border-color: color-mix(in srgb, var(--field-border) 55%, transparent);
-        color: var(--text-secondary);
-      }
-      .action-button.action-ghost:hover {
-        background: color-mix(in srgb, var(--surface-2) 82%, transparent);
-        color: var(--text-primary);
-      }
       .action-button.action-neutral {
-        background: color-mix(in srgb, var(--surface-2) 94%, transparent);
-        border-color: color-mix(in srgb, var(--field-border) 82%, transparent);
-        color: var(--text-primary);
+        background: var(--action-neutral-bg);
+        border-color: var(--action-neutral-border);
+        color: var(--action-neutral-text);
       }
       .action-button.action-neutral:hover {
-        background: color-mix(in srgb, var(--surface-2) 88%, var(--surface-1) 12%);
-        border-color: var(--field-border-hover);
+        background: color-mix(in srgb, var(--action-neutral-bg) 90%, var(--action-neutral-selected-bg) 10%);
+        border-color: var(--action-neutral-selected-border);
       }
       .action-button.action-primary {
-        background: var(--brand);
-        border-color: color-mix(in srgb, var(--brand) 65%, transparent);
-        color: var(--on-brand);
+        background: var(--action-accent-bg);
+        border-color: var(--action-accent-border);
+        color: var(--action-accent-text);
+      }
+      .action-button.action-primary:hover {
+        background: color-mix(in srgb, var(--action-accent-bg) 88%, var(--action-accent-selected-bg) 12%);
+        border-color: var(--action-accent-selected-border);
       }
       .action-button.action-destructive {
-        background: color-mix(in srgb, var(--error) 14%, var(--surface-2) 86%);
-        border-color: color-mix(in srgb, var(--error) 32%, transparent);
-        color: var(--text-primary);
+        background: var(--action-caution-bg);
+        border-color: var(--action-caution-border);
+        color: var(--action-caution-text);
       }
       .action-button.action-destructive:hover {
-        background: color-mix(in srgb, var(--error) 20%, var(--surface-2) 80%);
-        border-color: color-mix(in srgb, var(--error) 42%, transparent);
+        background: color-mix(in srgb, var(--action-caution-bg) 85%, var(--action-caution-selected-bg) 15%);
+        border-color: var(--action-caution-selected-border);
+      }
+      .action-button.action-negative {
+        background: var(--action-negative-bg);
+        border-color: var(--action-negative-border);
+        color: var(--action-negative-text);
+      }
+      .action-button.action-negative:hover {
+        background: color-mix(in srgb, var(--action-negative-bg) 85%, var(--action-negative-selected-bg) 15%);
+        border-color: var(--action-negative-selected-border);
       }
       .action-button[disabled] {
         opacity: 0.55;
         cursor: not-allowed;
         pointer-events: none;
       }
-      .action-button.is-selected {
-        box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand) 32%, transparent);
+      .action-button.is-armed {
+        transform: scale(1.02);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+      }
+      .action-button.is-armed.action-neutral {
+        background: var(--action-neutral-selected-bg);
+        border-color: var(--action-neutral-selected-border);
+        color: var(--action-neutral-text);
+      }
+      .action-button.is-armed.action-primary {
+        background: var(--action-accent-selected-bg);
+        border-color: var(--action-accent-selected-border);
+        color: var(--action-accent-text);
+      }
+      .action-button.is-armed.action-destructive {
+        background: var(--action-caution-selected-bg);
+        border-color: var(--action-caution-selected-border);
+        color: var(--action-caution-text);
+      }
+      .action-button.is-armed.action-negative {
+        background: var(--action-negative-selected-bg);
+        border-color: var(--action-negative-selected-border);
+        color: var(--action-negative-text);
       }
       .size-chip {
         border-radius: var(--radius-md);
-        border: 1px solid var(--field-border);
-        background: color-mix(in srgb, var(--surface-2) 90%, transparent);
-        color: var(--text-secondary);
-        padding: 8px 0;
-        font-size: 0.8rem;
+        border: 1px solid var(--chip-border);
+        background: var(--chip-bg);
+        color: var(--chip-text);
+        padding: 10px 0;
+        font-size: 0.82rem;
         font-weight: 600;
         text-align: center;
-        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
       }
       .size-chip:hover {
-        background: color-mix(in srgb, var(--surface-2) 82%, var(--brand) 8%);
-        border-color: var(--field-border-hover);
-        color: var(--text-primary);
+        background: var(--chip-hover-bg);
+        border-color: var(--chip-selected-border);
+        color: var(--chip-text);
+        transform: translateY(-1px);
       }
       .size-chip:focus-visible {
         outline: var(--focus-ring) solid var(--focus-color);
         outline-offset: 2px;
       }
       .size-chip.is-selected {
-        background: color-mix(in srgb, var(--brand) 18%, var(--surface-2) 82%);
-        border-color: color-mix(in srgb, var(--brand) 55%, transparent);
-        color: var(--text-primary);
+        background: color-mix(in srgb, var(--chip-hover-bg) 65%, var(--chip-bg) 35%);
+        border-color: var(--chip-selected-border);
+        color: var(--chip-text);
+        box-shadow: inset 0 0 0 1px var(--chip-selected-border);
       }
       .size-chip[disabled] {
         opacity: 0.55;
@@ -897,7 +1013,7 @@
         padding: 8px 8px 6px;
       }
       .density-compact .action-main {
-        gap: 6px;
+        gap: 8px;
       }
       .density-compact .action-button {
         padding: 8px 10px;
@@ -907,11 +1023,11 @@
         font-size: 0.74rem;
       }
       .density-compact .action-sizes {
-        gap: 6px;
+        gap: 8px;
         min-height: calc(var(--min-tap) - 12px);
       }
       .density-compact .size-chip {
-        padding: 6px 0;
+        padding: 8px 0;
         font-size: 0.74rem;
       }
       .density-compact .status-bar {
@@ -948,7 +1064,13 @@
           </div>
         </div>
         <div id="status-bar" class="status-bar" aria-live="polite">
-          <span id="header-status" class="status-bar__text">Ready for a new hand</span>
+          <div id="status-chips" class="status-chips" role="list">
+            <span class="status-chip" role="listitem">
+              <span class="chip-label">State</span>
+              <span id="header-status" class="chip-value">Ready</span>
+            </span>
+            <span id="status-chip-dynamic"></span>
+          </div>
         </div>
       </div>
     </header>
@@ -1138,6 +1260,8 @@
       const headerStatus = $('#header-status');
       const statsPill = $('#stats');
       const statsCount = $('#stats-count');
+      const statusChips = $('#status-chips');
+      const statusChipDynamic = $('#status-chip-dynamic');
       const themeToggle = $('#theme-toggle');
       const feedbackBanner = $('#feedback-banner');
       const feedbackRecommendation = $('#feedback-recommendation');
@@ -1156,14 +1280,51 @@
       const actionAnnouncer = $('#action-announcer');
       let lastFeedback = null;
       let lastActionSignature = '';
+      let selectedMainAction = null;
       let selectedRaiseIndex = null;
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
 
+      const renderStatusLine = (items) => {
+        if(!statusLineEl) return;
+        statusLineEl.innerHTML = Array.isArray(items)
+          ? items
+              .filter((item) => item && item.label && item.value)
+              .map((item) => `
+                <div class="status-item">
+                  <span class="status-label">${item.label}</span>
+                  <span class="status-value">${item.value}</span>
+                </div>
+              `)
+              .join('')
+          : '';
+      };
+
       const setStatusMessage = (message) => {
         if(headerStatus) headerStatus.textContent = message;
         if(statusLineEl && (!statusLineEl.dataset.active || statusLineEl.dataset.active !== 'node')){
-          statusLineEl.textContent = message;
+          renderStatusLine(message ? [{ label: 'Status', value: message }] : []);
+          renderStatusChips([{ label: 'State', value: message || 'Ready' }]);
+        }
+      };
+
+      const renderStatusChips = (items) => {
+        const list = Array.isArray(items)
+          ? items.filter((item) => item && item.label && item.value)
+          : [];
+        if(headerStatus){
+          headerStatus.textContent = list.length ? list[0].value : 'Ready';
+        }
+        if(statusChipDynamic){
+          statusChipDynamic.innerHTML = list
+            .slice(1)
+            .map((item) => `
+              <span class="status-chip" role="listitem">
+                <span class="chip-label">${item.label}</span>
+                <span class="chip-value">${item.value}</span>
+              </span>
+            `)
+            .join('');
         }
       };
 
@@ -1217,54 +1378,65 @@
       const villainSeatFor = (heroSeat) => (heroSeat === "BB" ? "SB" : "BB");
 
       const updateHeaderStatus = (node) => {
-        if(!headerStatus) return;
+        if(!statusChips) return;
         if(!node){
-          headerStatus.textContent = "Ready for a new hand";
+          renderStatusChips([{ label: 'State', value: 'Ready' }]);
           return;
         }
         const street = streetLabel(node.street);
-        const hand = (typeof node.hand_no === "number" && typeof node.total_hands === "number")
-          ? `Hand ${node.hand_no}/${node.total_hands}`
-          : null;
         const heroSeat = heroSeatFromNode(node);
         const villainSeat = villainSeatFor(heroSeat);
-        const matchup = `${villainSeat} vs ${heroSeat}`;
-        const pieces = [street, hand, matchup].filter(Boolean);
-        headerStatus.textContent = pieces.join(" • ");
+        const chips = [
+          { label: 'State', value: street },
+        ];
+        if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
+          chips.push({ label: 'Hand', value: `${node.hand_no}/${node.total_hands}` });
+        }
+        chips.push({ label: 'Match', value: `${heroSeat} vs ${villainSeat}` });
+        if(typeof node.pot_bb === 'number'){
+          chips.push({ label: 'Pot', value: formatBb(node.pot_bb) });
+        }
+        if(typeof node.effective_bb === 'number'){
+          chips.push({ label: 'Eff', value: formatBb(node.effective_bb) });
+        }
+        renderStatusChips(chips);
       };
 
       const formatStatusLine = (node, descriptor) => {
-        const parts = [];
         const heroSeat = heroSeatFromNode(node);
         const villainSeat = villainSeatFor(heroSeat);
         const facing = (node?.context?.facing || '').toString().toLowerCase();
         const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
+        const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
+        let actionValue = '';
         if(facing === 'check' || facing === 'oop-check'){
-          parts.push(`${villainSeat} checked`);
+          actionValue = `${villainSeat} checked`;
         } else if(facing === 'bet'){
-          parts.push(betSize ? `${villainSeat} bet ${betSize}` : `${villainSeat} bet`);
-        } else if(typeof node?.context?.open_size === 'number'){
-          parts.push(`${villainSeat} opened ${formatBb(node.context.open_size)}`);
+          actionValue = betSize ? `${villainSeat} bet ${betSize}` : `${villainSeat} bet`;
+        } else if(openSize){
+          actionValue = `${villainSeat} opened ${openSize}`;
         } else if(descriptor){
           const cleaned = descriptor
-            .replace(/•/g, '')
+            .replace(/•/g, ' ')
             .replace(/Villain/gi, villainSeat)
             .replace(/Hero/gi, heroSeat)
+            .replace(/\s+/g, ' ')
             .trim()
             .replace(/[.]+$/g, '');
-          if(cleaned){
-            parts.push(cleaned);
-          }
+          actionValue = cleaned || `${villainSeat} to act`;
         } else {
-          parts.push(`${heroSeat} to act`);
+          actionValue = `${villainSeat} to act`;
         }
-        if(typeof node?.pot_bb === 'number'){
-          parts.push(`${formatBb(node.pot_bb)} pot`);
-        }
+        const youParts = [heroSeat];
         if(typeof node?.effective_bb === 'number'){
-          parts.push(`${formatBb(node.effective_bb)} eff`);
+          youParts.push(`${formatBb(node.effective_bb)} eff`);
         }
-        return parts.join(' · ');
+        const potValue = typeof node?.pot_bb === 'number' ? formatBb(node.pot_bb) : '—';
+        return [
+          { label: 'Vs', value: actionValue },
+          { label: 'You', value: youParts.join(' • ') },
+          { label: 'Pot', value: potValue },
+        ];
       };
 
       const parseActionLabel = (label) => {
@@ -1373,71 +1545,28 @@
         return slot;
       };
 
-      const buildButton = (descriptor, variant, overrides = {}) => {
-        if(!descriptor) return createPlaceholder();
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `action-button ${variant}`;
-        const labelText = overrides.label || descriptor.primary;
-        const metaText = overrides.meta === undefined ? descriptor.meta : overrides.meta;
-        const labelEl = document.createElement('span');
-        labelEl.className = 'action-label';
-        labelEl.textContent = labelText;
-        btn.appendChild(labelEl);
-        if(metaText){
-          const metaEl = document.createElement('span');
-          metaEl.className = 'action-meta';
-          metaEl.textContent = metaText;
-          btn.appendChild(metaEl);
+      const formatBetLabel = (descriptor, { isFacingBet, includeSize }) => {
+        if(!descriptor){
+          return { label: isFacingBet ? 'Raise' : 'Bet', meta: '' };
         }
-        const indexValue = overrides.optionIndex !== undefined ? overrides.optionIndex : descriptor.index;
-        if(indexValue !== undefined && indexValue !== null){
-          btn.dataset.optionIndex = String(indexValue);
-        }
-        const announceLabel = overrides.optionLabel
-          || (metaText ? `${labelText} (${metaText})` : labelText);
-        btn.dataset.optionLabel = announceLabel;
-        if(descriptor.disabled){
-          btn.disabled = true;
-        }
-        btn.addEventListener('click', (event) => {
-          event.preventDefault();
-          if(btn.disabled) return;
-          if(typeof overrides.onClick === 'function'){
-            overrides.onClick(descriptor, btn);
-            return;
+        const verb = raiseVerb(descriptor, { isFacingBet });
+        const numeric = typeof descriptor.numeric === 'number' && Number.isFinite(descriptor.numeric)
+          ? `${fmt(descriptor.numeric, descriptor.numeric < 10 ? 1 : 0)}bb`
+          : '';
+        if(includeSize){
+          if(descriptor.meta && /%/.test(descriptor.meta)){
+            const cleaned = descriptor.meta.replace(/\s*pot/i, '').trim();
+            return { label: `${verb} ${cleaned}`.trim(), meta: '' };
           }
-          const rawIndex = btn.dataset.optionIndex;
-          const idx = rawIndex !== undefined ? Number(rawIndex) : descriptor.index;
-          if(Number.isInteger(idx)){
-            choose(idx);
+          if(numeric){
+            const needsTo = verb.toLowerCase().includes('bet') ? '' : 'to ';
+            return { label: `${verb} ${needsTo}${numeric}`.replace(/\s+/g, ' ').trim(), meta: '' };
           }
-        });
-        return btn;
-      };
-
-      const chipLabel = (descriptor) => {
-        if(descriptor.meta) return descriptor.meta;
-        if(typeof descriptor.numeric === 'number' && Number.isFinite(descriptor.numeric)){
-          return `${fmt(descriptor.numeric, descriptor.numeric < 10 ? 1 : 0)}bb`;
         }
-        return descriptor.primary;
-      };
-
-      const raiseVerb = (descriptor, { isFacingBet }) => {
-        if(!descriptor) return 'Bet';
-        if(descriptor.action === 'bet') return 'Bet';
-        if(descriptor.action === '3bet') return '3-bet';
-        if(descriptor.action === 'raise') return isFacingBet ? 'Raise' : 'Bet';
-        if(descriptor.action === 'all-in') return 'Jam';
-        return descriptor.primary || 'Bet';
-      };
-
-      const sortBySizing = (a, b) => {
-        if(typeof a.numeric === 'number' && typeof b.numeric === 'number'){
-          return a.numeric - b.numeric;
+        if(descriptor.meta && !/%/.test(descriptor.meta)){
+          return { label: verb, meta: descriptor.meta };
         }
-        return a.index - b.index;
+        return { label: verb, meta: '' };
       };
 
       const renderActions = (options, node) => {
@@ -1446,6 +1575,7 @@
         const signature = described.map((d) => `${d.index}:${d.action}`).join('|');
         if(signature !== lastActionSignature){
           lastActionSignature = signature;
+          selectedMainAction = null;
           selectedRaiseIndex = null;
         }
         actionArea.innerHTML = '';
@@ -1458,9 +1588,13 @@
         actionArea.classList.remove('is-disabled');
 
         const foldOpt = described.find((d) => d.action === 'fold');
-        const passiveOpt = described.find((d) => d.action === 'call' || d.action === 'check');
+        const callOpt = described.find((d) => d.action === 'call');
+        const checkOpt = described.find((d) => d.action === 'check');
         const jamOpt = described.find((d) => d.action === 'all-in');
         let raiseOpts = described.filter((d) => ['raise', 'bet', '3bet'].includes(d.action) && d !== jamOpt);
+
+        const isFacingBet = typeof node?.context?.bet === 'number' && node.context.bet > 0;
+        const passiveOpt = isFacingBet ? (callOpt || checkOpt) : (checkOpt || callOpt);
 
         const used = new Set([foldOpt, passiveOpt, jamOpt].filter(Boolean));
         if(raiseOpts.length === 0){
@@ -1472,104 +1606,154 @@
           });
         }
         raiseOpts = raiseOpts.filter(Boolean).sort(sortBySizing);
-
-        const isFacingBet = typeof node?.context?.bet === 'number' && node.context.bet > 0;
+        const primaryRaise = raiseOpts[0] || null;
 
         const mainRow = document.createElement('div');
         mainRow.className = 'action-main';
-        const supportRow = document.createElement('div');
-        supportRow.className = 'action-support';
         const sizeRow = document.createElement('div');
         sizeRow.className = 'action-sizes';
         sizeRow.setAttribute('role', 'group');
         sizeRow.setAttribute('aria-label', 'Bet sizing');
 
+        const mainButtons = {};
+
+        const makeLabelMeta = (descriptor, override = {}) => {
+          if(!descriptor) return { label: override.fallbackLabel || '', meta: '' };
+          const baseLabel = override.label ?? descriptor.primary;
+          const baseMeta = override.meta ?? descriptor.meta ?? '';
+          return { label: baseLabel, meta: baseMeta };
+        };
+
+        const appendMainButton = (slotKey, descriptor, variant, override = {}) => {
+          if(!descriptor){
+            mainRow.appendChild(createPlaceholder());
+            return null;
+          }
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `action-button ${variant}`;
+          btn.dataset.slot = slotKey;
+          const { label, meta } = makeLabelMeta(descriptor, override);
+          const labelEl = document.createElement('span');
+          labelEl.className = 'action-label';
+          labelEl.textContent = label;
+          btn.appendChild(labelEl);
+          if(meta){
+            const metaEl = document.createElement('span');
+            metaEl.className = 'action-meta';
+            metaEl.textContent = meta;
+            btn.appendChild(metaEl);
+          }
+          btn.dataset.optionIndex = String(descriptor.index);
+          btn.dataset.optionLabel = meta ? `${label} (${meta})` : label;
+          mainRow.appendChild(btn);
+          mainButtons[slotKey] = btn;
+          return btn;
+        };
+
+        const refreshMainArming = () => {
+          Object.entries(mainButtons).forEach(([key, btn]) => {
+            if(!btn) return;
+            const shouldArm = key === selectedMainAction;
+            btn.classList.toggle('is-armed', shouldArm);
+          });
+          if(raiseOpts.length > 1){
+            if(selectedMainAction === 'bet'){
+              sizeRow.classList.remove('is-hidden');
+            } else {
+              sizeRow.classList.add('is-hidden');
+            }
+          }
+        };
+
         const ensureRaiseSelection = () => {
-          if(!raiseOpts.length){
+          const live = raiseOpts.filter((d) => !d.disabled);
+          if(!live.length){
             selectedRaiseIndex = null;
             return null;
           }
-          const current = raiseOpts.find((d) => d.index === selectedRaiseIndex && !d.disabled);
-          if(current) return current;
-          const firstAvailable = raiseOpts.find((d) => !d.disabled) || raiseOpts[0];
-          selectedRaiseIndex = firstAvailable ? firstAvailable.index : null;
-          return firstAvailable || null;
+          if(typeof selectedRaiseIndex === 'number'){
+            const match = live.find((d) => d.index === selectedRaiseIndex);
+            if(match) return match;
+          }
+          selectedRaiseIndex = live[0].index;
+          return live[0];
         };
 
         const activeRaise = () => {
           if(!raiseOpts.length) return null;
-          return raiseOpts.find((d) => d.index === selectedRaiseIndex) || ensureRaiseSelection();
+          return raiseOpts.find((d) => d.index === selectedRaiseIndex) || null;
         };
 
-        const refreshSizeSelection = () => {
-          Array.from(sizeRow.querySelectorAll('.size-chip')).forEach((chip) => {
-            const idx = Number(chip.dataset.optionIndex);
-            chip.classList.toggle('is-selected', Number.isInteger(idx) && idx === selectedRaiseIndex);
-          });
-        };
-
-        const updateBetButton = (button) => {
-          if(!button || button.tagName !== 'BUTTON') return;
-          const chosen = activeRaise();
-          if(!chosen){
-            button.classList.add('is-placeholder');
-            button.disabled = true;
-            return;
-          }
-          const verb = raiseVerb(chosen, { isFacingBet });
-          const sizeText = chipLabel(chosen);
-          const labelText = sizeText ? `${verb} ${sizeText}` : verb;
-          const metaText = chosen.meta && chosen.meta !== sizeText ? chosen.meta : '';
+        const updateBetButton = (button, includeSize = false) => {
+          if(!button) return;
+          const chosen = includeSize ? activeRaise() : primaryRaise;
+          const { label, meta } = formatBetLabel(chosen, { isFacingBet, includeSize });
           const labelEl = button.querySelector('.action-label');
-          if(labelEl) labelEl.textContent = labelText;
+          if(labelEl) labelEl.textContent = label;
           let metaEl = button.querySelector('.action-meta');
-          if(metaText){
-            if(metaEl){
-              metaEl.textContent = metaText;
-            } else {
+          if(meta){
+            if(!metaEl){
               metaEl = document.createElement('span');
               metaEl.className = 'action-meta';
-              metaEl.textContent = metaText;
               button.appendChild(metaEl);
             }
+            metaEl.textContent = meta;
           } else if(metaEl){
             metaEl.remove();
           }
-          button.dataset.optionIndex = String(chosen.index);
-          button.dataset.optionLabel = metaText ? `${labelText} (${metaText})` : labelText;
-          button.disabled = !!chosen.disabled;
-          refreshSizeSelection();
+          if(chosen){
+            button.dataset.optionIndex = String(chosen.index);
+            button.dataset.optionLabel = meta ? `${label} (${meta})` : label;
+            button.disabled = !!chosen.disabled;
+          } else {
+            button.dataset.optionIndex = '';
+            button.dataset.optionLabel = label;
+            button.disabled = true;
+          }
         };
 
-        const passiveVariant = passiveOpt && passiveOpt.action === 'check' ? 'action-neutral' : 'action-neutral';
-        const passiveButton = passiveOpt
-          ? buildButton(passiveOpt, passiveVariant)
-          : createPlaceholder();
+        const passiveButton = appendMainButton('passive', passiveOpt, 'action-neutral', {
+          label: passiveOpt ? (passiveOpt.action === 'call' ? 'Call' : passiveOpt.action === 'check' ? 'Check' : 'Check/Call') : 'Check/Call',
+          meta: '',
+        });
 
-        const betButton = raiseOpts.length
-          ? buildButton(raiseOpts[0], 'action-primary', {
-              onClick: () => {
-                const chosen = activeRaise();
-                if(chosen){
-                  choose(chosen.index);
-                }
-              },
-            })
-          : createPlaceholder();
+        if(passiveButton && passiveOpt){
+          passiveButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            selectedMainAction = null;
+            refreshMainArming();
+            choose(passiveOpt.index);
+          });
+        }
 
-        const jamButton = jamOpt
-          ? buildButton(jamOpt, 'action-destructive')
-          : createPlaceholder();
+        const betButton = appendMainButton('bet', primaryRaise, 'action-primary', {
+          label: primaryRaise ? formatBetLabel(primaryRaise, { isFacingBet, includeSize: false }).label : (isFacingBet ? 'Raise' : 'Bet'),
+          meta: '',
+        });
 
-        mainRow.appendChild(passiveButton || createPlaceholder());
-        mainRow.appendChild(betButton || createPlaceholder());
-        mainRow.appendChild(jamButton || createPlaceholder());
+        const foldButton = appendMainButton('fold', foldOpt, 'action-negative');
+        if(foldButton && foldOpt){
+          foldButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            selectedMainAction = null;
+            refreshMainArming();
+            choose(foldOpt.index);
+          });
+        }
 
-        if(foldOpt){
-          supportRow.appendChild(buildButton(foldOpt, 'action-ghost'));
+        const jamButton = appendMainButton('jam', jamOpt, 'action-destructive');
+        if(jamButton && jamOpt){
+          jamButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            selectedMainAction = null;
+            refreshMainArming();
+            choose(jamOpt.index);
+          });
         }
 
         if(raiseOpts.length > 1){
+          sizeRow.classList.add('is-hidden');
           raiseOpts.forEach((descriptor) => {
             const chip = document.createElement('button');
             chip.type = 'button';
@@ -1583,32 +1767,69 @@
             chip.addEventListener('click', (event) => {
               event.preventDefault();
               if(chip.disabled) return;
+              selectedMainAction = 'bet';
               selectedRaiseIndex = descriptor.index;
-              if(betButton){
-                updateBetButton(betButton);
-              }
-              announceAction(`Sizing selected: ${chip.textContent}`);
+              ensureRaiseSelection();
+              updateBetButton(betButton, true);
+              Array.from(sizeRow.querySelectorAll('.size-chip')).forEach((nodeChip) => {
+                nodeChip.classList.toggle('is-selected', nodeChip === chip);
+              });
+              refreshMainArming();
             });
             sizeRow.appendChild(chip);
           });
-          ensureRaiseSelection();
-          updateBetButton(betButton);
-          refreshSizeSelection();
-          actionArea.appendChild(mainRow);
-          if(supportRow.children.length){
-            actionArea.appendChild(supportRow);
-          }
-          actionArea.appendChild(sizeRow);
-        } else {
-          ensureRaiseSelection();
-          updateBetButton(betButton);
-          sizeRow.classList.add('is-hidden');
-          actionArea.appendChild(mainRow);
-          if(supportRow.children.length){
-            actionArea.appendChild(supportRow);
-          }
         }
 
+        const handleBetClick = () => {
+          if(!raiseOpts.length){
+            selectedMainAction = null;
+            refreshMainArming();
+            return;
+          }
+          if(raiseOpts.length <= 1){
+            const descriptor = raiseOpts[0];
+            if(descriptor){
+              selectedMainAction = null;
+              refreshMainArming();
+              choose(descriptor.index);
+            }
+            return;
+          }
+          if(selectedMainAction !== 'bet'){
+            selectedMainAction = 'bet';
+            const ensured = ensureRaiseSelection();
+            if(ensured){
+              Array.from(sizeRow.querySelectorAll('.size-chip')).forEach((chip) => {
+                const idx = Number(chip.dataset.optionIndex);
+                chip.classList.toggle('is-selected', idx === ensured.index);
+              });
+            }
+            updateBetButton(betButton, true);
+            refreshMainArming();
+            return;
+          }
+          const descriptor = activeRaise();
+          if(descriptor){
+            selectedMainAction = null;
+            refreshMainArming();
+            choose(descriptor.index);
+          }
+        };
+
+        if(betButton){
+          betButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            handleBetClick();
+          });
+        }
+
+        refreshMainArming();
+        updateBetButton(betButton, selectedMainAction === 'bet');
+
+        actionArea.appendChild(mainRow);
+        if(raiseOpts.length > 1){
+          actionArea.appendChild(sizeRow);
+        }
         announceAction('');
       };
 
@@ -1663,13 +1884,13 @@
         const bestEv = typeof feedback?.best?.ev === 'number' ? formatBb(feedback.best.ev) : null;
         const chosenLabel = feedback?.chosen?.key || '—';
         const deltaValue = typeof feedback?.ev_loss === 'number' ? Math.abs(feedback.ev_loss) : null;
-        const deltaCopy = typeof deltaValue === 'number' ? `EV gap ${formatBb(deltaValue)}` : '';
-        const bestCopy = bestEv ? `${bestLabel} (${bestEv})` : bestLabel;
+        const bestLine = bestEv ? `GTO: ${bestLabel} (${bestEv})` : `GTO: ${bestLabel}`;
+        const youLine = !correct && deltaValue
+          ? `You: ${chosenLabel} (−${formatBb(deltaValue)})`
+          : `You: ${chosenLabel}`;
         feedbackBanner.dataset.state = correct ? 'correct' : 'incorrect';
-        feedbackRecommendation.innerHTML = correct
-          ? `GTO matches your line: <strong>${bestCopy}</strong>`
-          : `GTO recommends <strong>${bestCopy}</strong>${deltaCopy ? ` · ${deltaCopy}` : ''}`;
-        feedbackChoice.innerHTML = `You picked <strong>${chosenLabel}</strong>`;
+        feedbackRecommendation.textContent = bestLine;
+        feedbackChoice.textContent = youLine;
         feedbackBanner.classList.remove('hidden');
       };
 
@@ -1693,7 +1914,7 @@
       updateHeaderStatus(null);
       if(statusLineEl){
         statusLineEl.dataset.active = '';
-        statusLineEl.textContent = 'Ready for a new hand';
+        renderStatusLine([{ label: 'Status', value: 'Ready for a new hand' }]);
       }
       if(actionArea){
         actionArea.classList.add('is-hidden');
@@ -1713,7 +1934,7 @@
           updateHeaderStatus(null);
           if(statusLineEl){
             statusLineEl.dataset.active = '';
-            statusLineEl.textContent = 'Ready for a new hand';
+            renderStatusLine([{ label: 'Status', value: 'Ready for a new hand' }]);
           }
           if(actionArea){
             actionArea.classList.add('is-hidden');
@@ -1722,7 +1943,7 @@
         }
         if(id === '#panel-summary' && statusLineEl){
           statusLineEl.dataset.active = '';
-          statusLineEl.textContent = 'Session summary ready';
+          renderStatusLine([{ label: 'Status', value: 'Session summary ready' }]);
         }
       }
 
@@ -1842,12 +2063,10 @@
           pendingSummary = payload.summary || null;
           setSummaryAvailability(true);
           updateHeaderStatus(null);
-          if(headerStatus){
-            headerStatus.textContent = 'Summary ready';
-          }
+          renderStatusChips([{ label: 'State', value: 'Summary' }]);
           if(statusLineEl){
             statusLineEl.dataset.active = '';
-            statusLineEl.textContent = 'Session complete — view summary for breakdown.';
+            renderStatusLine([{ label: 'Status', value: 'Session complete — view summary' }]);
           } else {
             setStatusMessage('Session complete — view summary for breakdown.');
           }
@@ -1864,7 +2083,7 @@
         updateHeaderStatus(node);
         if(statusLineEl){
           statusLineEl.dataset.active = 'node';
-          statusLineEl.textContent = formatStatusLine(node, descriptor);
+          renderStatusLine(formatStatusLine(node, descriptor));
         }
         const heroEl = $('#hand');
         const heroCards = renderCards(node.hero_cards);
@@ -1891,7 +2110,11 @@
       const choose = async (index) => {
         if(pending) return;
         pending = true;
+        selectedMainAction = null;
         const interactives = Array.from(actionArea?.querySelectorAll('[data-option-index]') || []);
+        if(actionArea){
+          actionArea.querySelectorAll('.action-button.is-armed').forEach((btn) => btn.classList.remove('is-armed'));
+        }
         const chosenElement = interactives.find((el) => Number(el.dataset.optionIndex) === index);
         interactives.forEach((el) => {
           const isChosen = Number(el.dataset.optionIndex) === index;
@@ -1984,9 +2207,7 @@
         setSummaryAvailability(false);
         show('#panel-summary');
         updateHeaderStatus(null);
-        if(headerStatus){
-          headerStatus.textContent = 'Summary ready';
-        }
+        renderStatusChips([{ label: 'State', value: 'Summary' }]);
       }
 
       const endSession = async () => {
