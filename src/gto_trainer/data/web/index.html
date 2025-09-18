@@ -1933,13 +1933,6 @@
             const shouldArm = key === selectedMainAction;
             btn.classList.toggle('is-armed', shouldArm);
           });
-          if(raiseOpts.length > 1){
-            if(selectedMainAction === 'bet'){
-              sizeRow.classList.remove('is-hidden');
-            } else {
-              sizeRow.classList.add('is-hidden');
-            }
-          }
         };
 
         const ensureRaiseSelection = () => {
@@ -2012,11 +2005,11 @@
         });
 
         if(raiseOpts.length > 1){
-          sizeRow.classList.add('is-hidden');
           sizeSlot = document.createElement('div');
           sizeSlot.className = 'action-slot size-slot';
           sizeSlot.appendChild(sizeRow);
           mainRow.appendChild(sizeSlot);
+          const ensured = ensureRaiseSelection();
           raiseOpts.forEach((descriptor) => {
             const chip = document.createElement('button');
             chip.type = 'button';
@@ -2027,17 +2020,18 @@
             if(descriptor.disabled){
               chip.disabled = true;
             }
+            if(ensured && ensured.index === descriptor.index){
+              chip.classList.add('is-selected');
+            }
             chip.addEventListener('click', (event) => {
               event.preventDefault();
               if(chip.disabled || pending) return;
-              selectedMainAction = 'bet';
               selectedRaiseIndex = descriptor.index;
               ensureRaiseSelection();
               updateBetButton(betButton, true);
               Array.from(sizeRow.querySelectorAll('.size-chip')).forEach((nodeChip) => {
                 nodeChip.classList.toggle('is-selected', nodeChip === chip);
               });
-              refreshMainArming();
               window.requestAnimationFrame(() => {
                 if(pending) return;
                 choose(descriptor.index);
@@ -2068,37 +2062,8 @@
         }
 
         const handleBetClick = () => {
-          if(!raiseOpts.length){
-            selectedMainAction = null;
-            refreshMainArming();
-            return;
-          }
-          if(raiseOpts.length <= 1){
-            const descriptor = raiseOpts[0];
-            if(descriptor){
-              selectedMainAction = null;
-              refreshMainArming();
-              choose(descriptor.index);
-            }
-            return;
-          }
-          if(selectedMainAction !== 'bet'){
-            selectedMainAction = 'bet';
-            const ensured = ensureRaiseSelection();
-            if(ensured){
-              Array.from(sizeRow.querySelectorAll('.size-chip')).forEach((chip) => {
-                const idx = Number(chip.dataset.optionIndex);
-                chip.classList.toggle('is-selected', idx === ensured.index);
-              });
-            }
-            updateBetButton(betButton, true);
-            refreshMainArming();
-            return;
-          }
-          const descriptor = activeRaise();
+          const descriptor = raiseOpts.length ? raiseOpts[0] : primaryRaise;
           if(descriptor){
-            selectedMainAction = null;
-            refreshMainArming();
             choose(descriptor.index);
           }
         };
@@ -2111,7 +2076,7 @@
         }
 
         refreshMainArming();
-        updateBetButton(betButton, selectedMainAction === 'bet');
+        updateBetButton(betButton, true);
 
         actionArea.appendChild(mainRow);
         announceAction('');
