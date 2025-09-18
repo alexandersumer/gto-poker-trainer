@@ -35,6 +35,16 @@
         --surface-2: #141B23;
         --surface-3: #0F172A;
         --border: #2A3645;
+        --field-bg: color-mix(in srgb, var(--surface-2) 86%, var(--surface-1) 14%);
+        --field-bg-hover: color-mix(in srgb, var(--surface-2) 80%, var(--surface-3) 20%);
+        --field-border: color-mix(in srgb, var(--border) 78%, transparent);
+        --field-border-hover: color-mix(in srgb, var(--border) 55%, var(--brand) 10%);
+        --field-border-focus: color-mix(in srgb, var(--brand) 55%, transparent);
+        --field-placeholder: color-mix(in srgb, var(--text-tertiary) 78%, transparent);
+        --field-helper: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+        --field-disabled-bg: color-mix(in srgb, var(--surface-2) 82%, var(--surface-1) 18%);
+        --field-disabled-border: color-mix(in srgb, var(--border) 60%, transparent);
+        --field-error-border: color-mix(in srgb, var(--error) 70%, transparent);
         --shadow-soft: 0 18px 34px rgba(11, 15, 20, 0.4);
         --shadow-card: 0 1px 0 rgba(7, 11, 16, 0.35), 0 12px 24px rgba(7, 11, 16, 0.35);
         --text-primary: #E6EDF3;
@@ -72,6 +82,16 @@
         --surface-2: #F3F4F6;
         --surface-3: #FFFFFF;
         --border: #E5E7EB;
+        --field-bg: color-mix(in srgb, var(--surface-2) 88%, white 12%);
+        --field-bg-hover: color-mix(in srgb, var(--surface-2) 80%, white 20%);
+        --field-border: color-mix(in srgb, var(--border) 75%, transparent);
+        --field-border-hover: color-mix(in srgb, var(--border) 55%, var(--brand) 12%);
+        --field-border-focus: color-mix(in srgb, var(--brand) 60%, transparent);
+        --field-placeholder: color-mix(in srgb, var(--text-tertiary) 78%, transparent);
+        --field-helper: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+        --field-disabled-bg: color-mix(in srgb, var(--surface-2) 90%, white 10%);
+        --field-disabled-border: color-mix(in srgb, var(--border) 62%, transparent);
+        --field-error-border: color-mix(in srgb, var(--error) 70%, transparent);
         --shadow-soft: 0 18px 34px rgba(15, 23, 42, 0.12);
         --shadow-card: 0 1px 0 rgba(15, 23, 42, 0.05), 0 12px 24px rgba(15, 23, 42, 0.12);
         --text-primary: #0B1220;
@@ -175,18 +195,72 @@
         border-radius: var(--radius-lg);
       }
       .panel-soft { background: var(--surface-2); }
-      input, select, textarea {
-        color: var(--text-primary);
-        background: var(--surface-2);
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--border);
-        padding: 0.55rem 0.9rem;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
       }
-      input:focus-visible, select:focus-visible, textarea:focus-visible {
+      .field-label {
+        font-size: var(--text-size-label);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--text-secondary);
+      }
+      input,
+      select,
+      textarea {
+        color: var(--text-primary);
+        background: var(--field-bg);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--field-border);
+        padding: 0.5rem 0.85rem;
+        font-weight: 600;
+        transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        min-height: calc(var(--min-tap) - 10px);
+      }
+      input::placeholder,
+      textarea::placeholder {
+        color: var(--field-placeholder);
+        font-weight: 500;
+      }
+      input:hover,
+      select:hover,
+      textarea:hover {
+        border-color: var(--field-border-hover);
+        background: var(--field-bg-hover);
+      }
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible {
         outline: none;
-        border-color: var(--brand);
-        box-shadow: 0 0 0 var(--focus-ring) var(--focus-color);
+        border-color: var(--field-border-focus);
+        box-shadow: 0 0 0 calc(var(--focus-ring) + 1px) color-mix(in srgb, var(--field-border-focus) 28%, transparent);
+        background: color-mix(in srgb, var(--field-bg) 92%, var(--brand) 8%);
+      }
+      input:disabled,
+      select:disabled,
+      textarea:disabled {
+        background: var(--field-disabled-bg);
+        border-color: var(--field-disabled-border);
+        color: color-mix(in srgb, var(--text-secondary) 65%, var(--text-tertiary) 35%);
+      }
+      input.error,
+      select.error,
+      textarea.error {
+        border-color: var(--field-error-border);
+        box-shadow: 0 0 0 calc(var(--focus-ring)) color-mix(in srgb, var(--error) 18%, transparent);
+      }
+      .field-helper {
+        color: var(--field-helper);
+        font-size: 12px;
+        line-height: 1.5;
+        max-inline-size: 54ch;
+      }
+      .field-helper.long {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
       }
       button {
         color: inherit;
@@ -843,13 +917,17 @@
       <section id="panel-start" class="page-section space-y-4">
         <div class="rounded-lg panel-box panel-soft p-6 text-secondary">
           <h2 class="font-semibold mb-4 text-[clamp(1.25rem,2vw,1.45rem)] text-primary">Start a Session</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-secondary">
-            <label class="block text-sm">Hands
-              <input id="inp-hands" type="number" min="1" value="3" class="mt-1 w-full" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-secondary" role="group" aria-labelledby="start-session-fields">
+            <p id="start-session-fields" class="sr-only">Session configuration</p>
+            <label class="field-group" for="inp-hands">
+              <span class="field-label">Hands</span>
+              <input id="inp-hands" type="number" min="1" value="3" placeholder="e.g., 3" class="w-full" inputmode="numeric" aria-describedby="helper-hands" />
+              <span id="helper-hands" class="field-helper">Choose how many scenarios play back-to-back.</span>
             </label>
-            <label class="block text-sm">Simulation depth
-              <input id="inp-mc" type="number" min="40" step="10" value="120" class="mt-1 w-full" />
-              <span class="mt-2 block text-xs text-muted leading-relaxed">More trials give more accurate equity estimates, at the cost of extra compute time per hand.</span>
+            <label class="field-group" for="inp-mc">
+              <span class="field-label">Depth</span>
+              <input id="inp-mc" type="number" min="40" step="10" value="120" placeholder="e.g., 120" class="w-full" inputmode="numeric" aria-describedby="helper-depth" />
+              <span id="helper-depth" class="field-helper long">More trials yield tighter EV estimates but extend the compute per hand.</span>
             </label>
           </div>
           <button id="btn-start" class="mt-6 w-full rounded-xl px-4 py-2.5 font-semibold transition-transform duration-200 hover:-translate-y-[1px] focus-visible:outline-none btn btn-chip">Start</button>
@@ -1039,6 +1117,13 @@
       let lastFeedback = null;
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
+
+      const setStatusMessage = (message) => {
+        if(headerStatus) headerStatus.textContent = message;
+        if(statusLineEl && (!statusLineEl.dataset.active || statusLineEl.dataset.active !== 'node')){
+          statusLineEl.textContent = message;
+        }
+      };
 
       const streetLabel = (street) => {
         const value = (street || "").toString();
