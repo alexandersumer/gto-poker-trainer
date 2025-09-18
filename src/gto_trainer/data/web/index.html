@@ -772,8 +772,8 @@
         bottom: calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
         display: flex;
         flex-direction: column;
-        gap: var(--space-1);
-        padding: var(--space-1) calc(var(--space-1) + 2px) calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
+        gap: calc(var(--space-1) * 0.8);
+        padding: calc(var(--space-1) - 2px) calc(var(--space-1)) calc(var(--space-1) + env(safe-area-inset-bottom, 0px) - 2px);
         background: transparent;
         border-radius: var(--radius-md);
         border: 0;
@@ -808,15 +808,15 @@
         opacity: 1;
       }
       #panel-play .panel-box.panel-soft {
-        padding: calc(var(--space-1) + 6px);
+        padding: calc(var(--space-1) + 4px);
       }
       #panel-play .panel-soft > * + * {
-        margin-top: calc(var(--space-1) + 4px);
+        margin-top: calc(var(--space-1) + 2px);
       }
       #feedback-banner,
       #primary-controls,
       #end-session-container {
-        margin-top: calc(var(--space-1) + 6px);
+        margin-top: calc(var(--space-1) + 4px);
       }
       .action-area.is-hidden {
         display: none;
@@ -1008,8 +1008,8 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: var(--space-1);
-        padding: var(--space-1) var(--space-2);
+        gap: calc(var(--space-1) - 2px);
+        padding: calc(var(--space-1) - 2px) calc(var(--space-2) - 2px);
         border-radius: var(--radius-md);
         border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
         border-left: 4px solid var(--brand);
@@ -1055,7 +1055,7 @@
       #panel-play .panel-soft {
         display: flex;
         flex-direction: column;
-        gap: calc(var(--space-1) * 0.75);
+        gap: calc(var(--space-1) * 0.6);
       }
       #panel-play .panel-soft > * {
         margin: 0;
@@ -1063,8 +1063,8 @@
       .info-card {
         display: flex;
         flex-direction: column;
-        gap: var(--space-2);
-        padding: var(--space-3);
+        gap: calc(var(--space-2) - 4px);
+        padding: calc(var(--space-2) + 2px);
         border: 1px solid var(--border);
         border-radius: var(--radius-lg);
         background: var(--surface-1);
@@ -1085,7 +1085,7 @@
       .info-row {
         display: flex;
         align-items: center;
-        gap: var(--space-1);
+        gap: calc(var(--space-1) - 2px);
       }
       .info-label {
         font-size: 0.7rem;
@@ -1097,7 +1097,7 @@
       .info-cards {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
         font-size: 1.05rem;
         font-weight: 600;
         color: var(--text-primary);
