@@ -803,19 +803,19 @@
         opacity: 1;
       }
       #panel-play .panel-box.panel-soft {
-        padding: var(--space-2) var(--space-2) calc(var(--space-2) + 2px);
+        padding: calc(var(--space-1) + 6px);
       }
       #panel-play .panel-soft > * + * {
-        margin-top: var(--space-1);
+        margin-top: calc(var(--space-1) + 4px);
       }
       #feedback {
-        margin-top: calc(var(--space-1) / 2);
+        margin-top: calc(var(--space-1) + 6px);
       }
       #feedback-banner {
-        margin-top: calc(var(--space-1) / 1.4);
+        margin-top: calc(var(--space-1) + 4px);
       }
       #primary-controls {
-        margin-top: calc(var(--space-1) / 1.4);
+        margin-top: calc(var(--space-1) + 4px);
       }
       .action-area.is-hidden {
         display: none;
@@ -838,25 +838,21 @@
         background: transparent;
         visibility: hidden;
       }
-      .action-slot.bet-slot {
-        grid-column: 1 / -1;
-        padding: 0;
-      }
       .bet-group {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-1) 30%);
-        border: 1px solid color-mix(in srgb, var(--outline) 68%, transparent);
+        gap: 8px;
+        background: color-mix(in srgb, var(--surface-2) 68%, var(--surface-1) 32%);
+        border: 1px solid color-mix(in srgb, var(--outline) 66%, transparent);
         border-radius: var(--radius-md);
-        padding: var(--space-1) calc(var(--space-1) + 4px);
+        padding: calc(var(--space-1) + 2px);
       }
       .bet-group__label {
-        font-size: 0.8rem;
+        font-size: 0.76rem;
         font-weight: 600;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--text-secondary);
+        color: var(--text-tertiary);
       }
       .action-sizes {
         display: grid;
@@ -1278,7 +1274,6 @@
       }
       .density-compact .bet-group {
         gap: 6px;
-        padding: 10px;
       }
       .density-compact .bet-group__label {
         font-size: 0.68rem;
@@ -1544,6 +1539,7 @@
       let selectedMainAction = null;
       let selectedRaiseIndex = null;
       let autoScrolledToPlay = false;
+      let betGroupCounter = 0;
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
 
@@ -1986,13 +1982,17 @@
           sizeRow.setAttribute('aria-label', isFacingBet ? 'Raise sizes' : 'Bet sizes');
           const betGroup = document.createElement('div');
           betGroup.className = 'bet-group';
+          betGroup.setAttribute('role', 'group');
           const betLabel = document.createElement('div');
           betLabel.className = 'bet-group__label';
           betLabel.textContent = isFacingBet ? 'Raise' : 'Bet';
+          const labelId = `bet-label-${++betGroupCounter}`;
+          betLabel.id = labelId;
+          betGroup.setAttribute('aria-labelledby', labelId);
           betGroup.appendChild(betLabel);
           betGroup.appendChild(sizeRow);
           sizeSlot = document.createElement('div');
-          sizeSlot.className = 'action-slot bet-slot';
+          sizeSlot.className = 'action-slot';
           sizeSlot.appendChild(betGroup);
           mainRow.appendChild(sizeSlot);
 
