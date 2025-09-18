@@ -1964,9 +1964,8 @@
           if(!button) return;
           const chosen = includeSize ? activeRaise() : primaryRaise;
           const formatted = chosen ? formatBetLabel(chosen, { isFacingBet, includeSize: true }) : { label: '', meta: '' };
-          const sizeMeta = chosen ? chipLabel(chosen) : '';
           const displayLabel = includeSize && formatted.label ? formatted.label : 'Bet';
-          const displayMeta = includeSize ? '' : sizeMeta;
+          const displayMeta = ''; // keep button clean; sizing chips show details
           const labelEl = button.querySelector('.action-label');
           if(labelEl) labelEl.textContent = displayLabel;
           let metaEl = button.querySelector('.action-meta');
@@ -1982,7 +1981,7 @@
           }
           if(chosen){
             button.dataset.optionIndex = String(chosen.index);
-            const datasetLabel = formatted.label || (displayMeta ? `Bet ${displayMeta}` : 'Bet');
+            const datasetLabel = formatted.label || 'Bet';
             button.dataset.optionLabel = datasetLabel.trim();
             button.disabled = !!chosen.disabled;
           } else {
@@ -2006,10 +2005,9 @@
           });
         }
 
-        const primarySizeMeta = primaryRaise ? chipLabel(primaryRaise) : '';
         const betButton = appendMainButton('bet', primaryRaise, 'action-primary', {
           label: 'Bet',
-          meta: primarySizeMeta || '',
+          meta: '',
         });
 
         if(raiseOpts.length > 1){
