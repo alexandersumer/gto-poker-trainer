@@ -269,6 +269,45 @@
         --field-border-hover: color-mix(in srgb, var(--border) 52%, var(--brand) 32%);
         --field-border-focus: color-mix(in srgb, var(--brand) 58%, var(--border) 42%);
       }
+      #panel-start .field-shell {
+        background: color-mix(in srgb, var(--surface-2) 68%, var(--surface-1) 32%);
+        border: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
+        border-radius: var(--radius-md);
+        box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-1) 55%, transparent);
+        padding: 6px;
+      }
+      :root[data-theme="light"] #panel-start .field-shell {
+        background: color-mix(in srgb, var(--surface-2) 82%, var(--brand) 18%);
+        border-color: color-mix(in srgb, var(--border) 74%, var(--brand) 26%);
+        box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-1) 65%, transparent);
+      }
+      #panel-start .field-shell input,
+      #panel-start .field-shell select {
+        color: var(--text-primary);
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      #panel-start .field-shell input::placeholder,
+      #panel-start .field-shell select::placeholder {
+        color: color-mix(in srgb, var(--text-secondary) 62%, transparent);
+        opacity: 0.8;
+      }
+      #panel-start .field-shell input:hover,
+      #panel-start .field-shell select:hover {
+        background: transparent;
+      }
+      #panel-start .field-shell input:focus-visible,
+      #panel-start .field-shell select:focus-visible {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
+      #panel-start .field-shell:focus-within {
+        border-color: var(--field-border-focus);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--field-border-focus) 55%, transparent), 0 0 0 calc(var(--focus-ring)) color-mix(in srgb, var(--field-border-focus) 25%, transparent);
+      }
       .surface-card {
         background: color-mix(in srgb, var(--surface-2) 64%, var(--surface-1) 36%);
         border: 1px solid color-mix(in srgb, var(--outline) 85%, transparent);
