@@ -1598,10 +1598,10 @@
         btn.addEventListener('click', handleNextHandClick);
         window.requestAnimationFrame(() => btn.focus({ preventScroll: true }));
         if(statusLineEl){
-          statusLineEl.dataset.active = 'next';
-          renderStatusLine([{ label: 'Status', value: 'Hand complete — tap “Next hand” to continue.' }]);
+          statusLineEl.dataset.active = '';
+          renderStatusLine([]);
         } else {
-          setStatusMessage('Hand complete — tap “Next hand” to continue.');
+          setStatusMessage('');
         }
       };
 
@@ -2178,7 +2178,7 @@
             : bestEv
               ? `Best: ${bestLabel} (${bestEv})`
               : `Best: ${bestLabel}`;
-        const resolutionNote = feedback?.chosen?.resolution_note || (feedback?.ended ? 'Hand complete. Tap “Next hand” to continue.' : '');
+        const resolutionNote = feedback?.chosen?.resolution_note || '';
         feedbackBanner.dataset.state = correct ? 'correct' : 'incorrect';
         feedbackRecommendation.textContent = summaryLine;
         feedbackChoice.textContent = '';
