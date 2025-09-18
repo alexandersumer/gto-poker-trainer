@@ -1125,6 +1125,36 @@
         }
       };
 
+      const syncThemeToggle = (value) => {
+        if(!themeToggle) return;
+        const isDark = value === 'dark';
+        themeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        const title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+        themeToggle.setAttribute('title', title);
+        themeToggle.setAttribute('aria-label', title);
+        const labelEl = themeToggle.querySelector('.toggle-label');
+        if(labelEl) labelEl.textContent = isDark ? 'Dark' : 'Light';
+      };
+
+      if(themeToggle){
+        syncThemeToggle(ThemeController.get());
+        ThemeController.onChange(syncThemeToggle);
+        const handleToggle = () => {
+          const next = ThemeController.get() === 'dark' ? 'light' : 'dark';
+          ThemeController.set(next);
+        };
+        themeToggle.addEventListener('click', (event)=>{
+          event.preventDefault();
+          handleToggle();
+        });
+        themeToggle.addEventListener('keydown', (event)=>{
+          if(event.key === 'Enter' || event.key === ' '){
+            event.preventDefault();
+            handleToggle();
+          }
+        });
+      }
+
       const streetLabel = (street) => {
         const value = (street || "").toString();
         if(!value) return "Ready";
