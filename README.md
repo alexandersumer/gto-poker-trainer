@@ -1,14 +1,18 @@
 # GTO Trainer
 
-Heads-up no-limit hold’em trainer with both a terminal flow and a minimal browser UI. Every scenario deals a full villain hand (never overlapping with yours or the board), lets them react street by street, and shows the EV swing behind each choice.
+GTO Trainer is a heads-up no-limit hold’em practice environment with both a Textual CLI and a FastAPI web UI. Each scenario deals a full villain hand, lets the opponent react street by street, and reports the EV delta for every action you take.
 
-**Live demo:** https://gto-trainer.onrender.com/
+## Project status
+
+- **Renamed** – The codebase, CLI, and deployment were renamed from **GTO Poker Trainer** to **GTO Trainer** so the branding matches everywhere.
+- **Demo** – A Render-hosted preview lives at `https://gto-trainer.onrender.com/`. Render free instances sleep between requests, so expect a short cold-start delay or run the web app locally for a faster experience.
+- **Runtime target** – The project pins Python **3.12.11** across CLI, tests, and CI to keep the solver output deterministic.
 
 ## Requirements
 
-- Python 3.12.11 exactly (use `pyenv` or your system Python).
+- Python 3.12.11 exactly (`pyenv` or another version manager is recommended).
 
-## Install & Run (CLI)
+## Install & run (CLI)
 
 ```bash
 python3.12 -m venv .venv
@@ -19,7 +23,7 @@ pip install -e .
 gto-trainer --hands 5
 ```
 
-Running in-place without installing:
+Run in-place without installing:
 
 ```bash
 PYTHONPATH=src python -m gto_trainer
@@ -31,44 +35,47 @@ PYTHONPATH=src python -m gto_trainer
 gto-trainer [--hands N] [--seed N] [--mc N] [--no-color] [--solver-csv PATH]
 ```
 
-- `--hands N` hands to play (default 1).
-- `--seed N` RNG seed (omit for randomness).
-- `--mc N` Monte Carlo trials per decision (default 200).
-- `--solver-csv PATH` optional preflop strategy CSV before heuristics kick in.
-- `--no-color` disable ANSI colors.
+- `--hands N` — number of hands to play (default `1`).
+- `--seed N` — RNG seed (omit for randomness).
+- `--mc N` — Monte Carlo samples per node (default `200`).
+- `--solver-csv PATH` — optional preflop CSV to seed opening ranges.
+- `--no-color` — disable ANSI colors if your terminal strips them.
 
-Controls: `1–9` choose an action, `h` help, `?` pot + SPR, `q` quit. Feedback includes a summary such as “Villain calls with…” with EV breakdowns.
+Controls inside the CLI: `1–9` choose an action, `h` opens contextual help, `?` shows pot + SPR, `q` quits.
 
 ## Web UI
 
-- Cloud: the Render deployment mirrors the CLI defaults — try it at https://gto-trainer.onrender.com/.
-- Local: install `.[dev]`, then start FastAPI with reload support.
+- **Render** – The live demo mirrors the CLI defaults: `https://gto-trainer.onrender.com/`.
+- **Local** – Install dev extras and launch FastAPI with reload enabled:
 
-```bash
-pip install -e .[dev]
-uvicorn gto_trainer.web.app:app --reload
-```
+  ```bash
+  pip install -e .[dev]
+  uvicorn gto_trainer.web.app:app --reload
+  ```
 
-Environment overrides: `HANDS` and `MC` mirror the CLI flags when set before launch.
+Environment overrides: `HANDS` and `MC` mirror the CLI flags when exported before launch.
 
-## Local Development
+## Local development
+
+Common helper targets:
 
 ```bash
 make install-dev   # editable install with dev extras
-make check         # lint + tests (same combo as CI)
+make check         # lint + tests (matches CI)
 make test          # pytest -q
 make lint          # Ruff lint
 make format        # Ruff formatter
-make render-smoke  # smoke test Render Docker image + /healthz
+make render-smoke  # build Docker image & hit /healthz (Render parity)
 ```
 
-`pytest -q` runs the deeper regression suite during strategy work.
+CI runs the same trio as `make check` (`ruff format --check`, `ruff check`, `pytest -q`).
 
 ## Notes
 
-- Per step: `ev_loss = best_ev - chosen_ev`.
-- Score averages per-decision penalties derived from EV lost as a percentage of the pot; mistakes above ~0.3% pot get exponentially harsher deductions.
+- Per decision we report `ev_loss = best_ev - chosen_ev`.
+- Score aggregates EV loss (as pot %) across decisions; larger mistakes carry exponentially higher penalties.
 
 ## License
 
 Proprietary (see `pyproject.toml`).
+
