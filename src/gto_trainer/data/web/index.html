@@ -190,14 +190,14 @@
       main {
         flex: 1;
         width: min(860px, calc(100% - 2.5rem));
-        padding-top: var(--space-1);
+        padding-top: calc(var(--space-1) / 2);
         padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
       }
       main .page-section {
-        margin-top: var(--space-1);
+        margin-top: calc(var(--space-1) / 2);
       }
       main .page-section > * + * {
-        margin-top: var(--space-1);
+        margin-top: calc(var(--space-1) * 0.75);
       }
       #progress-bar {
         position: fixed;
@@ -733,7 +733,7 @@
         font-weight: 600;
       }
       .status-line {
-        margin-top: calc(var(--space-1) + 2px);
+        margin-top: calc(var(--space-1) * 0.75);
         margin-bottom: var(--space-1);
         font-size: 0.9rem;
         font-weight: 500;
@@ -805,6 +805,10 @@
         border: 1px solid transparent;
         background: transparent;
         visibility: hidden;
+      }
+      .action-slot.size-slot {
+        grid-column: 1 / -1;
+        padding: 0;
       }
       .action-sizes {
         display: grid;
@@ -1001,7 +1005,7 @@
       #panel-play .panel-soft {
         display: flex;
         flex-direction: column;
-        gap: var(--space-2);
+        gap: calc(var(--space-1) * 0.75);
       }
       #panel-play .panel-soft > * {
         margin: 0;
@@ -1849,6 +1853,7 @@
         sizeRow.className = 'action-sizes';
         sizeRow.setAttribute('role', 'group');
         sizeRow.setAttribute('aria-label', 'Bet sizing');
+        let sizeSlot = null;
 
         const mainButtons = {};
 
@@ -1967,28 +1972,12 @@
           meta: '',
         });
 
-        const foldButton = appendMainButton('fold', foldOpt, 'action-negative');
-        if(foldButton && foldOpt){
-          foldButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            selectedMainAction = null;
-            refreshMainArming();
-            choose(foldOpt.index);
-          });
-        }
-
-        const jamButton = appendMainButton('jam', jamOpt, 'action-destructive');
-        if(jamButton && jamOpt){
-          jamButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            selectedMainAction = null;
-            refreshMainArming();
-            choose(jamOpt.index);
-          });
-        }
-
         if(raiseOpts.length > 1){
           sizeRow.classList.add('is-hidden');
+          sizeSlot = document.createElement('div');
+          sizeSlot.className = 'action-slot size-slot';
+          sizeSlot.appendChild(sizeRow);
+          mainRow.appendChild(sizeSlot);
           raiseOpts.forEach((descriptor) => {
             const chip = document.createElement('button');
             chip.type = 'button';
@@ -2016,6 +2005,26 @@
               });
             });
             sizeRow.appendChild(chip);
+          });
+        }
+
+        const foldButton = appendMainButton('fold', foldOpt, 'action-negative');
+        if(foldButton && foldOpt){
+          foldButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            selectedMainAction = null;
+            refreshMainArming();
+            choose(foldOpt.index);
+          });
+        }
+
+        const jamButton = appendMainButton('jam', jamOpt, 'action-destructive');
+        if(jamButton && jamOpt){
+          jamButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            selectedMainAction = null;
+            refreshMainArming();
+            choose(jamOpt.index);
           });
         }
 
@@ -2066,9 +2075,6 @@
         updateBetButton(betButton, selectedMainAction === 'bet');
 
         actionArea.appendChild(mainRow);
-        if(raiseOpts.length > 1){
-          actionArea.appendChild(sizeRow);
-        }
         announceAction('');
         window.requestAnimationFrame(() => {
           actionArea.style.minHeight = '';
