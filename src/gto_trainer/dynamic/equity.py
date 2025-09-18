@@ -73,10 +73,10 @@ _EVALUATOR = Evaluator()
 _TREYS_CACHE = [Card.new(card_int_to_str(c)) for c in range(52)]
 
 
-_MIN_MONTE_TRIALS = 400
-_MAX_MONTE_TRIALS = 4000
-_MONTE_CHUNK = 200
-_TARGET_STD_ERROR = 0.008
+_MIN_MONTE_TRIALS = 0
+_MAX_MONTE_TRIALS = 1600
+_MONTE_CHUNK = 150
+_TARGET_STD_ERROR = 0.015
 
 # Exposed for tests to introspect how many trials were used in the most recent
 # adaptive Monte Carlo run. Not relied upon by runtime logic.
@@ -173,7 +173,7 @@ def _adaptive_monte_carlo(
 
     global _LAST_MONTE_TRIALS
 
-    min_trials = max(_MIN_MONTE_TRIALS, base_trials, min_trials or 0)
+    min_trials = max(base_trials, _MIN_MONTE_TRIALS, min_trials or 0)
     max_trials = max(_MAX_MONTE_TRIALS, min_trials, max_trials or 0)
     target = target_std_error if target_std_error is not None else _TARGET_STD_ERROR
     chunk = max(1, min(_MONTE_CHUNK, max_trials))
