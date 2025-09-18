@@ -3,10 +3,10 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from gto_poker_trainer.core.models import Option, OptionResolution
-from gto_poker_trainer.dynamic.cards import str_to_int
-from gto_poker_trainer.dynamic.generator import Node
-from gto_poker_trainer.solver.oracle import CompositeOptionProvider, CSVStrategyOracle
+from gto_trainer.core.models import Option, OptionResolution
+from gto_trainer.dynamic.cards import str_to_int
+from gto_trainer.dynamic.generator import Node
+from gto_trainer.solver.oracle import CompositeOptionProvider, CSVStrategyOracle
 
 
 class _FallbackProvider:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from gto_poker_trainer.web.app import app
+from gto_trainer.web.app import app
 
 
 def test_web_endpoints_session_flow():
@@ -11,7 +11,7 @@ def test_web_endpoints_session_flow():
     assert r.status_code == 200
     r = client.get("/")
     assert r.status_code == 200
-    assert "GTO Poker Trainer" in r.text
+    assert "GTO Trainer" in r.text
 
     # Create a session for 2 hands
     r = client.post("/api/session", json={"hands": 2, "mc": 60})

@@ -9,7 +9,7 @@ import time
 import urllib.error
 import urllib.request
 
-IMAGE_NAME = os.environ.get("RENDER_CHECK_IMAGE", "gto-poker-trainer:render-check")
+IMAGE_NAME = os.environ.get("RENDER_CHECK_IMAGE", "gto-trainer:render-check")
 
 
 def _free_port() -> int:

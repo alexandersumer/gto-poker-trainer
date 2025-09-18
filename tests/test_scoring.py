@@ -1,6 +1,6 @@
 from pytest import approx
 
-from gto_poker_trainer.core.scoring import (
+from gto_trainer.core.scoring import (
     decision_loss_ratio,
     decision_score,
     summarize_records,

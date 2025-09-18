@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import random
 
-from gto_poker_trainer.dynamic.cards import str_to_int
-from gto_poker_trainer.dynamic.generator import Node
-from gto_poker_trainer.dynamic.policy import preflop_options, resolve_for, river_options, turn_options
+from gto_trainer.dynamic.cards import str_to_int
+from gto_trainer.dynamic.generator import Node
+from gto_trainer.dynamic.policy import preflop_options, resolve_for, river_options, turn_options
 
 
 def _make_hand_state(hero: list[int], villain: tuple[int, int], board: list[int], *, pot: float, street: str) -> dict:

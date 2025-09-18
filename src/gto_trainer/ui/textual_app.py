@@ -290,7 +290,7 @@ class _TextualPresenter(Presenter):
 
 
 class TrainerApp(App[None]):
-    TITLE = "GTO Poker Trainer"
+    TITLE = "GTO Trainer"
     SUB_TITLE = "Solver-calibrated drills for every street"
     BINDINGS = [
         ("ctrl+n", "new_session", "Start Fresh Hand"),
@@ -334,7 +334,7 @@ class TrainerApp(App[None]):
     def compose(self) -> ComposeResult:  # type: ignore[override]
         yield Header(show_clock=False)
         with Container(classes="section", id="info"):
-            yield Label("GTO Poker Trainer", id="title")
+            yield Label("GTO Trainer", id="title")
             yield Static("Sharpen your instincts with solver-backed drills.", id="tagline")
             yield Static("We're dealing your first scenario…", id="session-status")
             with Horizontal(id="headline-row"):
@@ -374,7 +374,7 @@ class TrainerApp(App[None]):
         self._feedback_panel = self.query_one("#feedback", Static)
 
         if self._title_label:
-            self._title_label.update("[b #111a33]GTO Poker Trainer[/]")
+            self._title_label.update("[b #111a33]GTO Trainer[/]")
         if self._tagline_panel:
             self._tagline_panel.update("[#3c4f86]Sharpen your instincts with solver-backed drills.[/]")
         if self._status_panel:

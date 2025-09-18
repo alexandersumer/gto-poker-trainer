@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import random
 
-from gto_poker_trainer.dynamic.cards import str_to_int
-from gto_poker_trainer.dynamic.generator import Node
-from gto_poker_trainer.dynamic.policy import turn_options
+from gto_trainer.dynamic.cards import str_to_int
+from gto_trainer.dynamic.generator import Node
+from gto_trainer.dynamic.policy import turn_options
 
 
 def test_turn_raise_break_even_fe_and_call_pot_odds_in_why_strings():

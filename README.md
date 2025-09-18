@@ -1,8 +1,8 @@
-# GTO Poker Trainer
+# GTO Trainer
 
 Heads-up no-limit hold’em trainer with both a terminal flow and a minimal browser UI. Every scenario deals a full villain hand (never overlapping with yours or the board), lets them react street by street, and shows the EV swing behind each choice.
 
-**Live demo:** https://gto-poker-trainer.onrender.com/
+**Live demo:** https://gto-trainer.onrender.com/
 
 ## Requirements
 
@@ -16,19 +16,19 @@ source .venv/bin/activate
 pip install -e .
 
 # Play a handful of random hands
-gto-poker-trainer --hands 5
+gto-trainer --hands 5
 ```
 
 Running in-place without installing:
 
 ```bash
-PYTHONPATH=src python -m gto_poker_trainer
+PYTHONPATH=src python -m gto_trainer
 ```
 
 ### CLI options
 
 ```
-gto-poker-trainer [--hands N] [--seed N] [--mc N] [--no-color] [--solver-csv PATH]
+gto-trainer [--hands N] [--seed N] [--mc N] [--no-color] [--solver-csv PATH]
 ```
 
 - `--hands N` hands to play (default 1).
@@ -41,12 +41,12 @@ Controls: `1–9` choose an action, `h` help, `?` pot + SPR, `q` quit. Feedback 
 
 ## Web UI
 
-- Cloud: the Render deployment mirrors the CLI defaults — try it at https://gto-poker-trainer.onrender.com/.
+- Cloud: the Render deployment mirrors the CLI defaults — try it at https://gto-trainer.onrender.com/.
 - Local: install `.[dev]`, then start FastAPI with reload support.
 
 ```bash
 pip install -e .[dev]
-uvicorn gto_poker_trainer.web.app:app --reload
+uvicorn gto_trainer.web.app:app --reload
 ```
 
 Environment overrides: `HANDS` and `MC` mirror the CLI flags when set before launch.

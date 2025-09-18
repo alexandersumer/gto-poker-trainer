@@ -48,7 +48,7 @@ class ChoiceRequest(BaseModel):
     choice: int
 
 
-app = FastAPI(title="GTO Poker Trainer")
+app = FastAPI(title="GTO Trainer")
 _manager = SessionManager()
 
 
@@ -62,11 +62,11 @@ def index() -> str:
     try:
         from importlib.resources import files
 
-        data_dir = files("gto_poker_trainer.data")
+        data_dir = files("gto_trainer.data")
         html = (data_dir / "web" / "index.html").read_text(encoding="utf-8")
         return html
     except Exception as exc:  # pragma: no cover - packaging edge
-        return f"<html><body><h1>GTO Poker Trainer</h1><p>Failed to load UI: {exc}</p></body></html>"
+        return f"<html><body><h1>GTO Trainer</h1><p>Failed to load UI: {exc}</p></body></html>"
 
 
 @app.post("/api/session")
@@ -109,7 +109,7 @@ def main() -> None:  # pragma: no cover - runner
 
     host = os.environ.get("BIND", "0.0.0.0")
     port = int(os.environ.get("PORT", "8000"))
-    uvicorn.run("gto_poker_trainer.web.app:app", host=host, port=port, factory=False)
+    uvicorn.run("gto_trainer.web.app:app", host=host, port=port, factory=False)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: gto-poker-trainer
+    name: gto-trainer
     runtime: docker
     plan: free
     autoDeploy: true

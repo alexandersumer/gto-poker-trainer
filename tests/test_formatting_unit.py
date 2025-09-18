@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from gto_poker_trainer.core.formatting import format_option_label
-from gto_poker_trainer.core.models import Option
-from gto_poker_trainer.dynamic.generator import Node
+from gto_trainer.core.formatting import format_option_label
+from gto_trainer.core.models import Option
+from gto_trainer.dynamic.generator import Node
 
 
 def _node(*, pot: float = 8.0, street: str = "flop") -> Node:

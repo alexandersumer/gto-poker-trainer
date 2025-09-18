@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import random
 
-import gto_poker_trainer.dynamic.policy as pol
-from gto_poker_trainer.dynamic.cards import str_to_int
-from gto_poker_trainer.dynamic.generator import Node
+import gto_trainer.dynamic.policy as pol
+from gto_trainer.dynamic.cards import str_to_int
+from gto_trainer.dynamic.generator import Node
 
 
 def _simple_range(*pairs: tuple[int, int]) -> list[tuple[int, int]]:

@@ -14,4 +14,4 @@ RUN python -m pip install -U pip \
 EXPOSE 8000
 
 # Run FastAPI web app (no Textual dependency for serving).
-CMD ["python","-m","gto_poker_trainer.web.app"]
+CMD ["python","-m","gto_trainer.web.app"]

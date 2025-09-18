@@ -34,7 +34,7 @@ def main() -> None:
     if first_non_flag == "play":
         argv = [t for t in argv if t != "play"]
 
-    parser = argparse.ArgumentParser(prog="gto-poker-trainer", description="Heads-up multi-street EV trainer (CLI)")
+    parser = argparse.ArgumentParser(prog="gto-trainer", description="Heads-up multi-street EV trainer (CLI)")
     _add_play_args(parser)
     args = parser.parse_args(argv)
 

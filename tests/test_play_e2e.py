@@ -12,7 +12,7 @@ SRC_DIR = PROJECT_ROOT / "src"
 def run_cli(args: list[str], input_text: str | None = None) -> subprocess.CompletedProcess:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(SRC_DIR)
-    cmd = [sys.executable, "-m", "gto_poker_trainer", "play", *args]
+    cmd = [sys.executable, "-m", "gto_trainer", "play", *args]
     return subprocess.run(
         cmd,
         input=(input_text or "").encode(),
@@ -34,7 +34,7 @@ def test_play_shows_all_streets_and_summary_then_loops_until_quit():
     )
     out = cp.stdout.decode()
     assert cp.returncode == 0, out
-    assert "GTO Poker Trainer" in out
+    assert "GTO Trainer" in out
     assert "PREFLOP" in out
     # Dynamic opponent may end the hand early; ensure at least one post-flop update or villain note.
     assert "FLOP" in out or "TURN" in out or "RIVER" in out or "Villain" in out
