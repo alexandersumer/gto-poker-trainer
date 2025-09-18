@@ -773,6 +773,34 @@
         border-radius: var(--radius-md);
         border: 0;
         box-shadow: none;
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+      .action-area::after,
+      .action-area::before {
+        content: '';
+        position: absolute;
+        inset: 4px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .action-area::after {
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--surface-2) 72%, transparent 28%);
+        backdrop-filter: blur(2px);
+      }
+      .action-area::before {
+        width: 30px;
+        height: 30px;
+        margin: auto;
+        border-radius: 50%;
+        border: 3px solid color-mix(in srgb, var(--brand) 28%, transparent);
+        border-top-color: color-mix(in srgb, var(--brand) 85%, transparent);
+        animation: action-spin 1s linear infinite;
+      }
+      .action-area[data-pending="true"]::after,
+      .action-area[data-pending="true"]::before {
+        opacity: 1;
       }
       #panel-play .panel-box.panel-soft {
         padding: var(--space-2) var(--space-2) calc(var(--space-2) + 2px);
@@ -791,6 +819,10 @@
       }
       .action-area.is-hidden {
         display: none;
+      }
+      @keyframes action-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
       }
       .action-main {
         display: grid;
@@ -1805,6 +1837,11 @@
 
       const renderActions = (options, node) => {
         if(!actionArea) return;
+        if(pending){
+          actionArea.dataset.pending = 'true';
+        } else {
+          delete actionArea.dataset.pending;
+        }
         const previousHeight = actionArea.offsetHeight;
         const described = describeOptions(options);
         const signature = described.map((d) => `${d.index}:${d.action}`).join('|');
@@ -2209,6 +2246,7 @@
           if(actionArea){
             actionArea.classList.add('is-hidden');
             actionArea.innerHTML = '';
+            delete actionArea.dataset.pending;
           }
         }
         if(id === '#panel-summary' && statusLineEl){
@@ -2504,6 +2542,7 @@
         const interactives = Array.from(actionArea?.querySelectorAll('[data-option-index]') || []);
         if(actionArea){
           actionArea.querySelectorAll('.action-button.is-armed').forEach((btn) => btn.classList.remove('is-armed'));
+          actionArea.dataset.pending = 'true';
         }
         const chosenElement = interactives.find((el) => Number(el.dataset.optionIndex) === index);
         interactives.forEach((el) => {
@@ -2549,6 +2588,9 @@
           announceAction('');
         } finally {
           pending = false;
+          if(actionArea){
+            delete actionArea.dataset.pending;
+          }
         }
       };
 

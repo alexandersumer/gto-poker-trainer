@@ -7,7 +7,7 @@ from itertools import combinations
 
 from treys import Card, Evaluator
 
-from .cards import card_int_to_str, str_to_treys
+from .cards import card_int_to_str
 
 
 def estimate_equity(
@@ -23,29 +23,39 @@ def estimate_equity(
     - If known_villain is None, sample random opponent hand without collision each trial.
     - Returns equity in [0,1].
     """
-    evaluator = Evaluator()
     wins = 0
     ties = 0
-    seen = set(hero + board + (known_villain or []))
 
-    # Convert hero ledger once
-    hero_cards = [str_to_treys(card_int_to_str(c)) for c in hero]
-    preset_board = [str_to_treys(card_int_to_str(c)) for c in board]
+    hero_cards = _treys_cards(hero)
+    preset_board = _treys_cards(board)
+
+    seen = set(hero) | set(board)
+    deck = [c for c in range(52) if c not in seen]
+
+    need = 5 - len(board)
+    if need < 0:
+        raise ValueError("Board cannot have more than 5 cards")
+
+    villain_fixed = None
+    remaining_deck = deck
+    if known_villain is not None:
+        villain_fixed = _treys_cards(known_villain)
+        remaining_deck = [c for c in deck if c not in known_villain]
 
     for _ in range(trials):
-        remaining = [c for c in range(52) if c not in seen]
-        v = rng.sample(remaining, 2) if known_villain is None else known_villain
+        if villain_fixed is None:
+            picks = rng.sample(deck, 2 + need)
+            villain_raw = picks[:2]
+            fill_raw = picks[2:]
+            villain_cards = _treys_cards(villain_raw)
+        else:
+            villain_cards = villain_fixed
+            fill_raw = rng.sample(remaining_deck, need) if need else ()
 
-        # Board completion
-        need = 5 - len(board)
-        remaining2 = [c for c in remaining if c not in v]
-        fill = rng.sample(remaining2, need)
+        board_now = preset_board + [_TREYS_CACHE[c] for c in fill_raw]
 
-        board_now = preset_board + [str_to_treys(card_int_to_str(c)) for c in fill]
-        villain_cards = [str_to_treys(card_int_to_str(c)) for c in v]
-
-        hr = evaluator.evaluate(hero_cards, board_now)
-        vr = evaluator.evaluate(villain_cards, board_now)
+        hr = _EVALUATOR.evaluate(hero_cards, board_now)
+        vr = _EVALUATOR.evaluate(villain_cards, board_now)
         if hr < vr:
             wins += 1
         elif hr == vr:
