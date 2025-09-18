@@ -9,6 +9,7 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Container, Grid, Horizontal
 from textual.reactive import reactive
+from textual.timer import Timer
 from textual.widgets import Button, Footer, Header, Label, Static
 
 from ..core.engine_core import run_core
@@ -298,6 +299,8 @@ class TrainerApp(App[None]):
         ("ctrl+q", "quit_app", "Quit"),
     ]
     CSS = _BASE_CSS + _build_action_css() + _POST_ACTION_CSS
+    _PREPARING_FRAMES: tuple[str, ...] = ("|", "/", "-", "\\")
+    _PREPARING_INTERVAL: float = 0.18
 
     # Reactive state for headline / meta
     headline: reactive[str | None] = reactive(None)
@@ -324,13 +327,107 @@ class TrainerApp(App[None]):
     _feedback_panel: Static | None = None
     _pending_restart: bool = False
     _idle_after_stop: bool = False
+    _preparing_timer: Timer | None = None
+    _preparing_frame_index: int = 0
+    _current_hand_index: int = 0
+    _total_hands: int = 0
 
     def __init__(self, *, hands: int = 1, mc_trials: int = 120, solver_csv: str | None = None) -> None:
         super().__init__()
         self._config = AppConfig(hands=hands, mc_trials=mc_trials, solver_csv=solver_csv)
         self._pending_restart = False
+        self._preparing_timer = None
+        self._preparing_frame_index = 0
+        self._current_hand_index = 0
+        self._total_hands = 0
 
     # --- Compose UI ---
+    def _format_preparing_text(self) -> str:
+        frame = self._PREPARING_FRAMES[self._preparing_frame_index]
+        return (
+            f"[b #1b2d55]Preparing a fresh hand {frame}[/]\n"
+            "[dim]Shuffling combos and loading dynamics…[/]"
+        )
+
+    def _start_preparing_animation(self) -> None:
+        if not self._status_panel:
+            return
+        self._stop_preparing_animation()
+        self._preparing_frame_index = 0
+        self._status_panel.update(self._format_preparing_text())
+        self._preparing_timer = self.set_interval(
+            self._PREPARING_INTERVAL,
+            self._tick_preparing_animation,
+        )
+
+    def _stop_preparing_animation(self) -> None:
+        if self._preparing_timer:
+            self._preparing_timer.stop()
+            self._preparing_timer = None
+
+    def _tick_preparing_animation(self, timer: Timer) -> None:  # noqa: ARG002
+        if not self._status_panel:
+            return
+        self._preparing_frame_index = (self._preparing_frame_index + 1) % len(self._PREPARING_FRAMES)
+        self._status_panel.update(self._format_preparing_text())
+
+    def _hand_progress_fragment(self) -> str:
+        if not self._total_hands:
+            return ""
+        if self._current_hand_index <= 0:
+            index = 1
+            suffix = " (awaiting start)"
+        else:
+            index = self._current_hand_index
+            remaining = max(0, self._total_hands - index)
+            if remaining == 0:
+                suffix = " (final)"
+            elif remaining == 1:
+                suffix = " (1 left)"
+            else:
+                suffix = f" ({remaining} left)"
+        return f"[b #2f6bff]Hand {index}/{self._total_hands}[/][dim]{suffix}[/]"
+
+    def _headline_for_state(self, *, street: str | None = None, info: str | None = None) -> str:
+        fragments: list[str] = []
+        progress = self._hand_progress_fragment()
+        if progress:
+            fragments.append(progress)
+        if street:
+            fragments.append(f"[b #1b2d55]{street}[/]")
+        if info:
+            fragments.append(info)
+        if not fragments:
+            return "[b #1b2d55]GTO Trainer[/]"
+        return "  [dim]•[/]  ".join(fragments)
+
+    def _describe_facing_action(self, node: Node) -> str | None:
+        ctx = node.context or {}
+        facing = str(ctx.get("facing") or "").lower()
+        bet = ctx.get("bet")
+        if node.street == "preflop":
+            open_size = ctx.get("open_size")
+            if isinstance(open_size, (int, float)):
+                return f"[#2d3b62]Facing open to {open_size:.2f} bb[/]"
+            return "[#2d3b62]Preflop decision[/]"
+        if facing == "check":
+            return "[#2d3b62]Villain checked[/]"
+        if facing == "oop-check":
+            return "[#2d3b62]Villain checked to you[/]"
+        if facing == "bet" or isinstance(bet, (int, float)):
+            if isinstance(bet, (int, float)):
+                return f"[#2d3b62]Facing bet {bet:.2f} bb[/]"
+            return "[#2d3b62]Facing a bet[/]"
+        villain_range = ctx.get("villain_range")
+        if isinstance(villain_range, str) and villain_range:
+            return f"[#2d3b62]Range hint: {villain_range}[/]"
+        return None
+
+    def _build_headline(self, node: Node) -> str:
+        street = node.street.title()
+        info = self._describe_facing_action(node)
+        return self._headline_for_state(street=street, info=info)
+
     def compose(self) -> ComposeResult:  # type: ignore[override]
         yield Header(show_clock=False)
         with Container(classes="section", id="info"):
@@ -403,6 +500,7 @@ class TrainerApp(App[None]):
             self._feedback_panel.update("")
         if self._options_container:
             self._options_container.remove_children()
+        self._start_preparing_animation()
         self._engine_thread = threading.Thread(target=self._engine_run, daemon=True)
         self._engine_thread.start()
 
@@ -433,15 +531,20 @@ class TrainerApp(App[None]):
         finally:
             if self._engine_thread is current:
                 self._engine_thread = None
+            self.call_from_thread(self._stop_preparing_animation)
             if self._idle_after_stop:
                 self._idle_after_stop = False
                 self.call_from_thread(self._show_idle_prompt)
 
     # --- Presenter-driven UI updates ---
     def show_session_start(self, total_hands: int) -> None:
+        self._total_hands = total_hands
+        self._current_hand_index = 0
+        self._stop_preparing_animation()
         if self._headline_label:
             plural = "s" if total_hands != 1 else ""
-            self._headline_label.update(f"[b #1b2d55]Session start[/] — {total_hands} hand{plural} queued")
+            info = f"[#2d3b62]{total_hands} hand{plural} queued[/]"
+            self._headline_label.update(self._headline_for_state(info=info))
         if self._meta_panel:
             self._meta_panel.update("")
         if self._status_panel:
@@ -451,8 +554,12 @@ class TrainerApp(App[None]):
             )
 
     def show_hand_start(self, hand_index: int, total_hands: int) -> None:
+        self._current_hand_index = hand_index
+        self._total_hands = total_hands
         if self._headline_label:
-            self._headline_label.update(f"[b #1b2d55]Hand {hand_index}/{total_hands}[/]")
+            self._headline_label.update(
+                self._headline_for_state(info="[#2d3b62]Generating scenario…[/]")
+            )
         if self._feedback_panel:
             self._feedback_panel.update("")
         if self._options_container:
@@ -483,18 +590,8 @@ class TrainerApp(App[None]):
 
     def show_node(self, node: Node, options: list[str]) -> None:
         # Headline and context
-        desc = node.description
-        if node.board:
-            if "; " in desc:
-                desc = desc.split("; ", 1)[1]
-            elif desc.startswith("Board "):
-                dot = desc.find(". ")
-                desc = desc[dot + 2 :] if dot != -1 else ""
-        headline = f"[b #2f6bff]{node.street.upper()}[/]"
-        if desc:
-            headline += f"  [dim]- {desc}[/]"
         if self._headline_label:
-            self._headline_label.update(headline)
+            self._headline_label.update(self._build_headline(node))
 
         P = float(node.pot_bb)
         spr = (node.effective_bb / P) if P > 0 else float("inf")
@@ -572,9 +669,19 @@ class TrainerApp(App[None]):
             self._feedback_panel.update("\n".join(lines))
         if self._status_panel:
             tag = "[green]Nice read[/]" if correct else "[b #9f3b56]Learn point[/]"
-            self._status_panel.update(f"{tag}\n[dim]Review the feedback below before the next hand.[/]")
+            if getattr(chosen, "ends_hand", False):
+                if self._total_hands and self._current_hand_index >= self._total_hands:
+                    follow_up = "[dim]Hands complete — preparing your session summary…[/]"
+                else:
+                    follow_up = "[dim]Review the feedback below before the next hand.[/]"
+            else:
+                follow_up = "[dim]Review the feedback below before the next decision.[/]"
+            self._status_panel.update(f"{tag}\n{follow_up}")
 
     def show_summary(self, records: list[dict[str, Any]]) -> None:
+        self._stop_preparing_animation()
+        if self._headline_label:
+            self._headline_label.update("[b #1b2d55]Session summary[/]")
         if not records:
             if self._feedback_panel:
                 self._feedback_panel.update("No hands answered.")
@@ -639,6 +746,7 @@ class TrainerApp(App[None]):
         self._start_engine_session()
 
     def _show_idle_prompt(self) -> None:
+        self._stop_preparing_animation()
         if self._headline_label:
             self._headline_label.update("Session stopped — press Start Fresh Hand to resume")
         if self._meta_panel:

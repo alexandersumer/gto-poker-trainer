@@ -7,6 +7,7 @@ import pytest
 pytest.importorskip("textual")
 
 from gto_trainer.ui.textual_app import TrainerApp
+from gto_trainer.dynamic.episode import Node
 
 
 def _split_rows(board_markup: str) -> tuple[str, str]:
@@ -67,3 +68,50 @@ def test_trainer_app_bindings_include_end_session():
             key, action, *_ = binding
             bindings[key] = action
     assert bindings.get("escape") == "end_session"
+
+
+def test_hand_progress_fragment_shows_remaining_hands():
+    app = TrainerApp()
+    app._total_hands = 4
+    app._current_hand_index = 2
+    fragment = app._hand_progress_fragment()
+    assert "Hand 2/4" in fragment
+    assert "(2 left)" in fragment
+
+
+def test_describe_facing_action_preflop_open_size():
+    app = TrainerApp()
+    node = Node(
+        street="preflop",
+        description="",
+        pot_bb=3.0,
+        effective_bb=97.0,
+        hero_cards=[],
+        board=[],
+        actor="SB",
+        context={"open_size": 2.5},
+    )
+    info = app._describe_facing_action(node)
+    assert info is not None
+    assert "Facing open to 2.50 bb" in info
+
+
+def test_build_headline_marks_final_hand():
+    app = TrainerApp()
+    app._total_hands = 3
+    app._current_hand_index = 3
+    node = Node(
+        street="river",
+        description="Villain checks.",
+        pot_bb=12.0,
+        effective_bb=88.0,
+        hero_cards=[],
+        board=[],
+        actor="BB",
+        context={"facing": "oop-check"},
+    )
+    headline = app._build_headline(node)
+    assert "Hand 3/3" in headline
+    assert "(final)" in headline
+    assert "River" in headline
+    assert "Villain checked to you" in headline
