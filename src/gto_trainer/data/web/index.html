@@ -952,30 +952,28 @@
       }
       .size-chip {
         border-radius: var(--radius-md);
-        border: 1px solid var(--chip-border);
-        background: var(--chip-bg);
-        color: var(--chip-text);
-        padding: 10px 0;
+        border: 1px solid var(--muted-border);
+        background: var(--muted-bg);
+        color: var(--text-primary);
+        padding: 9px 0;
         font-size: 0.82rem;
         font-weight: 600;
         text-align: center;
-        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
       }
       .size-chip:hover {
-        background: var(--chip-hover-bg);
-        border-color: var(--chip-selected-border);
-        color: var(--chip-text);
-        transform: translateY(-1px);
+        background: var(--muted-hover);
+        border-color: color-mix(in srgb, var(--muted-border) 65%, var(--brand) 35%);
       }
       .size-chip:focus-visible {
         outline: var(--focus-ring) solid var(--focus-color);
         outline-offset: 2px;
       }
       .size-chip.is-selected {
-        background: color-mix(in srgb, var(--chip-hover-bg) 65%, var(--chip-bg) 35%);
-        border-color: var(--chip-selected-border);
-        color: var(--chip-text);
-        box-shadow: inset 0 0 0 1px var(--chip-selected-border);
+        background: color-mix(in srgb, var(--brand) 18%, var(--muted-bg) 82%);
+        border-color: color-mix(in srgb, var(--brand) 52%, var(--muted-border) 48%);
+        color: var(--text-primary);
+        box-shadow: none;
       }
       .size-chip[disabled] {
         opacity: 0.55;
@@ -1965,27 +1963,31 @@
         const updateBetButton = (button, includeSize = false) => {
           if(!button) return;
           const chosen = includeSize ? activeRaise() : primaryRaise;
-          const { label, meta } = formatBetLabel(chosen, { isFacingBet, includeSize });
+          const formatted = chosen ? formatBetLabel(chosen, { isFacingBet, includeSize: true }) : { label: '', meta: '' };
+          const sizeMeta = chosen ? chipLabel(chosen) : '';
+          const displayLabel = includeSize && formatted.label ? formatted.label : 'Bet';
+          const displayMeta = includeSize ? '' : sizeMeta;
           const labelEl = button.querySelector('.action-label');
-          if(labelEl) labelEl.textContent = label;
+          if(labelEl) labelEl.textContent = displayLabel;
           let metaEl = button.querySelector('.action-meta');
-          if(meta){
+          if(displayMeta){
             if(!metaEl){
               metaEl = document.createElement('span');
               metaEl.className = 'action-meta';
               button.appendChild(metaEl);
             }
-            metaEl.textContent = meta;
+            metaEl.textContent = displayMeta;
           } else if(metaEl){
             metaEl.remove();
           }
           if(chosen){
             button.dataset.optionIndex = String(chosen.index);
-            button.dataset.optionLabel = meta ? `${label} (${meta})` : label;
+            const datasetLabel = formatted.label || (displayMeta ? `Bet ${displayMeta}` : 'Bet');
+            button.dataset.optionLabel = datasetLabel.trim();
             button.disabled = !!chosen.disabled;
           } else {
             button.dataset.optionIndex = '';
-            button.dataset.optionLabel = label;
+            button.dataset.optionLabel = 'Bet';
             button.disabled = true;
           }
         };
@@ -2004,9 +2006,10 @@
           });
         }
 
+        const primarySizeMeta = primaryRaise ? chipLabel(primaryRaise) : '';
         const betButton = appendMainButton('bet', primaryRaise, 'action-primary', {
-          label: primaryRaise ? formatBetLabel(primaryRaise, { isFacingBet, includeSize: false }).label : (isFacingBet ? 'Raise' : 'Bet'),
-          meta: '',
+          label: 'Bet',
+          meta: primarySizeMeta || '',
         });
 
         if(raiseOpts.length > 1){
