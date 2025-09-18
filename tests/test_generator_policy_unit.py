@@ -66,32 +66,51 @@ def test_generate_episode_structure_and_contexts_bb_defense():
 
 def test_generate_episode_structure_and_contexts_sb_ip():
     ep = generate_episode(random.Random(321), hero_seat="SB")
-    assert len(ep.nodes) == 3
+    assert len(ep.nodes) == 4
     streets = [n.street for n in ep.nodes]
-    assert streets == ["flop", "turn", "river"]
+    assert streets == ["preflop", "flop", "turn", "river"]
     assert ep.hero_seat == "SB"
     assert ep.villain_seat == "BB"
 
+    hand_states = []
     for node in ep.nodes:
+        assert "hand_state" in node.context
+        hs = node.context["hand_state"]
+        assert isinstance(hs, dict)
+        hand_states.append(hs)
         assert node.actor == ep.hero_seat
-        assert node.context.get("villain_range") == "bb_defend"
-        assert node.context.get("hand_state")
+        assert node.context.get("villain_range") == "sb_open"
 
-    n_flop, n_turn, n_river = ep.nodes
-    open_sz = float(n_flop.context["open_size"])
-    assert n_flop.pot_bb == pytest.approx(2 * open_sz)
-    assert n_turn.pot_bb == pytest.approx(n_flop.pot_bb)
+    n_pf, n_flop, n_turn, n_river = ep.nodes
+    import re
+
+    match = re.search(r"opens\s+([0-9]+\.[0-9])bb", n_pf.description)
+    assert match, f"could not parse open size from: {n_pf.description}"
+    open_sz = float(match.group(1))
+    assert abs(n_flop.pot_bb - (n_pf.pot_bb + (open_sz - 1.0))) < 1e-6
+    assert abs(n_turn.pot_bb - n_flop.pot_bb) < 1e-6
     bet_turn = float(n_turn.context["bet"])
     assert bet_turn == pytest.approx(round(0.5 * n_turn.pot_bb, 2))
     assert n_river.pot_bb == pytest.approx(n_turn.pot_bb + 2 * bet_turn)
 
-    hand_state = n_flop.context["hand_state"]
+    hand_state = hand_states[0]
     villain_cards = hand_state["villain_cards"]
     assert isinstance(villain_cards, tuple)
-    hero_cards = n_flop.hero_cards
-    board_cards = n_river.board
+    hero_cards = ep.nodes[0].hero_cards
+    board_cards = ep.nodes[-1].board
     all_cards = set(hero_cards) | set(villain_cards) | set(board_cards)
     assert len(all_cards) == len(hero_cards) + len(villain_cards) + len(board_cards)
+
+
+def test_generate_episode_always_starts_preflop():
+    for seat in ("BB", "SB"):
+        rng = random.Random(777)
+        episode = generate_episode(rng, hero_seat=seat)
+        assert episode.nodes, "episode should contain nodes"
+        first = episode.nodes[0]
+        assert first.street == "preflop"
+        assert first.actor == episode.hero_seat
+        assert "opens" in first.description.lower()
 
 
 def _assert_options_signature(opts: list[Option]):

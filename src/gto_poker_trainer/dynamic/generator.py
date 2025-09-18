@@ -49,19 +49,19 @@ class EpisodeBuilder:
         self._stacks = stacks_bb
         self._sb = sb
         self._bb = bb
-        self._seats = seats
+        self._display_seats = seats
+        self._tree_seats = seats if seats.hero == BB else SeatAssignment(hero=BB, villain=SB)
 
     def build(self) -> Episode:
-        if self._seats.hero == BB:
-            return self._build_bb_defense()
-        return self._build_sb_in_position()
+        return self._build_classic_tree()
 
     # ------------------------------------------------------------------
     # Seat specific builders
 
-    def _build_bb_defense(self) -> Episode:
+    def _build_classic_tree(self) -> Episode:
         dealt = self._deal()
-        ctx = self._hand_context(villain_range=_SB_VILLAIN_RANGE, dealt=dealt)
+        villain_range = _SB_VILLAIN_RANGE if self._tree_seats.villain == SB else _BB_VILLAIN_RANGE
+        ctx = self._hand_context(villain_range=villain_range, dealt=dealt)
 
         pot_pre = self._sb + self._bb
         pot_after_open = pot_pre + (ctx.open_size - self._sb)
@@ -76,14 +76,14 @@ class EpisodeBuilder:
         preflop = Node(
             street="preflop",
             description=(
-                f"{self._seats.villain} opens {ctx.open_size:.1f}bb. "
-                f"You're {self._seats.hero} with {int(self._stacks)}bb behind."
+                f"Villain opens {ctx.open_size:.1f}bb. "
+                f"You're {self._display_seats.hero} with {int(self._stacks)}bb behind."
             ),
             pot_bb=pot_after_open,
             effective_bb=self._stacks,
             hero_cards=ctx.hero_cards,
             board=[],
-            actor=self._seats.hero,
+            actor=self._display_seats.hero,
             context=self._node_context(
                 ctx,
                 hand_state,
@@ -102,35 +102,8 @@ class EpisodeBuilder:
 
         return Episode(
             nodes=[preflop, *postflop],
-            hero_seat=self._seats.hero,
-            villain_seat=self._seats.villain,
-        )
-
-    def _build_sb_in_position(self) -> Episode:
-        dealt = self._deal()
-        ctx = self._hand_context(villain_range=_BB_VILLAIN_RANGE, dealt=dealt)
-
-        pot_after_open = self._sb + self._bb + (ctx.open_size - self._sb)
-        pot_flop = pot_after_open + (ctx.open_size - 1.0)
-
-        hand_state = self._base_state(
-            ctx,
-            street="flop",
-            pot=pot_flop,
-            board_index=3,
-        )
-
-        postflop = self._postflop_nodes(pot_flop, ctx, hand_state)
-        hand_state["nodes"] = {
-            "flop": postflop[0],
-            "turn": postflop[1],
-            "river": postflop[2],
-        }
-
-        return Episode(
-            nodes=postflop,
-            hero_seat=self._seats.hero,
-            villain_seat=self._seats.villain,
+            hero_seat=self._display_seats.hero,
+            villain_seat=self._display_seats.villain,
         )
 
     # ------------------------------------------------------------------
@@ -165,8 +138,8 @@ class EpisodeBuilder:
             "street": street,
             "history": [],
             "board_index": board_index,
-            "hero_seat": self._seats.hero,
-            "villain_seat": self._seats.villain,
+            "hero_seat": self._display_seats.hero,
+            "villain_seat": self._display_seats.villain,
             "villain_range": ctx.villain_range,
         }
 
@@ -180,8 +153,8 @@ class EpisodeBuilder:
         base = {
             "open_size": ctx.open_size,
             "hand_state": hand_state,
-            "hero_seat": self._seats.hero,
-            "villain_seat": self._seats.villain,
+            "hero_seat": self._display_seats.hero,
+            "villain_seat": self._display_seats.villain,
         }
         if extra:
             base.update(extra)
@@ -197,12 +170,12 @@ class EpisodeBuilder:
         flop_desc = " ".join(format_card_ascii(card, upper=True) for card in flop_cards)
         flop_node = Node(
             street="flop",
-            description=f"{flop_desc}; {self._seats.villain} checks.",
+            description=f"{flop_desc}; Villain checks.",
             pot_bb=pot_flop,
             effective_bb=self._stacks,
             hero_cards=ctx.hero_cards,
             board=flop_cards,
-            actor=self._seats.hero,
+            actor=self._display_seats.hero,
             context=self._node_context(
                 ctx,
                 hand_state,
@@ -216,12 +189,12 @@ class EpisodeBuilder:
         turn_desc = " ".join(format_card_ascii(card, upper=True) for card in turn_board)
         turn_node = Node(
             street="turn",
-            description=(f"{turn_desc}; {self._seats.villain} bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."),
+            description=(f"{turn_desc}; Villain bets {bet_turn:.2f}bb into {pot_turn:.2f}bb."),
             pot_bb=pot_turn,
             effective_bb=self._stacks,
             hero_cards=ctx.hero_cards,
             board=turn_board,
-            actor=self._seats.hero,
+            actor=self._display_seats.hero,
             context=self._node_context(
                 ctx,
                 hand_state,
@@ -238,7 +211,7 @@ class EpisodeBuilder:
             effective_bb=self._stacks,
             hero_cards=ctx.hero_cards,
             board=ctx.board,
-            actor=self._seats.hero,
+            actor=self._display_seats.hero,
             context=self._node_context(
                 ctx,
                 hand_state,

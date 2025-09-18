@@ -51,29 +51,31 @@ def test_session_manager_basic_flow():
 
 def test_session_manager_alternates_blinds():
     manager = SessionManager()
-    session_id = manager.create_session(SessionConfig(hands=2, mc_trials=40, seed=99))
+    hands = 6
+    session_id = manager.create_session(SessionConfig(hands=hands, mc_trials=40, seed=99))
 
-    first = manager.get_node(session_id)
-    assert not first.done
-    assert first.node is not None
-    first_actor = first.node.actor
+    sequence: list[str] = []
+    actors_seen: dict[int, str] = {}
 
-    payload = first
-    second_payload: NodeResponse | None = None
+    payload = manager.get_node(session_id)
+    assert not payload.done and payload.node is not None
+    sequence.append(payload.node.actor)
+    actors_seen[payload.node.hand_no] = payload.node.actor
+
     guard = 0
-    while second_payload is None:
+    while len(sequence) < hands:
         choice = manager.choose(session_id, 0)
         payload = choice.next_payload
-        if payload.done:
-            pytest.fail("session ended before reaching second hand")
         guard += 1
-        assert guard < 32, "unexpectedly long hand progression"
-        if payload.node is not None and payload.node.hand_no == 2:
-            second_payload = payload
+        assert guard < 256, "session did not reach all hands"
+        if payload.done:
+            break
+        assert payload.node is not None
+        if payload.node.hand_no not in actors_seen:
+            sequence.append(payload.node.actor)
+            actors_seen[payload.node.hand_no] = payload.node.actor
 
-    assert second_payload and second_payload.node is not None
-    assert second_payload.node.actor in {"SB", "BB"}
-    assert second_payload.node.actor != first_actor
+    assert sequence == ["BB", "SB", "BB", "SB", "BB", "SB"]
 
 
 def test_invalid_session_errors():

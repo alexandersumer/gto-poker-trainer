@@ -18,8 +18,6 @@
         --min-tap: 44px;
         --safe-top: env(safe-area-inset-top, 0px);
         --safe-bottom: env(safe-area-inset-bottom, 0px);
-        --sheet-peek: clamp(56px, 12vw, 72px);
-        --sheet-max: min(420px, calc(40vh + var(--safe-bottom)));
         --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
         --text-size-body: 15px;
         --text-size-label: 13px;
@@ -202,10 +200,7 @@
       .panel-box,
       .info-card,
       .feedback-banner,
-      .sheet-surface,
-      .status-chip,
       .header-pill,
-      .option-tile,
       .btn {
         transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
       }
@@ -216,10 +211,7 @@
         .panel-box,
         .info-card,
         .feedback-banner,
-        .sheet-surface,
-        .status-chip,
         .header-pill,
-        .option-tile,
         .btn {
           transition: none !important;
         }
@@ -443,75 +435,182 @@
         display: flex;
         align-items: center;
         min-height: 44px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
       }
-      .status-scroll {
+      .status-bar__text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .status-line {
+        margin-top: var(--space-2);
+        margin-bottom: var(--space-2);
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+      .status-line span {
+        color: var(--text-secondary);
+        font-weight: 400;
+      }
+      .action-area {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: var(--space-2) var(--space-1) var(--space-1);
+      }
+      .action-area.is-hidden {
+        display: none;
+      }
+      .action-row {
+        display: contents;
+      }
+      .action-group {
+        grid-column: span 2;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        overflow-x: auto;
-        padding-bottom: 4px;
-        margin-inline: -0.25rem;
-        padding-inline: 0.25rem;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
+        gap: 6px;
       }
-      .status-scroll::-webkit-scrollbar { display: none; }
-      .status-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.35rem 0.75rem;
-        border-radius: 999px;
-        background: var(--chip-bg);
-        border: 1px solid var(--chip-border);
-        color: var(--chip-text);
-        font-size: 0.78rem;
-        line-height: 1;
-        white-space: nowrap;
+      .action-group.compact {
+        grid-column: span 1;
       }
-      .status-chip .chip-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.85rem;
+      .action-button {
+        min-height: calc(var(--min-tap) - 6px);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--outline);
+        background: var(--surface-1);
+        color: var(--text-primary);
+        font: 600 var(--text-size-body)/1.25 var(--font-sans);
+        padding: 10px 12px;
+        text-align: left;
+        transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
       }
-      .status-chip .chip-label {
-        font-size: 0.68rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: color-mix(in srgb, var(--chip-text) 70%, transparent);
+      .action-button:not([disabled]):active {
+        transform: translateY(1px);
       }
-      .status-chip strong {
-        color: var(--chip-text);
+      .action-button:focus-visible {
+        outline: var(--focus-ring) solid var(--focus-color);
+        outline-offset: 2px;
+      }
+      .action-button .action-label {
+        display: block;
         font-weight: 600;
-        margin-left: 0.25rem;
+      }
+      .action-button .action-meta {
+        display: block;
+        margin-top: 2px;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+      .action-button.action-secondary {
+        background: var(--muted-bg);
+        border-color: var(--muted-border);
+        color: var(--text-secondary);
+      }
+      .action-button.action-primary {
+        background: var(--brand);
+        border-color: color-mix(in srgb, var(--brand) 65%, transparent);
+        color: var(--on-brand);
+      }
+      .action-button.action-destructive {
+        background: color-mix(in srgb, var(--error) 18%, transparent);
+        border-color: color-mix(in srgb, var(--error) 45%, transparent);
+        color: var(--on-error);
+      }
+      .action-button.action-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      .action-button.action-toggle::after {
+        content: '›';
+        font-size: 0.8rem;
+        transition: transform 0.2s ease;
+      }
+      .action-group.expanded .action-button.action-toggle::after {
+        transform: rotate(90deg);
+      }
+      .action-button[disabled] {
+        opacity: 0.55;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+      .action-button.is-selected {
+        box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand) 45%, transparent);
+      }
+      .sizing-chips {
+        display: none;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .action-group.expanded .sizing-chips {
+        display: inline-flex;
+      }
+      .size-chip {
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        color: var(--text-secondary);
+        padding: 6px 10px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        transition: background 0.18s ease, border-color 0.18s ease;
+      }
+      .size-chip:hover {
+        background: var(--ghost-hover);
+        border-color: var(--brand);
+        color: var(--text-primary);
+      }
+      .size-chip:focus-visible {
+        outline: var(--focus-ring) solid var(--focus-color);
+        outline-offset: 2px;
+      }
+      .size-chip.is-selected {
+        background: color-mix(in srgb, var(--brand) 18%, transparent);
+        border-color: color-mix(in srgb, var(--brand) 55%, transparent);
+        color: var(--text-primary);
+      }
+      .size-chip[disabled] {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .action-spacer {
+        min-height: calc(var(--min-tap) - 6px);
+      }
+      .action-area.is-disabled .action-button,
+      .action-area.is-disabled .size-chip {
+        opacity: 0.45;
+        pointer-events: none;
       }
       .feedback-banner {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         gap: var(--space-2);
         padding: var(--space-2) var(--space-3);
         border-radius: var(--radius-md);
-        border: 1px solid var(--muted-border);
-        background: var(--muted-bg);
+        border: 1px solid var(--outline);
+        border-left: 4px solid var(--brand);
+        background: var(--surface-1);
         color: var(--text-secondary);
+        box-shadow: var(--shadow-card);
       }
       .feedback-banner[data-state="correct"] {
-        background: color-mix(in srgb, var(--success) 18%, transparent);
-        color: var(--on-success);
-        border-color: color-mix(in srgb, var(--success) 40%, transparent);
+        border-left-color: var(--success);
       }
       .feedback-banner[data-state="incorrect"] {
-        background: color-mix(in srgb, var(--error) 18%, transparent);
-        color: var(--on-error);
-        border-color: color-mix(in srgb, var(--error) 40%, transparent);
+        border-left-color: var(--error);
       }
       .feedback-text {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
+        color: var(--text-secondary);
       }
       .feedback-line strong {
         color: var(--text-primary);
@@ -523,7 +622,7 @@
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        border: 1px solid var(--border);
+        border: 1px solid var(--outline);
         background: var(--surface-1);
         color: var(--text-secondary);
         font-size: 0.9rem;
@@ -541,29 +640,6 @@
         background: var(--surface-1);
         color: var(--text-primary);
         box-shadow: var(--shadow-card);
-      }
-      .hand-summary {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-bottom: var(--space-2);
-      }
-      .summary-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--brand) 14%, transparent);
-        border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent);
-        font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        color: var(--text-primary);
-      }
-      .summary-chip .chip-meta {
-        color: var(--text-secondary);
-        font-weight: 500;
       }
       .sr-only {
         position: absolute;
@@ -595,235 +671,6 @@
         font-size: 1.05rem;
         font-weight: 600;
         color: var(--text-primary);
-      }
-      .action-sheet {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 60;
-        padding: 0 clamp(1rem, 4vw, 2rem);
-        pointer-events: none;
-        opacity: 0;
-        transform: translateY(16px);
-        transition: opacity 0.24s ease, transform 0.24s ease;
-      }
-      .action-sheet[data-visible="true"] {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      .sheet-surface {
-        pointer-events: auto;
-        background: var(--surface-1);
-        border: 1px solid var(--outline);
-        border-radius: 20px 20px 16px 16px;
-        box-shadow: var(--shadow-soft);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        max-height: var(--sheet-max);
-      }
-      .sheet-toggle {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-height: var(--sheet-peek);
-        width: 100%;
-        border: none;
-        background: linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 92%, transparent) 0%, var(--surface-1) 100%);
-        color: var(--text-primary);
-        padding: 12px 18px;
-        cursor: pointer;
-        text-align: left;
-      }
-      .sheet-toggle:focus-visible { outline: var(--focus-ring) solid var(--focus-color); outline-offset: 2px; }
-      .sheet-toggle .sheet-grip {
-        width: 42px;
-        height: 4px;
-        border-radius: 999px;
-        background: var(--border);
-        flex-shrink: 0;
-      }
-      .sheet-title {
-        font-weight: 600;
-        font-size: 0.95rem;
-        letter-spacing: 0.02em;
-      }
-      .sheet-meta {
-        margin-left: auto;
-        font-size: 0.78rem;
-        color: var(--text-secondary);
-      }
-      .sheet-body {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding: 12px 16px calc(16px + var(--safe-bottom));
-        transition: max-height 0.24s ease, opacity 0.2s ease, padding-top 0.24s ease;
-        max-height: calc(var(--sheet-max) - var(--sheet-peek));
-        overflow-y: auto;
-        opacity: 1;
-      }
-      .action-sheet[data-mode="peek"] .sheet-body {
-        max-height: 0;
-        opacity: 0;
-        padding-top: 0;
-        padding-bottom: calc(12px + var(--safe-bottom));
-        overflow: hidden;
-        pointer-events: none;
-      }
-      .sheet-context {
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-        display: none;
-      }
-      .sheet-context[data-visible="true"] {
-        display: block;
-      }
-      .option-grid {
-        --option-columns: 2;
-        display: grid;
-        grid-template-columns: repeat(var(--option-columns), minmax(0, 1fr));
-        column-gap: 12px;
-        row-gap: 8px;
-      }
-      .option-tile {
-        min-height: var(--min-tap);
-        border-radius: 12px;
-        border: 1px solid var(--outline);
-        background: var(--surface-1);
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-        color: var(--text-primary);
-        font-weight: 600;
-        transition: background 0.2s ease, border-color 0.2s ease, transform 0.18s ease;
-      }
-      .option-tile .option-content {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .option-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-      }
-      .option-header .option-title {
-        flex: 1 1 auto;
-      }
-      .option-title {
-        font-size: 0.95rem;
-        font-weight: 600;
-      }
-      .option-meta {
-        font-size: 0.78rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-      }
-      .option-chip {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        padding: 2px 8px;
-        border-radius: 999px;
-        border: 1px solid var(--brand);
-        color: var(--brand);
-        background: transparent;
-      }
-      .option-check {
-        align-self: flex-end;
-        font-size: 1rem;
-        line-height: 1;
-        opacity: 0;
-        transition: opacity 0.15s ease;
-      }
-      .option-tile:hover:not(.option--disabled) {
-        background: var(--ghost-hover);
-        border-color: color-mix(in srgb, var(--outline) 70%, transparent);
-      }
-      .option-tile:focus-visible {
-        outline: var(--focus-ring) solid var(--focus-color);
-        outline-offset: 2px;
-      }
-      .option--pressed:not(.option--disabled) {
-        transform: translateY(1px);
-      }
-      .option--selected {
-        background: var(--brand);
-        border-color: color-mix(in srgb, var(--brand) 65%, transparent);
-        color: var(--on-brand);
-      }
-      .option--selected .option-check {
-        opacity: 1;
-      }
-      .option--selected .option-meta {
-        color: color-mix(in srgb, var(--on-brand) 85%, transparent);
-      }
-      .option--selected .option-chip {
-        border-color: color-mix(in srgb, var(--on-brand) 60%, transparent);
-        color: var(--on-brand);
-      }
-      .option--disabled {
-        opacity: 0.65;
-        cursor: not-allowed;
-      }
-      .option--suggested:not(.option--selected) {
-        border-color: color-mix(in srgb, var(--brand) 65%, transparent);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 35%, transparent);
-      }
-      .raise-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding-top: 4px;
-      }
-      .raise-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-      }
-      .raise-value {
-        font-weight: 600;
-        color: var(--text-primary);
-      }
-      #raise-slider {
-        width: 100%;
-        accent-color: var(--brand);
-      }
-      .raise-presets {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .raise-preset {
-        border: 1px solid var(--muted-border);
-        background: var(--muted-bg);
-        border-radius: 999px;
-        padding: 6px 12px;
-        font-size: 0.78rem;
-        color: var(--text-secondary);
-        cursor: pointer;
-      }
-      .raise-preset.active {
-        background: var(--brand);
-        border-color: color-mix(in srgb, var(--brand) 65%, transparent);
-        color: var(--on-brand);
-      }
-      .sheet-empty {
-        font-size: 0.9rem;
-        color: var(--text-tertiary);
-        text-align: center;
-        padding: 12px 0;
       }
       .feedback-drawer {
         position: fixed;
@@ -935,30 +782,33 @@
         width: clamp(36px, 7.2vw, 44px);
         height: clamp(50px, 10vw, 60px);
       }
-      .density-compact .status-chip {
-        padding-inline: 0.6rem;
-        padding-block: 0.3rem;
+      .density-compact .action-area {
+        gap: 6px;
+        padding: 8px 4px 6px;
+      }
+      .density-compact .action-button {
+        padding: 8px 10px;
+        font-size: 0.92rem;
+      }
+      .density-compact .action-meta {
+        font-size: 0.75rem;
+      }
+      .density-compact .sizing-chips {
+        gap: 4px;
+      }
+      .density-compact .size-chip {
+        padding: 4px 8px;
         font-size: 0.72rem;
       }
-      .density-compact .option-grid {
-        gap: 10px;
-      }
-      .density-compact .option-tile {
-        min-height: 48px;
-        }
       .density-compact .status-bar {
         min-height: 40px;
-      }
-      @keyframes option-in {
-        0% { opacity: 0; transform: translateY(12px) scale(0.97); }
-        100% { opacity: 1; transform: translateY(0) scale(1); }
       }
       @media (prefers-reduced-motion: reduce) {
         #progress-bar { transition: none; animation: none; }
       }
       @media (max-width: 640px) {
         header { position: sticky; top: 0; }
-        #options { position: relative; }
+        #action-area { position: relative; }
       }
     </style>
   </head>
@@ -983,13 +833,8 @@
             </button>
           </div>
         </div>
-        <div class="status-bar">
-          <div id="status-scroll" class="status-scroll" aria-live="polite">
-            <span class="status-chip" data-kind="street"><span class="chip-label">Street</span><strong>Ready</strong></span>
-            <span class="status-chip" data-kind="hand"><span class="chip-icon" aria-hidden="true">🂡</span><span class="chip-label">Hand</span><strong>0/0</strong></span>
-            <span class="status-chip" data-kind="pot"><span class="chip-icon" aria-hidden="true">⬤</span><span class="chip-label">Pot</span><strong>0bb</strong></span>
-            <span class="status-chip" data-kind="spr"><span class="chip-icon" aria-hidden="true">⇵</span><span class="chip-label">SPR</span><strong>0</strong></span>
-          </div>
+        <div id="status-bar" class="status-bar" aria-live="polite">
+          <span id="header-status" class="status-bar__text">Ready for a new hand</span>
         </div>
       </div>
     </header>
@@ -1013,7 +858,6 @@
 
       <section id="panel-play" class="page-section hidden space-y-4">
         <div class="rounded-lg panel-box panel-soft p-5 text-secondary">
-          <div id="hand-summary" class="hand-summary" aria-live="polite"></div>
           <div id="card-summary" class="info-card">
             <div class="info-row">
               <span class="info-label">YOU</span>
@@ -1024,7 +868,8 @@
               <div id="board" class="info-cards"></div>
             </div>
           </div>
-
+          <div id="status-line" class="status-line" role="status" aria-live="polite"></div>
+          <div id="action-area" class="action-area is-hidden" role="group" aria-label="Available actions"></div>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-2 sm:justify-end" id="primary-controls">
@@ -1064,28 +909,6 @@
           <button type="button" id="feedback-drawer-close" class="drawer-close" aria-label="Close">✕</button>
         </div>
         <div id="feedback-drawer-body" class="drawer-body"></div>
-      </div>
-    </div>
-
-    <div id="action-sheet" class="action-sheet" data-visible="false" data-mode="peek" aria-hidden="true">
-      <div id="action-sheet-surface" class="sheet-surface">
-        <button id="action-sheet-toggle" class="sheet-toggle" type="button" aria-expanded="false">
-          <span class="sheet-grip" aria-hidden="true"></span>
-          <span id="action-sheet-title" class="sheet-title">Your move</span>
-          <span id="action-sheet-meta" class="sheet-meta"></span>
-        </button>
-        <div id="action-sheet-body" class="sheet-body" aria-hidden="true">
-          <div id="action-sheet-context" class="sheet-context"></div>
-          <div id="options" class="option-grid" role="group" aria-label="Available actions"></div>
-          <div id="raise-controls" class="raise-controls hidden">
-            <div class="raise-header">
-              <span class="raise-label">Raise sizing</span>
-              <span id="raise-value" class="raise-value">0%</span>
-            </div>
-            <input type="range" id="raise-slider" min="50" max="200" step="5" value="100" aria-label="Select raise sizing" />
-            <div id="raise-presets" class="raise-presets"></div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1133,7 +956,7 @@
             root.dataset.theme = next;
           }
           if (themeMeta) {
-            const bg = getComputedStyle(root).getPropertyValue('--bg-primary').trim();
+            const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
             if (bg) {
               themeMeta.setAttribute('content', bg);
             }
@@ -1194,7 +1017,7 @@
       let startBusy = false;
       let pendingSummary = null;
       const screen = document.querySelector('main.screen');
-      const statusScrollEl = $('#status-scroll');
+      const headerStatus = $('#header-status');
       const statsPill = $('#stats');
       const statsCount = $('#stats-count');
       const themeToggle = $('#theme-toggle');
@@ -1205,208 +1028,75 @@
       const feedbackDrawer = $('#feedback-drawer');
       const feedbackDrawerBody = $('#feedback-drawer-body');
       const feedbackDrawerClose = $('#feedback-drawer-close');
-      const optionsContainer = $('#options');
-      const handSummaryEl = $('#hand-summary');
+      const actionArea = $('#action-area');
+      const statusLineEl = $('#status-line');
       const startBtn = $('#btn-start');
       const summaryBtn = $('#btn-summary');
       const endBtn = $('#btn-end');
       const summaryCloseBtn = $('#btn-summary-close');
       const newBtn = $('#btn-new');
-      const actionSheet = $('#action-sheet');
-      const sheetToggle = $('#action-sheet-toggle');
-      const sheetBody = $('#action-sheet-body');
-      const sheetTitle = $('#action-sheet-title');
-      const sheetMeta = $('#action-sheet-meta');
-      const sheetContext = $('#action-sheet-context');
       const actionAnnouncer = $('#action-announcer');
       let lastFeedback = null;
-      let uiState = 'setup';
-      let sheetExpanded = false;
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
 
-      const updateSheetMode = () => {
-        if(!actionSheet) return;
-        const visible = uiState === 'awaitingAction';
-        actionSheet.dataset.visible = visible ? 'true' : 'false';
-        actionSheet.setAttribute('aria-hidden', visible ? 'false' : 'true');
-        const mode = visible && sheetExpanded ? 'expanded' : 'peek';
-        actionSheet.dataset.mode = mode;
-        if(sheetToggle){
-          sheetToggle.setAttribute('aria-expanded', visible && sheetExpanded ? 'true' : 'false');
-        }
-        if(sheetBody){
-          sheetBody.setAttribute('aria-hidden', visible && sheetExpanded ? 'false' : 'true');
-        }
+      const streetLabel = (street) => {
+        const value = (street || "").toString();
+        if(!value) return "Ready";
+        return value.charAt(0).toUpperCase() + value.slice(1);
       };
 
-      const setUiState = (next) => {
-        const previous = uiState;
-        uiState = next;
-        if(next === 'awaitingAction'){
-          if(previous !== 'awaitingAction'){
-            sheetExpanded = true;
-          }
-          if(sheetTitle) sheetTitle.textContent = 'Your move';
-        } else {
-          sheetExpanded = false;
-          if(sheetTitle){
-            sheetTitle.textContent = next === 'summary'
-              ? 'Session complete'
-              : next === 'resolving'
-                ? 'Resolving…'
-                : 'Ready to start';
-          }
-          if(sheetMeta) sheetMeta.textContent = '';
-          if(sheetContext){
-            sheetContext.dataset.visible = 'false';
-            sheetContext.textContent = '';
-          }
+      const heroSeatFromNode = (node) => {
+        const actor = (node?.actor || "").toString().toUpperCase();
+        if(actor === "BB" || actor === "SB") return actor;
+        const ctxHero = (node?.context || {}).hero_seat;
+        if(typeof ctxHero === "string" && ctxHero){
+          const seat = ctxHero.toUpperCase();
+          if(seat === "BB" || seat === "SB") return seat;
         }
-        updateSheetMode();
+        return "BB";
       };
 
-      const collapseActionSheet = () => {
-        sheetExpanded = false;
-        updateSheetMode();
-      };
+      const villainSeatFor = (heroSeat) => (heroSeat === "BB" ? "SB" : "BB");
 
-      const toggleActionSheet = () => {
-        sheetExpanded = !sheetExpanded;
-        updateSheetMode();
-      };
-
-      const setSheetMeta = (node, descriptor) => {
-        if(sheetMeta){
-          const pot = typeof node?.pot_bb === 'number' ? `Pot ${formatBb(node.pot_bb)}` : '';
-          sheetMeta.textContent = pot;
-        }
-        if(sheetContext){
-          const contextText = descriptor ? descriptor : '';
-          if(contextText){
-            sheetContext.dataset.visible = 'true';
-            sheetContext.textContent = contextText;
-          } else {
-            sheetContext.dataset.visible = 'false';
-            sheetContext.textContent = '';
-          }
-        }
-      };
-
-      const renderHandSummary = (node, descriptor) => {
-        if(!handSummaryEl){
-          return;
-        }
+      const updateHeaderStatus = (node) => {
+        if(!headerStatus) return;
         if(!node){
-          handSummaryEl.innerHTML = '';
+          headerStatus.textContent = "Ready for a new hand";
           return;
         }
-        const chips = [];
-        const street = (node.street || 'Ready').toString();
-        chips.push(createSummaryChip(street.charAt(0).toUpperCase() + street.slice(1)));
+        const street = streetLabel(node.street);
+        const hand = (typeof node.hand_no === "number" && typeof node.total_hands === "number")
+          ? `Hand ${node.hand_no}/${node.total_hands}`
+          : null;
+        const heroSeat = heroSeatFromNode(node);
+        const villainSeat = villainSeatFor(heroSeat);
+        const matchup = `${villainSeat} vs ${heroSeat}`;
+        const pieces = [street, hand, matchup].filter(Boolean);
+        headerStatus.textContent = pieces.join(" • ");
+      };
+
+      const formatStatusLine = (node, descriptor) => {
+        const parts = [];
         if(descriptor){
-          chips.push(createSummaryChip(descriptor));
+          parts.push(descriptor);
         }
-        if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
-          chips.push(createSummaryChip(`Hand ${node.hand_no}/${node.total_hands}`));
+        if(typeof node?.pot_bb === "number"){
+          parts.push(`Pot ${formatBb(node.pot_bb)}`);
         }
-        if(typeof node.pot_bb === 'number'){
-          chips.push(createSummaryChip(`Pot`, formatBb(node.pot_bb)));
+        if(typeof node?.effective_bb === "number"){
+          parts.push(`Effective ${formatBb(node.effective_bb)}`);
         }
-        handSummaryEl.innerHTML = chips.join('');
-      };
-
-      const createSummaryChip = (label, meta) => {
-        const metaSpan = meta ? `<span class="chip-meta">${meta}</span>` : '';
-        return `<span class="summary-chip">${label}${metaSpan ? ` · ${metaSpan}` : ''}</span>`;
-      };
-
-      const makeChip = (kind, icon, label, value, { title } = {}) => {
-        const pieces = [];
-        if(icon){
-          pieces.push(`<span class="chip-icon" aria-hidden="true">${icon}</span>`);
-        }
-        if(label){
-          pieces.push(`<span class="chip-label">${label}</span>`);
-        }
-        if(value){
-          pieces.push(`<strong>${value}</strong>`);
-        }
-        return `<span class="status-chip" data-kind="${kind}"${title ? ` title="${title}"` : ''}>${pieces.join(' ')}</span>`;
-      };
-
-      const setStatusMessage = (message) => {
-        if(!statusScrollEl) return;
-        statusScrollEl.innerHTML = makeChip('info', 'ℹ︎', 'Status', message);
-        statusScrollEl.scrollLeft = 0;
-      };
-
-      const syncThemeToggle = (value) => {
-        if(!themeToggle) return;
-        const isDark = value === 'dark';
-        themeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-        const title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
-        themeToggle.setAttribute('title', title);
-        themeToggle.setAttribute('aria-label', title);
-        const labelEl = themeToggle.querySelector('.toggle-label');
-        if(labelEl) labelEl.textContent = isDark ? 'Dark' : 'Light';
-      };
-
-      if(themeToggle){
-        syncThemeToggle(ThemeController.get());
-        ThemeController.onChange(syncThemeToggle);
-        const handleToggle = () => {
-          const next = ThemeController.get() === 'dark' ? 'light' : 'dark';
-          ThemeController.set(next);
-        };
-        themeToggle.addEventListener('click', (event)=>{
-          event.preventDefault();
-          handleToggle();
-        });
-        themeToggle.addEventListener('keydown', (event)=>{
-          if(event.key === 'Enter' || event.key === ' '){
-            event.preventDefault();
-            handleToggle();
-          }
-        });
-      }
-
-      const updateStatusBar = (node, descriptor) => {
-        if(!statusScrollEl){
-          return;
-        }
-        const chips = [];
-        const streetKey = (node.street || '').toLowerCase();
-        const streetLabel = streetKey ? streetKey.charAt(0).toUpperCase() + streetKey.slice(1) : 'Ready';
-        chips.push(makeChip('street', '', 'Street', streetLabel, { title: descriptor || streetLabel }));
-        if(descriptor){
-          chips.push(makeChip('context', 'ℹ︎', '', descriptor));
-        }
-        const betRaw = node?.context?.bet;
-        const potValue = Number(node.pot_bb) || 0;
-        if(typeof betRaw === 'number' && potValue > 0){
-          const pct = Math.round((betRaw / potValue) * 100);
-          const betValue = `${formatBb(betRaw)} (${pct}% pot)`;
-          chips.push(makeChip('bet', '⛁', 'Bet', betValue));
-        }
-        if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
-          chips.push(makeChip('hand', '🂡', 'Hand', `${node.hand_no}/${node.total_hands}`));
-        }
-        chips.push(makeChip('pot', '⬤', 'Pot', formatBb(potValue)));
-        const sprRaw = potValue > 0 ? node.effective_bb / potValue : Infinity;
-        const sprText = Number.isFinite(sprRaw) ? fmt(sprRaw, 1) : '∞';
-        chips.push(makeChip('spr', '⇵', 'SPR', sprText));
-        statusScrollEl.innerHTML = chips.join('');
-        statusScrollEl.scrollLeft = 0;
+        return parts.join(" • ");
       };
 
       const parseActionLabel = (label) => {
-        if(!label) return { primary: 'Action', meta: '' };
+        if(!label) return { primary: "Action", meta: "" };
         let primary = label.trim();
-        let meta = '';
-        const openIdx = primary.indexOf('(');
+        let meta = "";
+        const openIdx = primary.indexOf("(");
         if(openIdx >= 0){
-          const closeIdx = primary.lastIndexOf(')');
+          const closeIdx = primary.lastIndexOf(")");
           if(closeIdx > openIdx){
             meta = primary.slice(openIdx + 1, closeIdx).trim();
             primary = primary.slice(0, openIdx).trim();
@@ -1414,25 +1104,25 @@
         }
         if(!meta){
           const bbMatch = primary.match(/(\d+(?:\.\d+)?)\s*bb$/i);
-          if(bbMatch && typeof bbMatch.index === 'number'){
+          if(bbMatch && typeof bbMatch.index === "number"){
             meta = `${bbMatch[1]} bb`;
             primary = primary.slice(0, bbMatch.index).trim();
           }
         }
         if(meta && /bb$/i.test(meta) && !/\sbb$/i.test(meta)){
-          meta = meta.replace(/bb$/i, ' bb');
+          meta = meta.replace(/bb$/i, " bb");
         }
-        if(primary.toLowerCase().startsWith('bet ') && primary.toLowerCase().includes('%')){
-          primary = primary.replace(/^bet\s+/i, '').trim();
+        if(primary.toLowerCase().startsWith("bet ") && primary.toLowerCase().includes("%")){
+          primary = primary.replace(/^bet\s+/i, "").trim();
         }
         if(!primary){
-          primary = 'Action';
+          primary = "Action";
         }
         return { primary, meta };
       };
 
       const parseDescriptor = (node) => {
-        let descriptor = node?.description || '';
+        let descriptor = node?.description || "";
         if ((Array.isArray(node?.board_cards) && node.board_cards.length > 0) && descriptor.includes('; ')){
           descriptor = descriptor.split('; ')[1];
         } else if ((Array.isArray(node?.board_cards) && node.board_cards.length > 0) && descriptor.startsWith('Board ')){
@@ -1442,157 +1132,211 @@
         return descriptor.trim();
       };
 
-      const renderOptions = (options) => {
-        if(!optionsContainer) return;
-        const list = orderOptions(Array.isArray(options) ? options : []);
-        const count = list.length;
-        optionsContainer.dataset.count = String(count);
-        if(count === 0){
-          optionsContainer.replaceChildren();
-          optionsContainer.style.removeProperty('--option-columns');
-          return;
+      const canonicalAction = (option) => {
+        const normalize = (value) => (value || "").toString().toLowerCase();
+        if(typeof option === 'string'){
+          const lower = normalize(option);
+          if(lower.includes('all-in') || lower.includes('jam') || lower.includes('shove')) return 'all-in';
+          if(lower.startsWith('fold')) return 'fold';
+          if(lower.startsWith('check')) return 'check';
+          if(lower.startsWith('call')) return 'call';
+          if(lower.startsWith('3-bet') || lower.startsWith('3bet')) return '3bet';
+          if(lower.startsWith('bet')) return 'bet';
+          if(lower.startsWith('raise')) return 'raise';
+          return lower.split(' ')[0];
         }
-        const columns = count <= 1 ? 1 : count === 2 ? 2 : count >= 5 ? 3 : 2;
-        optionsContainer.style.setProperty('--option-columns', String(columns));
-        const fragment = document.createDocumentFragment();
-        list.forEach((option, index) => {
-          const rawLabel = typeof option === 'string' ? option : option?.label || option?.key;
-          const labelText = rawLabel || `Option ${index + 1}`;
-          const { primary, meta } = parseActionLabel(labelText);
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'option-tile';
-          btn.dataset.optionIndex = String(index);
-          btn.setAttribute('aria-pressed', 'false');
-          btn.dataset.optionLabel = meta ? `${primary} (${meta})` : primary;
+        const metaAction = normalize(option?.meta?.action);
+        if(metaAction){
+          if(metaAction === "allin" || metaAction === "jam") return "all-in";
+          if(metaAction === "3bet") return "3bet";
+          return metaAction;
+        }
+        const key = normalize(option?.key || option?.label || "");
+        if(key.includes("all-in") || key.includes("jam") || key.includes("shove")) return "all-in";
+        if(key.startsWith("fold")) return "fold";
+        if(key.startsWith("check")) return "check";
+        if(key.startsWith("call")) return "call";
+        if(key.startsWith("3-bet") || key.startsWith("3bet")) return "3bet";
+        if(key.startsWith("bet")) return "bet";
+        if(key.startsWith("raise")) return "raise";
+        return metaAction || key.split(' ')[0];
+      };
 
-          if(typeof option === 'object' && option && 'key' in option){
-            btn.dataset.optionKey = option.key;
+      const numericFromOption = (option) => {
+        const meta = option?.meta || {};
+        const candidates = [meta.bet, meta.raise_to, meta.call_cost];
+        for (const value of candidates){
+          if(typeof value === "number" && Number.isFinite(value)){
+            return value;
           }
+        }
+        const text = (typeof option === 'string' ? option : option?.label || option?.key || "").toString();
+        const match = text.match(/(\d+(?:\.\d+)?)\s*bb/i);
+        if(match){
+          return parseFloat(match[1]);
+        }
+        return null;
+      };
 
+      const describeOptions = (options) => {
+        return (Array.isArray(options) ? options : []).map((option, index) => {
+          const label = typeof option === "string" ? option : option?.label || option?.key || `Option ${index + 1}`;
+          const { primary, meta } = parseActionLabel(label);
+          const action = canonicalAction(option);
+          const numeric = numericFromOption(option);
           const disabled = Boolean(option && typeof option === 'object' && (option.disabled || option.enabled === false));
-          if(disabled){
-            btn.disabled = true;
-            btn.classList.add('option--disabled');
-            btn.setAttribute('aria-disabled', 'true');
-          } else {
-            btn.disabled = false;
-            btn.setAttribute('aria-disabled', 'false');
+          return { index, option, label, primary, meta, action, numeric, disabled };
+        });
+      };
+
+      const createSpacer = () => {
+        const spacer = document.createElement('div');
+        spacer.className = 'action-spacer';
+        spacer.setAttribute('aria-hidden', 'true');
+        return spacer;
+      };
+
+      const buildButton = (descriptor, variant) => {
+        if(!descriptor) return createSpacer();
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `action-button ${variant}`;
+        btn.dataset.optionIndex = String(descriptor.index);
+        const labelEl = document.createElement('span');
+        labelEl.className = 'action-label';
+        labelEl.textContent = descriptor.primary;
+        btn.appendChild(labelEl);
+        if(descriptor.meta){
+          const metaEl = document.createElement('span');
+          metaEl.className = 'action-meta';
+          metaEl.textContent = descriptor.meta;
+          btn.appendChild(metaEl);
+        }
+        btn.dataset.optionLabel = descriptor.meta ? `${descriptor.primary} (${descriptor.meta})` : descriptor.primary;
+        if(descriptor.disabled){
+          btn.disabled = true;
+        }
+        btn.addEventListener('click', () => {
+          if(!btn.disabled){
+            choose(descriptor.index);
           }
+        });
+        return btn;
+      };
 
-          const suggested = Boolean(option && typeof option === 'object' && (option.suggested || option?.meta?.suggested));
+      const chipLabel = (descriptor) => {
+        if(descriptor.meta) return descriptor.meta;
+        if(typeof descriptor.numeric === 'number' && Number.isFinite(descriptor.numeric)){
+          return `${fmt(descriptor.numeric, descriptor.numeric < 10 ? 1 : 0)}bb`;
+        }
+        return descriptor.primary;
+      };
 
-          const header = document.createElement('span');
-          header.className = 'option-header';
-          const titleEl = document.createElement('span');
-          titleEl.className = 'option-title';
-          titleEl.textContent = primary;
-          const checkEl = document.createElement('span');
-          checkEl.className = 'option-check';
-          checkEl.setAttribute('aria-hidden', 'true');
-          checkEl.textContent = '✔︎';
-          header.appendChild(titleEl);
-          header.appendChild(checkEl);
-          btn.appendChild(header);
-
-          if(meta || suggested){
-            const content = document.createElement('span');
-            content.className = 'option-content';
-            if(meta){
-              const metaEl = document.createElement('span');
-              metaEl.className = 'option-meta';
-              metaEl.textContent = meta;
-              content.appendChild(metaEl);
-            }
-            if(suggested){
-              const chipEl = document.createElement('span');
-              chipEl.className = 'option-chip';
-              chipEl.textContent = 'Suggested';
-              chipEl.setAttribute('aria-hidden', 'true');
-              content.appendChild(chipEl);
-              btn.classList.add('option--suggested');
-            }
-            btn.appendChild(content);
+      const buildRaiseGroup = (descriptors, { isFacingBet }) => {
+        if(descriptors.length === 0){
+          return createSpacer();
+        }
+        if(descriptors.length === 1){
+          return buildButton(descriptors[0], 'action-primary');
+        }
+        const group = document.createElement('div');
+        group.className = 'action-group';
+        const has3Bet = descriptors.some((d) => d.action === '3bet');
+        const hasBet = descriptors.some((d) => d.action === 'bet');
+        const toggleLabel = has3Bet ? '3-bet' : hasBet && !isFacingBet ? 'Bet' : 'Raise';
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'action-button action-primary action-toggle';
+        toggle.textContent = toggleLabel;
+        toggle.setAttribute('aria-expanded', 'false');
+        group.appendChild(toggle);
+        const chips = document.createElement('div');
+        chips.className = 'sizing-chips';
+        chips.setAttribute('role', 'group');
+        chips.setAttribute('aria-label', `${toggleLabel} sizing`);
+        descriptors.forEach((descriptor) => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'size-chip';
+          chip.dataset.optionIndex = String(descriptor.index);
+          chip.dataset.optionLabel = descriptor.meta ? `${descriptor.primary} (${descriptor.meta})` : descriptor.primary;
+          chip.textContent = chipLabel(descriptor);
+          if(descriptor.disabled){
+            chip.disabled = true;
           }
-
-          const pressStart = () => {
-            if(!btn.disabled){
-              btn.classList.add('option--pressed');
-            }
-          };
-          const pressEnd = () => {
-            btn.classList.remove('option--pressed');
-          };
-          btn.addEventListener('pointerdown', pressStart);
-          btn.addEventListener('pointerup', pressEnd);
-          btn.addEventListener('pointerleave', pressEnd);
-          btn.addEventListener('blur', pressEnd);
-
-          btn.addEventListener('click', () => {
-            if(!btn.disabled){
-              choose(index);
+          chip.addEventListener('click', () => {
+            if(!chip.disabled){
+              choose(descriptor.index);
             }
           });
-
-          fragment.appendChild(btn);
+          chips.appendChild(chip);
         });
+        group.appendChild(chips);
+        const toggleGroup = () => {
+          const expanded = group.classList.toggle('expanded');
+          toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        };
+        toggle.addEventListener('click', (event) => {
+          event.preventDefault();
+          toggleGroup();
+        });
+        toggle.addEventListener('keydown', (event) => {
+          if(event.key === 'Enter' || event.key === ' '){
+            event.preventDefault();
+            toggleGroup();
+          }
+        });
+        return group;
+      };
 
-        optionsContainer.replaceChildren(fragment);
+      const renderActions = (options, node) => {
+        if(!actionArea) return;
+        actionArea.innerHTML = '';
+        const described = describeOptions(options);
+        if(described.length === 0){
+          actionArea.classList.add('is-hidden');
+          actionArea.classList.remove('is-disabled');
+          return;
+        }
+        actionArea.classList.remove('is-hidden');
+        actionArea.classList.remove('is-disabled');
+
+        const foldOpt = described.find((d) => d.action === 'fold');
+        const passiveOpt = described.find((d) => d.action === 'call' || d.action === 'check');
+        const jamOpt = described.find((d) => d.action === 'all-in');
+        const raiseOpts = described.filter((d) => ['raise', 'bet', '3bet'].includes(d.action) && d !== jamOpt);
+        const used = new Set([foldOpt, passiveOpt, jamOpt, ...raiseOpts].filter(Boolean));
+        if(raiseOpts.length === 0){
+          described.forEach((d) => {
+            if(!used.has(d)){
+              raiseOpts.push(d);
+              used.add(d);
+            }
+          });
+        }
+
+        const isFacingBet = typeof node?.context?.bet === 'number' && node.context.bet > 0;
+
+        const rowTop = document.createElement('div');
+        rowTop.className = 'action-row';
+        rowTop.appendChild(buildButton(foldOpt, 'action-secondary'));
+        const passiveVariant = passiveOpt && passiveOpt.action === 'check' && !isFacingBet ? 'action-secondary' : 'action-primary';
+        rowTop.appendChild(buildButton(passiveOpt, passiveVariant));
+
+        const rowBottom = document.createElement('div');
+        rowBottom.className = 'action-row';
+        const raiseEl = buildRaiseGroup(raiseOpts, { isFacingBet });
+        if(jamOpt && raiseEl.classList && raiseEl.classList.contains('action-group')){
+          raiseEl.classList.add('compact');
+        }
+        rowBottom.appendChild(raiseEl);
+        rowBottom.appendChild(jamOpt ? buildButton(jamOpt, 'action-destructive') : createSpacer());
+
+        actionArea.appendChild(rowTop);
+        actionArea.appendChild(rowBottom);
         announceAction('');
       };
 
-      const orderOptions = (options) => {
-        if(options.length <= 1){
-          return options;
-        }
-        const baseOrder = ['fold', 'check', 'call', 'bet', 'raise', 'jam', 'all-in'];
-        const normalize = (value) => (value || '').toString().toLowerCase();
-        const actionFrom = (option) => {
-          if(option && typeof option === 'object' && option.meta && option.meta.action){
-            return normalize(option.meta.action);
-          }
-          if(option && typeof option === 'object' && option.key){
-            return classifyByKey(option.key);
-          }
-          if(typeof option === 'string'){
-            return classifyByKey(option);
-          }
-          return '';
-        };
-        const classifyByKey = (key) => {
-          const lower = normalize(key);
-          for (const term of baseOrder){
-            if(lower.startsWith(term)){ return term; }
-          }
-          if(lower.includes('all')) return 'all-in';
-          return lower;
-        };
-        const betValue = (option) => {
-          const metaBet = option && typeof option === 'object' ? option?.meta?.bet : null;
-          if(typeof metaBet === 'number'){
-            return metaBet;
-          }
-          const key = option && typeof option === 'object' ? option.key : option;
-          const match = typeof key === 'string' ? key.match(/(\d+(?:\.\d+)?)\s*bb/i) : null;
-          if(match){
-            return parseFloat(match[1]);
-          }
-          return Number.POSITIVE_INFINITY;
-        };
-        const rankFor = (option) => {
-          const action = actionFrom(option);
-          const baseIndex = baseOrder.indexOf(action);
-          const base = baseIndex >= 0 ? baseIndex : baseOrder.length;
-          if(action === 'bet' || action === 'raise' || action === 'all-in' || action === 'jam'){
-            return base + betValue(option) / 1000;
-          }
-          return base;
-        };
-        return options
-          .map((opt, idx) => ({ opt, idx, rank: rankFor(opt) }))
-          .sort((a, b) => (a.rank === b.rank ? a.idx - b.idx : a.rank - b.rank))
-          .map((entry) => entry.opt);
-      };
 
       const announceAction = (message) => {
         if(actionAnnouncer){
@@ -1671,30 +1415,17 @@
         screen.classList.toggle('density-compact', shouldCompact);
       };
 
-      setUiState('setup');
+      updateHeaderStatus(null);
+      if(statusLineEl){
+        statusLineEl.dataset.active = '';
+        statusLineEl.textContent = 'Ready for a new hand';
+      }
+      if(actionArea){
+        actionArea.classList.add('is-hidden');
+        actionArea.innerHTML = '';
+      }
       applyDensity();
       window.addEventListener('resize', () => window.requestAnimationFrame(applyDensity));
-
-      if(sheetToggle){
-        sheetToggle.addEventListener('click', (event)=>{
-          event.preventDefault();
-          if(uiState === 'awaitingAction'){
-            toggleActionSheet();
-          }
-        });
-        sheetToggle.addEventListener('keydown', (event)=>{
-          if((event.key === 'Enter' || event.key === ' ') && uiState === 'awaitingAction'){
-            event.preventDefault();
-            toggleActionSheet();
-          }
-        });
-      }
-
-      document.addEventListener('keydown', (event)=>{
-        if(event.key === 'Escape' && sheetExpanded){
-          collapseActionSheet();
-        }
-      });
 
       function show(id){
         ['#panel-start', '#panel-play', '#panel-summary'].forEach((sel)=>{
@@ -1704,11 +1435,19 @@
         const target = $(id);
         if(target){ target.classList.remove('hidden'); }
         if(id === '#panel-start'){
-          setUiState('setup');
-          renderHandSummary(null, '');
-        } else if(id === '#panel-summary'){
-          setUiState('summary');
-          renderHandSummary(null, '');
+          updateHeaderStatus(null);
+          if(statusLineEl){
+            statusLineEl.dataset.active = '';
+            statusLineEl.textContent = 'Ready for a new hand';
+          }
+          if(actionArea){
+            actionArea.classList.add('is-hidden');
+            actionArea.innerHTML = '';
+          }
+        }
+        if(id === '#panel-summary' && statusLineEl){
+          statusLineEl.dataset.active = '';
+          statusLineEl.textContent = 'Session summary ready';
         }
       }
 
@@ -1800,7 +1539,10 @@
           updateStats();
           resetFeedback();
           setSummaryAvailability(false);
-          if(optionsContainer) optionsContainer.innerHTML = '';
+          if(actionArea){
+            actionArea.classList.add('is-hidden');
+            actionArea.innerHTML = '';
+          }
           show('#panel-play');
           setStatusMessage('Preparing a fresh scenario…');
           await showNode();
@@ -1824,20 +1566,31 @@
         if(payload.done){
           pendingSummary = payload.summary || null;
           setSummaryAvailability(true);
-          setUiState('summary');
-          setSheetMeta(null, '');
-          renderOptions([]);
-          renderHandSummary(null, '');
-          setStatusMessage('Session complete — view summary for breakdown.');
+          updateHeaderStatus(null);
+          if(headerStatus){
+            headerStatus.textContent = 'Summary ready';
+          }
+          if(statusLineEl){
+            statusLineEl.dataset.active = '';
+            statusLineEl.textContent = 'Session complete — view summary for breakdown.';
+          } else {
+            setStatusMessage('Session complete — view summary for breakdown.');
+          }
+          if(actionArea){
+            actionArea.classList.add('is-hidden');
+            actionArea.innerHTML = '';
+          }
           return;
         }
         pendingSummary = null;
         setSummaryAvailability(false);
         const node = payload.node;
         const descriptor = parseDescriptor(node);
-        updateStatusBar(node, descriptor);
-        renderHandSummary(node, descriptor);
-        setSheetMeta(node, descriptor);
+        updateHeaderStatus(node);
+        if(statusLineEl){
+          statusLineEl.dataset.active = 'node';
+          statusLineEl.textContent = formatStatusLine(node, descriptor);
+        }
         const heroEl = $('#hand');
         const heroCards = renderCards(node.hero_cards);
         if(heroEl) heroEl.innerHTML = heroCards || '<span class="text-sm text-muted">Dealing…</span>';
@@ -1845,12 +1598,10 @@
         const boardCards = renderCards(node.board_cards);
         if(boardEl) boardEl.innerHTML = boardCards || '<span class="text-sm text-muted">Board pending</span>';
         const optionList = Array.isArray(payload.options) ? payload.options : [];
-        if(optionList.length > 0){
-          setUiState('awaitingAction');
-        } else {
-          setUiState('resolving');
+        renderActions(optionList, node);
+        if(optionList.length === 0 && actionArea){
+          actionArea.classList.add('is-disabled');
         }
-        renderOptions(optionList);
         if(clearFeedback){
           resetFeedback();
         }
@@ -1865,20 +1616,23 @@
       const choose = async (index) => {
         if(pending) return;
         pending = true;
-        const buttons = Array.from(optionsContainer?.querySelectorAll('button.option-tile') || []);
-        buttons.forEach((btn, idx)=>{
-          const isChosen = idx === index;
-          btn.classList.remove('option--pressed');
-          btn.disabled = true;
-          btn.classList.toggle('option--selected', isChosen);
-          btn.classList.toggle('option--disabled', !isChosen);
-          btn.setAttribute('aria-pressed', isChosen ? 'true' : 'false');
+        const interactives = Array.from(actionArea?.querySelectorAll('[data-option-index]') || []);
+        const chosenElement = interactives.find((el) => Number(el.dataset.optionIndex) === index);
+        interactives.forEach((el) => {
+          const isChosen = Number(el.dataset.optionIndex) === index;
+          el.classList.toggle('is-selected', isChosen);
+          if('disabled' in el){
+            el.disabled = true;
+          }
         });
-        const chosenLabel = buttons[index]?.dataset.optionLabel;
-        if(chosenLabel){
-          announceAction(chosenLabel);
+        if(actionArea){
+          actionArea.classList.add('is-disabled');
         }
-        setUiState('resolving');
+        if(chosenElement?.dataset.optionLabel){
+          announceAction(chosenElement.dataset.optionLabel);
+        } else {
+          announceAction('');
+        }
         try{
           const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:index})});
           const feedback = data.feedback;
@@ -1895,13 +1649,16 @@
         } catch (err) {
           console.error(err);
           setStatusMessage('Action failed — please retry.');
-          buttons.forEach((btn)=>{
-            btn.disabled = false;
-            btn.classList.remove('option--selected','option--disabled');
-            btn.setAttribute('aria-pressed', 'false');
+          interactives.forEach((el) => {
+            el.classList.remove('is-selected');
+            if('disabled' in el){
+              el.disabled = false;
+            }
           });
+          if(actionArea){
+            actionArea.classList.remove('is-disabled');
+          }
           announceAction('');
-          setUiState('awaitingAction');
         } finally {
           pending = false;
         }
@@ -1950,8 +1707,11 @@
         pendingSummary = s;
         answered = s.decisions ?? answered;
         setSummaryAvailability(false);
-        setUiState('summary');
         show('#panel-summary');
+        updateHeaderStatus(null);
+        if(headerStatus){
+          headerStatus.textContent = 'Summary ready';
+        }
       }
 
       const endSession = async () => {
@@ -2055,13 +1815,15 @@
         if(!panel || panel.classList.contains('hidden')) return;
         if(e.key >= '1' && e.key <= '9'){
           const idx = parseInt(e.key, 10) - 1;
-          const btns = Array.from(document.querySelectorAll('#options button'));
-          if(btns[idx]) btns[idx].click();
+          const btns = Array.from(document.querySelectorAll('#action-area [data-option-index]'));
+          if(btns[idx] instanceof HTMLElement){
+            btns[idx].click();
+          }
         }
       });
 
       setStatusMessage('Ready for a new hand');
-      renderOptions([]);
+      renderActions([], null);
     </script>
   </body>
   </html>

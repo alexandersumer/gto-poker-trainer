@@ -26,3 +26,20 @@ def test_session_engine_current_seats_matches_build():
         episode = engine.build_episode(index)
         assert episode.hero_seat == seats.hero
         assert episode.villain_seat == seats.villain
+
+
+def test_session_engine_cycle_repeats_bbsb_sequence():
+    engine = SessionEngine(rng=random.Random(456), rotation=SeatRotation())
+    expected = ["BB", "SB", "BB", "SB", "BB", "SB"]
+    actual = [engine.build_episode(i).hero_seat for i in range(len(expected))]
+    assert actual == expected
+
+
+def test_session_engine_always_produces_preflop_node():
+    engine = SessionEngine(rng=random.Random(999), rotation=SeatRotation())
+    for index in range(6):
+        episode = engine.build_episode(index)
+        assert episode.nodes, "episode should contain nodes"
+        first = episode.nodes[0]
+        assert first.street == "preflop"
+        assert first.actor == episode.hero_seat
