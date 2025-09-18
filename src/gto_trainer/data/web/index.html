@@ -1597,6 +1597,7 @@
         nextHandButton = btn;
         btn.addEventListener('click', handleNextHandClick);
         window.requestAnimationFrame(() => btn.focus({ preventScroll: true }));
+        setStatusMessage('Hand complete — tap “Next hand” to continue.');
       };
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
