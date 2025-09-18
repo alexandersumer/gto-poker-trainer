@@ -35,9 +35,9 @@
         --surface-2: #141B23;
         --surface-3: #0F172A;
         --border: #2A3645;
-        --field-bg: color-mix(in srgb, var(--surface-2) 86%, var(--surface-1) 14%);
-        --field-bg-hover: color-mix(in srgb, var(--surface-2) 80%, var(--surface-3) 20%);
-        --field-border: color-mix(in srgb, var(--border) 78%, transparent);
+        --field-bg: color-mix(in srgb, var(--surface-1) 72%, var(--surface-2) 28%);
+        --field-bg-hover: color-mix(in srgb, var(--surface-1) 64%, var(--surface-2) 36%);
+        --field-border: color-mix(in srgb, var(--border) 70%, transparent);
         --field-border-hover: color-mix(in srgb, var(--border) 55%, var(--brand) 10%);
         --field-border-focus: color-mix(in srgb, var(--brand) 55%, transparent);
         --field-placeholder: color-mix(in srgb, var(--text-tertiary) 78%, transparent);
@@ -188,13 +188,22 @@
         box-shadow: var(--shadow-soft);
       }
       .panel-box {
-        background: var(--surface-1);
-        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+        border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
         box-shadow: var(--shadow-card);
         color: var(--text-primary);
         border-radius: var(--radius-lg);
       }
-      .panel-soft { background: var(--surface-2); }
+      .panel-soft {
+        background: color-mix(in srgb, var(--surface-1) 86%, var(--surface-2) 14%);
+      }
+      .surface-card {
+        background: color-mix(in srgb, var(--surface-1) 88%, var(--surface-2) 12%);
+        border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-card);
+        color: var(--text-primary);
+      }
       .field-group {
         display: flex;
         flex-direction: column;
@@ -204,7 +213,7 @@
         font-size: var(--text-size-label);
         font-weight: 600;
         letter-spacing: -0.01em;
-        color: var(--text-secondary);
+        color: var(--text-primary);
       }
       input,
       select,
@@ -520,45 +529,72 @@
       .status-line {
         margin-top: var(--space-2);
         margin-bottom: var(--space-2);
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         font-weight: 500;
         color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
       }
       .status-line span {
         color: var(--text-secondary);
-        font-weight: 400;
+        font-weight: 500;
       }
       .action-area {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        padding: var(--space-2) var(--space-1) var(--space-1);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-2) var(--space-1);
+        background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+        border-radius: var(--radius-lg);
+        border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+        box-shadow: var(--shadow-card);
       }
       .action-area.is-hidden {
         display: none;
       }
-      .action-row {
-        display: contents;
+      .action-main {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
       }
-      .action-group {
-        grid-column: span 2;
+      .action-slot {
+        min-height: calc(var(--min-tap) - 4px);
+        border-radius: var(--radius-md);
+      }
+      .action-slot.is-placeholder {
+        border: 1px solid transparent;
+        background: transparent;
+        visibility: hidden;
+      }
+      .action-support {
         display: flex;
-        align-items: center;
-        gap: 6px;
+        flex-wrap: wrap;
+        gap: 8px;
       }
-      .action-group.compact {
-        grid-column: span 1;
+      .action-support:empty {
+        min-height: 0;
+      }
+      .action-sizes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        min-height: calc(var(--min-tap) - 8px);
+      }
+      .action-sizes.is-hidden {
+        display: none;
       }
       .action-button {
-        min-height: calc(var(--min-tap) - 6px);
+        min-height: calc(var(--min-tap) - 4px);
         border-radius: var(--radius-md);
-        border: 1px solid var(--outline);
+        border: 1px solid var(--field-border);
         background: var(--surface-1);
         color: var(--text-primary);
         font: 600 var(--text-size-body)/1.25 var(--font-sans);
-        padding: 10px 12px;
-        text-align: left;
-        transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+        padding: 10px 14px;
+        text-align: center;
+        transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, color 0.18s ease;
       }
       .action-button:not([disabled]):active {
         transform: translateY(1px);
@@ -574,14 +610,27 @@
       .action-button .action-meta {
         display: block;
         margin-top: 2px;
-        font-size: 0.82rem;
-        color: var(--text-secondary);
+        font-size: 0.78rem;
+        color: var(--field-helper);
         font-weight: 500;
       }
-      .action-button.action-secondary {
-        background: var(--muted-bg);
-        border-color: var(--muted-border);
+      .action-button.action-ghost {
+        background: transparent;
+        border-color: color-mix(in srgb, var(--field-border) 55%, transparent);
         color: var(--text-secondary);
+      }
+      .action-button.action-ghost:hover {
+        background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+        color: var(--text-primary);
+      }
+      .action-button.action-neutral {
+        background: color-mix(in srgb, var(--surface-2) 94%, transparent);
+        border-color: color-mix(in srgb, var(--field-border) 82%, transparent);
+        color: var(--text-primary);
+      }
+      .action-button.action-neutral:hover {
+        background: color-mix(in srgb, var(--surface-2) 88%, var(--surface-1) 12%);
+        border-color: var(--field-border-hover);
       }
       .action-button.action-primary {
         background: var(--brand);
@@ -589,23 +638,13 @@
         color: var(--on-brand);
       }
       .action-button.action-destructive {
-        background: color-mix(in srgb, var(--error) 18%, transparent);
-        border-color: color-mix(in srgb, var(--error) 45%, transparent);
-        color: var(--on-error);
+        background: color-mix(in srgb, var(--error) 14%, var(--surface-2) 86%);
+        border-color: color-mix(in srgb, var(--error) 32%, transparent);
+        color: var(--text-primary);
       }
-      .action-button.action-toggle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-      }
-      .action-button.action-toggle::after {
-        content: '›';
-        font-size: 0.8rem;
-        transition: transform 0.2s ease;
-      }
-      .action-group.expanded .action-button.action-toggle::after {
-        transform: rotate(90deg);
+      .action-button.action-destructive:hover {
+        background: color-mix(in srgb, var(--error) 20%, var(--surface-2) 80%);
+        border-color: color-mix(in srgb, var(--error) 42%, transparent);
       }
       .action-button[disabled] {
         opacity: 0.55;
@@ -613,30 +652,22 @@
         pointer-events: none;
       }
       .action-button.is-selected {
-        box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand) 45%, transparent);
-      }
-      .sizing-chips {
-        display: none;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-      .action-group.expanded .sizing-chips {
-        display: inline-flex;
+        box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand) 32%, transparent);
       }
       .size-chip {
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: var(--surface-2);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--field-border);
+        background: color-mix(in srgb, var(--surface-2) 90%, transparent);
         color: var(--text-secondary);
-        padding: 6px 10px;
-        font-size: 0.78rem;
+        padding: 8px 0;
+        font-size: 0.8rem;
         font-weight: 600;
-        transition: background 0.18s ease, border-color 0.18s ease;
+        text-align: center;
+        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
       }
       .size-chip:hover {
-        background: var(--ghost-hover);
-        border-color: var(--brand);
+        background: color-mix(in srgb, var(--surface-2) 82%, var(--brand) 8%);
+        border-color: var(--field-border-hover);
         color: var(--text-primary);
       }
       .size-chip:focus-visible {
@@ -644,16 +675,13 @@
         outline-offset: 2px;
       }
       .size-chip.is-selected {
-        background: color-mix(in srgb, var(--brand) 18%, transparent);
+        background: color-mix(in srgb, var(--brand) 18%, var(--surface-2) 82%);
         border-color: color-mix(in srgb, var(--brand) 55%, transparent);
         color: var(--text-primary);
       }
       .size-chip[disabled] {
         opacity: 0.55;
         cursor: not-allowed;
-      }
-      .action-spacer {
-        min-height: calc(var(--min-tap) - 6px);
       }
       .action-area.is-disabled .action-button,
       .action-area.is-disabled .size-chip {
@@ -704,6 +732,14 @@
       }
       .feedback-detail:hover { background: var(--ghost-hover); }
       .feedback-detail:focus-visible { outline: var(--focus-ring) solid var(--focus-color); outline-offset: 2px; }
+      #panel-play .panel-soft {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+      #panel-play .panel-soft > * {
+        margin: 0;
+      }
       .info-card {
         display: flex;
         flex-direction: column;
@@ -858,21 +894,25 @@
       }
       .density-compact .action-area {
         gap: 6px;
-        padding: 8px 4px 6px;
+        padding: 8px 8px 6px;
+      }
+      .density-compact .action-main {
+        gap: 6px;
       }
       .density-compact .action-button {
         padding: 8px 10px;
         font-size: 0.92rem;
       }
-      .density-compact .action-meta {
-        font-size: 0.75rem;
+      .density-compact .action-button .action-meta {
+        font-size: 0.74rem;
       }
-      .density-compact .sizing-chips {
-        gap: 4px;
+      .density-compact .action-sizes {
+        gap: 6px;
+        min-height: calc(var(--min-tap) - 12px);
       }
       .density-compact .size-chip {
-        padding: 4px 8px;
-        font-size: 0.72rem;
+        padding: 6px 0;
+        font-size: 0.74rem;
       }
       .density-compact .status-bar {
         min-height: 40px;
@@ -915,9 +955,9 @@
 
     <main class="screen max-w-2xl min-h-[720px] mx-auto p-4 pb-[calc(8rem+var(--safe-bottom))]">
       <section id="panel-start" class="page-section space-y-4">
-        <div class="rounded-lg panel-box panel-soft p-6 text-secondary">
+        <div class="rounded-lg panel-box panel-soft p-6">
           <h2 class="font-semibold mb-4 text-[clamp(1.25rem,2vw,1.45rem)] text-primary">Start a Session</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-secondary" role="group" aria-labelledby="start-session-fields">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" role="group" aria-labelledby="start-session-fields">
             <p id="start-session-fields" class="sr-only">Session configuration</p>
             <label class="field-group" for="inp-hands">
               <span class="field-label">Hands</span>
@@ -935,7 +975,7 @@
       </section>
 
       <section id="panel-play" class="page-section hidden space-y-4">
-        <div class="rounded-lg panel-box panel-soft p-5 text-secondary">
+        <div class="rounded-lg panel-box panel-soft p-5">
           <div id="card-summary" class="info-card">
             <div class="info-row">
               <span class="info-label">YOU</span>
@@ -1115,6 +1155,8 @@
       const newBtn = $('#btn-new');
       const actionAnnouncer = $('#action-announcer');
       let lastFeedback = null;
+      let lastActionSignature = '';
+      let selectedRaiseIndex = null;
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
 
@@ -1193,16 +1235,36 @@
 
       const formatStatusLine = (node, descriptor) => {
         const parts = [];
-        if(descriptor){
-          parts.push(descriptor);
+        const heroSeat = heroSeatFromNode(node);
+        const villainSeat = villainSeatFor(heroSeat);
+        const facing = (node?.context?.facing || '').toString().toLowerCase();
+        const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
+        if(facing === 'check' || facing === 'oop-check'){
+          parts.push(`${villainSeat} checked`);
+        } else if(facing === 'bet'){
+          parts.push(betSize ? `${villainSeat} bet ${betSize}` : `${villainSeat} bet`);
+        } else if(typeof node?.context?.open_size === 'number'){
+          parts.push(`${villainSeat} opened ${formatBb(node.context.open_size)}`);
+        } else if(descriptor){
+          const cleaned = descriptor
+            .replace(/•/g, '')
+            .replace(/Villain/gi, villainSeat)
+            .replace(/Hero/gi, heroSeat)
+            .trim()
+            .replace(/[.]+$/g, '');
+          if(cleaned){
+            parts.push(cleaned);
+          }
+        } else {
+          parts.push(`${heroSeat} to act`);
         }
-        if(typeof node?.pot_bb === "number"){
-          parts.push(`Pot ${formatBb(node.pot_bb)}`);
+        if(typeof node?.pot_bb === 'number'){
+          parts.push(`${formatBb(node.pot_bb)} pot`);
         }
-        if(typeof node?.effective_bb === "number"){
-          parts.push(`Effective ${formatBb(node.effective_bb)}`);
+        if(typeof node?.effective_bb === 'number'){
+          parts.push(`${formatBb(node.effective_bb)} eff`);
         }
-        return parts.join(" • ");
+        return parts.join(' · ');
       };
 
       const parseActionLabel = (label) => {
@@ -1304,36 +1366,51 @@
         });
       };
 
-      const createSpacer = () => {
-        const spacer = document.createElement('div');
-        spacer.className = 'action-spacer';
-        spacer.setAttribute('aria-hidden', 'true');
-        return spacer;
+      const createPlaceholder = () => {
+        const slot = document.createElement('div');
+        slot.className = 'action-slot is-placeholder';
+        slot.setAttribute('aria-hidden', 'true');
+        return slot;
       };
 
-      const buildButton = (descriptor, variant) => {
-        if(!descriptor) return createSpacer();
+      const buildButton = (descriptor, variant, overrides = {}) => {
+        if(!descriptor) return createPlaceholder();
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = `action-button ${variant}`;
-        btn.dataset.optionIndex = String(descriptor.index);
+        const labelText = overrides.label || descriptor.primary;
+        const metaText = overrides.meta === undefined ? descriptor.meta : overrides.meta;
         const labelEl = document.createElement('span');
         labelEl.className = 'action-label';
-        labelEl.textContent = descriptor.primary;
+        labelEl.textContent = labelText;
         btn.appendChild(labelEl);
-        if(descriptor.meta){
+        if(metaText){
           const metaEl = document.createElement('span');
           metaEl.className = 'action-meta';
-          metaEl.textContent = descriptor.meta;
+          metaEl.textContent = metaText;
           btn.appendChild(metaEl);
         }
-        btn.dataset.optionLabel = descriptor.meta ? `${descriptor.primary} (${descriptor.meta})` : descriptor.primary;
+        const indexValue = overrides.optionIndex !== undefined ? overrides.optionIndex : descriptor.index;
+        if(indexValue !== undefined && indexValue !== null){
+          btn.dataset.optionIndex = String(indexValue);
+        }
+        const announceLabel = overrides.optionLabel
+          || (metaText ? `${labelText} (${metaText})` : labelText);
+        btn.dataset.optionLabel = announceLabel;
         if(descriptor.disabled){
           btn.disabled = true;
         }
-        btn.addEventListener('click', () => {
-          if(!btn.disabled){
-            choose(descriptor.index);
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          if(btn.disabled) return;
+          if(typeof overrides.onClick === 'function'){
+            overrides.onClick(descriptor, btn);
+            return;
+          }
+          const rawIndex = btn.dataset.optionIndex;
+          const idx = rawIndex !== undefined ? Number(rawIndex) : descriptor.index;
+          if(Number.isInteger(idx)){
+            choose(idx);
           }
         });
         return btn;
@@ -1347,67 +1424,31 @@
         return descriptor.primary;
       };
 
-      const buildRaiseGroup = (descriptors, { isFacingBet }) => {
-        if(descriptors.length === 0){
-          return createSpacer();
+      const raiseVerb = (descriptor, { isFacingBet }) => {
+        if(!descriptor) return 'Bet';
+        if(descriptor.action === 'bet') return 'Bet';
+        if(descriptor.action === '3bet') return '3-bet';
+        if(descriptor.action === 'raise') return isFacingBet ? 'Raise' : 'Bet';
+        if(descriptor.action === 'all-in') return 'Jam';
+        return descriptor.primary || 'Bet';
+      };
+
+      const sortBySizing = (a, b) => {
+        if(typeof a.numeric === 'number' && typeof b.numeric === 'number'){
+          return a.numeric - b.numeric;
         }
-        if(descriptors.length === 1){
-          return buildButton(descriptors[0], 'action-primary');
-        }
-        const group = document.createElement('div');
-        group.className = 'action-group';
-        const has3Bet = descriptors.some((d) => d.action === '3bet');
-        const hasBet = descriptors.some((d) => d.action === 'bet');
-        const toggleLabel = has3Bet ? '3-bet' : hasBet && !isFacingBet ? 'Bet' : 'Raise';
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'action-button action-primary action-toggle';
-        toggle.textContent = toggleLabel;
-        toggle.setAttribute('aria-expanded', 'false');
-        group.appendChild(toggle);
-        const chips = document.createElement('div');
-        chips.className = 'sizing-chips';
-        chips.setAttribute('role', 'group');
-        chips.setAttribute('aria-label', `${toggleLabel} sizing`);
-        descriptors.forEach((descriptor) => {
-          const chip = document.createElement('button');
-          chip.type = 'button';
-          chip.className = 'size-chip';
-          chip.dataset.optionIndex = String(descriptor.index);
-          chip.dataset.optionLabel = descriptor.meta ? `${descriptor.primary} (${descriptor.meta})` : descriptor.primary;
-          chip.textContent = chipLabel(descriptor);
-          if(descriptor.disabled){
-            chip.disabled = true;
-          }
-          chip.addEventListener('click', () => {
-            if(!chip.disabled){
-              choose(descriptor.index);
-            }
-          });
-          chips.appendChild(chip);
-        });
-        group.appendChild(chips);
-        const toggleGroup = () => {
-          const expanded = group.classList.toggle('expanded');
-          toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-        };
-        toggle.addEventListener('click', (event) => {
-          event.preventDefault();
-          toggleGroup();
-        });
-        toggle.addEventListener('keydown', (event) => {
-          if(event.key === 'Enter' || event.key === ' '){
-            event.preventDefault();
-            toggleGroup();
-          }
-        });
-        return group;
+        return a.index - b.index;
       };
 
       const renderActions = (options, node) => {
         if(!actionArea) return;
-        actionArea.innerHTML = '';
         const described = describeOptions(options);
+        const signature = described.map((d) => `${d.index}:${d.action}`).join('|');
+        if(signature !== lastActionSignature){
+          lastActionSignature = signature;
+          selectedRaiseIndex = null;
+        }
+        actionArea.innerHTML = '';
         if(described.length === 0){
           actionArea.classList.add('is-hidden');
           actionArea.classList.remove('is-disabled');
@@ -1419,36 +1460,155 @@
         const foldOpt = described.find((d) => d.action === 'fold');
         const passiveOpt = described.find((d) => d.action === 'call' || d.action === 'check');
         const jamOpt = described.find((d) => d.action === 'all-in');
-        const raiseOpts = described.filter((d) => ['raise', 'bet', '3bet'].includes(d.action) && d !== jamOpt);
-        const used = new Set([foldOpt, passiveOpt, jamOpt, ...raiseOpts].filter(Boolean));
+        let raiseOpts = described.filter((d) => ['raise', 'bet', '3bet'].includes(d.action) && d !== jamOpt);
+
+        const used = new Set([foldOpt, passiveOpt, jamOpt].filter(Boolean));
         if(raiseOpts.length === 0){
           described.forEach((d) => {
-            if(!used.has(d)){
+            if(!used.has(d) && ['fold', 'call', 'check', 'all-in'].indexOf(d.action) === -1){
               raiseOpts.push(d);
               used.add(d);
             }
           });
         }
+        raiseOpts = raiseOpts.filter(Boolean).sort(sortBySizing);
 
         const isFacingBet = typeof node?.context?.bet === 'number' && node.context.bet > 0;
 
-        const rowTop = document.createElement('div');
-        rowTop.className = 'action-row';
-        rowTop.appendChild(buildButton(foldOpt, 'action-secondary'));
-        const passiveVariant = passiveOpt && passiveOpt.action === 'check' && !isFacingBet ? 'action-secondary' : 'action-primary';
-        rowTop.appendChild(buildButton(passiveOpt, passiveVariant));
+        const mainRow = document.createElement('div');
+        mainRow.className = 'action-main';
+        const supportRow = document.createElement('div');
+        supportRow.className = 'action-support';
+        const sizeRow = document.createElement('div');
+        sizeRow.className = 'action-sizes';
+        sizeRow.setAttribute('role', 'group');
+        sizeRow.setAttribute('aria-label', 'Bet sizing');
 
-        const rowBottom = document.createElement('div');
-        rowBottom.className = 'action-row';
-        const raiseEl = buildRaiseGroup(raiseOpts, { isFacingBet });
-        if(jamOpt && raiseEl.classList && raiseEl.classList.contains('action-group')){
-          raiseEl.classList.add('compact');
+        const ensureRaiseSelection = () => {
+          if(!raiseOpts.length){
+            selectedRaiseIndex = null;
+            return null;
+          }
+          const current = raiseOpts.find((d) => d.index === selectedRaiseIndex && !d.disabled);
+          if(current) return current;
+          const firstAvailable = raiseOpts.find((d) => !d.disabled) || raiseOpts[0];
+          selectedRaiseIndex = firstAvailable ? firstAvailable.index : null;
+          return firstAvailable || null;
+        };
+
+        const activeRaise = () => {
+          if(!raiseOpts.length) return null;
+          return raiseOpts.find((d) => d.index === selectedRaiseIndex) || ensureRaiseSelection();
+        };
+
+        const refreshSizeSelection = () => {
+          Array.from(sizeRow.querySelectorAll('.size-chip')).forEach((chip) => {
+            const idx = Number(chip.dataset.optionIndex);
+            chip.classList.toggle('is-selected', Number.isInteger(idx) && idx === selectedRaiseIndex);
+          });
+        };
+
+        const updateBetButton = (button) => {
+          if(!button || button.tagName !== 'BUTTON') return;
+          const chosen = activeRaise();
+          if(!chosen){
+            button.classList.add('is-placeholder');
+            button.disabled = true;
+            return;
+          }
+          const verb = raiseVerb(chosen, { isFacingBet });
+          const sizeText = chipLabel(chosen);
+          const labelText = sizeText ? `${verb} ${sizeText}` : verb;
+          const metaText = chosen.meta && chosen.meta !== sizeText ? chosen.meta : '';
+          const labelEl = button.querySelector('.action-label');
+          if(labelEl) labelEl.textContent = labelText;
+          let metaEl = button.querySelector('.action-meta');
+          if(metaText){
+            if(metaEl){
+              metaEl.textContent = metaText;
+            } else {
+              metaEl = document.createElement('span');
+              metaEl.className = 'action-meta';
+              metaEl.textContent = metaText;
+              button.appendChild(metaEl);
+            }
+          } else if(metaEl){
+            metaEl.remove();
+          }
+          button.dataset.optionIndex = String(chosen.index);
+          button.dataset.optionLabel = metaText ? `${labelText} (${metaText})` : labelText;
+          button.disabled = !!chosen.disabled;
+          refreshSizeSelection();
+        };
+
+        const passiveVariant = passiveOpt && passiveOpt.action === 'check' ? 'action-neutral' : 'action-neutral';
+        const passiveButton = passiveOpt
+          ? buildButton(passiveOpt, passiveVariant)
+          : createPlaceholder();
+
+        const betButton = raiseOpts.length
+          ? buildButton(raiseOpts[0], 'action-primary', {
+              onClick: () => {
+                const chosen = activeRaise();
+                if(chosen){
+                  choose(chosen.index);
+                }
+              },
+            })
+          : createPlaceholder();
+
+        const jamButton = jamOpt
+          ? buildButton(jamOpt, 'action-destructive')
+          : createPlaceholder();
+
+        mainRow.appendChild(passiveButton || createPlaceholder());
+        mainRow.appendChild(betButton || createPlaceholder());
+        mainRow.appendChild(jamButton || createPlaceholder());
+
+        if(foldOpt){
+          supportRow.appendChild(buildButton(foldOpt, 'action-ghost'));
         }
-        rowBottom.appendChild(raiseEl);
-        rowBottom.appendChild(jamOpt ? buildButton(jamOpt, 'action-destructive') : createSpacer());
 
-        actionArea.appendChild(rowTop);
-        actionArea.appendChild(rowBottom);
+        if(raiseOpts.length > 1){
+          raiseOpts.forEach((descriptor) => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'size-chip';
+            chip.dataset.optionIndex = String(descriptor.index);
+            chip.dataset.optionLabel = `${raiseVerb(descriptor, { isFacingBet })} ${chipLabel(descriptor)}`;
+            chip.textContent = chipLabel(descriptor);
+            if(descriptor.disabled){
+              chip.disabled = true;
+            }
+            chip.addEventListener('click', (event) => {
+              event.preventDefault();
+              if(chip.disabled) return;
+              selectedRaiseIndex = descriptor.index;
+              if(betButton){
+                updateBetButton(betButton);
+              }
+              announceAction(`Sizing selected: ${chip.textContent}`);
+            });
+            sizeRow.appendChild(chip);
+          });
+          ensureRaiseSelection();
+          updateBetButton(betButton);
+          refreshSizeSelection();
+          actionArea.appendChild(mainRow);
+          if(supportRow.children.length){
+            actionArea.appendChild(supportRow);
+          }
+          actionArea.appendChild(sizeRow);
+        } else {
+          ensureRaiseSelection();
+          updateBetButton(betButton);
+          sizeRow.classList.add('is-hidden');
+          actionArea.appendChild(mainRow);
+          if(supportRow.children.length){
+            actionArea.appendChild(supportRow);
+          }
+        }
+
         announceAction('');
       };
 
@@ -1799,22 +1959,22 @@
               </div>
             </div>
             <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div class="rounded-lg border border-outline bg-white px-4 py-3">
+              <div class="surface-card px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Hands answered</dt>
                 <dd class="mt-1 text-lg font-semibold text-primary">${s.hands}</dd>
               </div>
-              <div class="rounded-lg border border-outline bg-white px-4 py-3">
+              <div class="surface-card px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Best choices hit</dt>
                 <dd class="mt-1 text-lg font-semibold text-primary">${s.hits}</dd>
                 <dd class="text-xs text-muted">Accuracy per decision: ${accuracy}%</dd>
               </div>
-              <div class="rounded-lg border border-outline bg-white px-4 py-3">
+              <div class="surface-card px-4 py-3">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
                 <dd class="mt-1 text-lg font-semibold text-primary">${formatBb(totalEvLost)}</dd>
                 <dd class="text-xs text-muted">Avg / hand: ${formatBb(avgEvLoss)}</dd>
               </div>
             </dl>
-            <div class="mt-4 rounded-lg border border-outline bg-white px-4 py-3 text-sm text-secondary">
+            <div class="mt-4 surface-card px-4 py-3 text-sm text-secondary">
               Keep iterating: review the final hand’s feedback before starting a fresh session to reinforce the optimal line.
             </div>
           `;
