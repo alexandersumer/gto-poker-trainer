@@ -232,14 +232,14 @@
         justify-content: center;
         border-radius: var(--radius-sm);
         border: 1px solid var(--card-edge);
-        padding: 0.42rem 0.76rem;
-        font-size: clamp(1.32rem, 3.8vw, 1.68rem);
+        padding: 0.44rem 0.78rem;
+        font-size: clamp(1.38rem, 3.9vw, 1.74rem);
         font-weight: 700;
-        letter-spacing: 0.32px;
+        letter-spacing: 0.2px;
         margin: 0 0.18rem 0.18rem 0;
         background: var(--card-face);
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
-        line-height: 1;
+        line-height: 1.02;
       }
       .poker-card {
         min-width: clamp(44px, 7.6vw, 60px);
@@ -465,7 +465,6 @@
       .panel-box,
       .info-card,
       .feedback-banner,
-      .header-pill,
       .btn {
         transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
       }
@@ -476,7 +475,6 @@
         .panel-box,
         .info-card,
         .feedback-banner,
-        .header-pill,
         .btn {
           transition: none !important;
         }
@@ -622,47 +620,6 @@
       .app-header .header-actions {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-      }
-      .header-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.3rem 0.7rem;
-        border-radius: 9999px;
-        border: 1px solid var(--muted-border);
-        background: var(--muted-bg);
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--text-secondary);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
-      }
-      .header-pill .pill-metric {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.1rem;
-      }
-      .header-pill.is-empty {
-        opacity: 0.75;
-      }
-      .header-pill .status-dot {
-        width: 0.375rem;
-        height: 0.375rem;
-        border-radius: 9999px;
-        background: var(--brand);
-      }
-      .header-pill.is-empty .status-dot {
-        background: var(--border);
-      }
-      .header-pill strong {
-        font-weight: 600;
-        color: var(--text-primary);
-      }
-      .header-pill .pill-label {
-        font-size: 0.68rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
       }
       .theme-toggle {
         display: inline-flex;
@@ -1164,8 +1121,8 @@
         }
         #hand .card,
         #board .card {
-          padding: 0.32rem 0.52rem;
-          font-size: 0.98rem;
+          padding: 0.34rem 0.56rem;
+          font-size: 1.04rem;
         }
       }
       .feedback-drawer {
@@ -1277,8 +1234,8 @@
       .density-compact .poker-card {
         min-width: clamp(38px, 6.4vw, 48px);
         min-height: clamp(50px, 8.6vw, 60px);
-        font-size: clamp(1.2rem, 3.5vw, 1.44rem);
-        padding: 0.38rem 0.68rem;
+        font-size: clamp(1.26rem, 3.6vw, 1.5rem);
+        padding: 0.4rem 0.7rem;
       }
       .density-compact .action-area {
         gap: 6px;
@@ -1330,17 +1287,6 @@
             <h1 class="wordmark"><span class="lead">GTO</span> <span class="trail">Trainer</span></h1>
           </div>
           <div class="header-actions">
-            <span id="stats" class="header-pill is-empty">
-              <span class="status-dot" aria-hidden="true"></span>
-              <span class="pill-metric">
-                <span class="pill-label">Answered</span>
-                <strong id="stats-count">0</strong>
-              </span>
-              <span class="pill-metric">
-                <span class="pill-label">EV Lost</span>
-                <strong id="stats-ev">0.00 bb</strong>
-              </span>
-            </span>
             <button id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" aria-pressed="true" title="Toggle dark mode">
               <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
               <span class="toggle-label">Dark</span>
@@ -1549,9 +1495,6 @@
       let pendingSummary = null;
       const screen = document.querySelector('main.screen');
       const headerStatus = $('#header-status');
-      const statsPill = $('#stats');
-      const statsCount = $('#stats-count');
-      const statsEv = $('#stats-ev');
       const statusChips = $('#status-chips');
       const statusChipDynamic = $('#status-chip-dynamic');
       const themeToggle = $('#theme-toggle');
@@ -1579,7 +1522,6 @@
       let betGroupCounter = 0;
       let pendingNextPayload = null;
       let nextHandButton = null;
-      let totalEvLost = 0;
 
       const clearNextHandQueue = () => {
         pendingNextPayload = null;
@@ -2202,9 +2144,6 @@
         const bestEv = typeof feedback?.best?.ev === 'number' ? formatBb(feedback.best.ev) : null;
         const chosenLabel = feedback?.chosen?.key || '—';
         const deltaValue = typeof feedback?.ev_loss === 'number' ? Math.abs(feedback.ev_loss) : null;
-        if(typeof feedback?.ev_loss === 'number' && Number.isFinite(feedback.ev_loss)){
-          totalEvLost += Math.max(0, feedback.ev_loss);
-        }
         const summaryLine = correct
           ? `Optimal: ${chosenLabel}`
           : deltaValue
@@ -2227,7 +2166,6 @@
           }
         }
         feedbackBanner.classList.remove('hidden');
-        updateStats();
       };
 
       const resetFeedback = () => {
@@ -2488,11 +2426,9 @@
           const data = await api('/api/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands, mc})});
           sid = data.session;
           answered = 0;
-          totalEvLost = 0;
           pending = false;
           pendingSummary = null;
           autoScrolledToPlay = false;
-          updateStats();
           resetFeedback();
           setSummaryAvailability(false);
           if(actionArea){
@@ -2604,7 +2540,6 @@
           const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:index})});
           const feedback = data.feedback;
           answered += 1;
-          updateStats();
           if(feedback){
             applyFeedback(feedback);
           }
@@ -2675,10 +2610,6 @@
           `;
         }
         pendingSummary = s;
-        if(typeof s.ev_lost === 'number' && Number.isFinite(s.ev_lost)){
-          totalEvLost = Math.max(0, s.ev_lost);
-          updateStats();
-        }
         answered = s.decisions ?? answered;
         setSummaryAvailability(false);
         show('#panel-summary');
@@ -2697,20 +2628,6 @@
         }
       };
 
-      const updateStats = () => {
-        if(statsCount) statsCount.textContent = String(answered);
-        if(statsEv){
-          const safeTotal = Number.isFinite(totalEvLost) ? totalEvLost : 0;
-          const avg = answered ? safeTotal / answered : 0;
-          statsEv.textContent = formatBb(safeTotal);
-          statsEv.setAttribute('title', `Average EV lost/decision: ${formatBb(avg)}`);
-        }
-        if(statsPill) {
-          const empty = answered === 0 && (!totalEvLost || Math.abs(totalEvLost) < 1e-9);
-          statsPill.classList.toggle('is-empty', empty);
-        }
-      };
-
       if(startBtn){
         startBtn.addEventListener('click', (event)=>{
           event.preventDefault();
@@ -2722,11 +2639,9 @@
         newBtn.addEventListener('click', () => {
           sid = null;
           answered = 0;
-          totalEvLost = 0;
           pending = false;
           pendingSummary = null;
           autoScrolledToPlay = false;
-          updateStats();
           resetFeedback();
           setStartButtonState(false);
           setSummaryAvailability(false);

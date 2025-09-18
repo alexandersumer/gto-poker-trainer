@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 
+from gto_trainer.dynamic import equity as eq
 from gto_trainer.dynamic.cards import str_to_int
 from gto_trainer.dynamic.equity import estimate_equity, hero_equity_vs_combo
 
@@ -42,3 +43,26 @@ def test_equity_exact_enumeration_turn_is_deterministic():
     first = hero_equity_vs_combo(hero, board, villain_combo, trials=40)
     second = hero_equity_vs_combo(hero, board, villain_combo, trials=80)
     assert abs(first - second) < 1e-9
+
+
+def test_adaptive_monte_carlo_respects_minimum(monkeypatch):
+    monkeypatch.setattr(eq, "_MIN_MONTE_TRIALS", 20, raising=False)
+    monkeypatch.setattr(eq, "_MAX_MONTE_TRIALS", 60, raising=False)
+    monkeypatch.setattr(eq, "_MONTE_CHUNK", 5, raising=False)
+    monkeypatch.setattr(eq, "_TARGET_STD_ERROR", 1e-6, raising=False)
+    eq._cached_equity.cache_clear()
+
+    hero = [str_to_int("Ah"), str_to_int("7d")]
+    villain = (str_to_int("Kc"), str_to_int("Qd"))
+
+    hero_equity_vs_combo(hero, [], villain, trials=5)
+    assert eq._LAST_MONTE_TRIALS >= eq._MIN_MONTE_TRIALS
+
+
+def test_adaptive_monte_carlo_is_deterministic():
+    hero = [str_to_int("9h"), str_to_int("8d")]
+    villain = (str_to_int("Jc"), str_to_int("Td"))
+    eq._cached_equity.cache_clear()
+    first = hero_equity_vs_combo(hero, [], villain, trials=150)
+    second = hero_equity_vs_combo(hero, [], villain, trials=150)
+    assert first == second
