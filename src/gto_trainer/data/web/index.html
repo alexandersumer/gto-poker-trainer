@@ -819,22 +819,38 @@
       }
       .next-hand {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        flex-direction: column;
         gap: var(--space-1);
         margin-top: calc(var(--space-1) + 4px);
-        padding: calc(var(--space-1) + 2px) calc(var(--space-1) + 6px);
+        padding: calc(var(--space-1) + 2px);
         background: color-mix(in srgb, var(--surface-2) 68%, var(--surface-1) 32%);
-        border: 1px solid color-mix(in srgb, var(--outline) 65%, transparent);
+        border: 1px solid color-mix(in srgb, var(--outline) 62%, transparent);
         border-radius: var(--radius-md);
-        color: var(--text-secondary);
       }
       .next-hand.hidden {
         display: none;
       }
       .next-hand__text {
         font-size: 0.9rem;
-        font-weight: 500;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: var(--text-secondary);
+      }
+      .next-hand__controls {
+        display: flex;
+        gap: var(--space-1);
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+      @media (min-width: 640px) {
+        .next-hand {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .next-hand__controls {
+          justify-content: flex-end;
+        }
       }
       .action-area.is-hidden {
         display: none;
@@ -1297,6 +1313,13 @@
       .density-compact .bet-group__label {
         font-size: 0.68rem;
       }
+      .density-compact .next-hand {
+        gap: 6px;
+        padding: var(--space-1);
+      }
+      .density-compact .next-hand__text {
+        font-size: 0.85rem;
+      }
       .density-compact .status-bar {
         min-height: 40px;
       }
@@ -1402,9 +1425,11 @@
 
         <div id="next-hand-container" class="next-hand hidden">
           <span class="next-hand__text">Hand complete. Ready when you are.</span>
-          <button id="btn-next-hand" class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-chip">
-            Next hand
-          </button>
+          <div class="next-hand__controls">
+            <button id="btn-next-hand" class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-chip">
+              Next hand
+            </button>
+          </div>
         </div>
 
         <div class="mt-3 flex justify-center" id="end-session-container">
@@ -1585,7 +1610,7 @@
         if(!pendingNextPayload) return;
         const payload = pendingNextPayload;
         clearNextHandQueue();
-        await renderNodePayload(payload, { clearFeedback: false });
+        await renderNodePayload(payload, { clearFeedback: true });
       };
 
       const queueNextHand = (payload) => {
