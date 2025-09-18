@@ -1370,6 +1370,9 @@
           <button id="btn-summary" class="hidden rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-muted">
             View summary
           </button>
+          <button id="btn-next-hand" class="hidden rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-chip">
+            Next hand
+          </button>
         </div>
 
         <div id="feedback-banner" class="feedback-banner hidden" role="status" aria-live="polite">
@@ -1533,6 +1536,7 @@
       const endBtn = $('#btn-end');
       const summaryCloseBtn = $('#btn-summary-close');
       const newBtn = $('#btn-new');
+      const nextHandBtn = $('#btn-next-hand');
       const actionAnnouncer = $('#action-announcer');
       let lastFeedback = null;
       let lastActionSignature = '';
@@ -1540,6 +1544,39 @@
       let selectedRaiseIndex = null;
       let autoScrolledToPlay = false;
       let betGroupCounter = 0;
+      let pendingNextPayload = null;
+      let autoAdvanceTimer = null;
+
+      const clearNextHandQueue = () => {
+        if(autoAdvanceTimer){
+          clearTimeout(autoAdvanceTimer);
+          autoAdvanceTimer = null;
+        }
+        pendingNextPayload = null;
+        if(nextHandBtn){
+          nextHandBtn.classList.add('hidden');
+          nextHandBtn.disabled = false;
+        }
+      };
+
+      const advanceToNextHand = async () => {
+        if(!pendingNextPayload) return;
+        const payload = pendingNextPayload;
+        clearNextHandQueue();
+        await renderNodePayload(payload, { clearFeedback: false });
+      };
+
+      const queueNextHand = (payload) => {
+        clearNextHandQueue();
+        pendingNextPayload = payload;
+        if(nextHandBtn){
+          nextHandBtn.classList.remove('hidden');
+          nextHandBtn.disabled = false;
+        }
+        autoAdvanceTimer = window.setTimeout(() => {
+          advanceToNextHand();
+        }, 1600);
+      };
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
 
@@ -2168,6 +2205,7 @@
       window.addEventListener('resize', () => window.requestAnimationFrame(applyDensity));
 
       function show(id){
+        clearNextHandQueue();
         ['#panel-start', '#panel-play', '#panel-summary'].forEach((sel)=>{
           const el = $(sel);
           if(el){ el.classList.add('hidden'); }
@@ -2418,6 +2456,7 @@
       };
 
       const renderNodePayload = async (payload, {clearFeedback = false} = {}) => {
+        clearNextHandQueue();
         if(payload.done){
           pendingSummary = payload.summary || null;
           setSummaryAvailability(true);
@@ -2507,7 +2546,7 @@
             applyFeedback(feedback);
           }
           if(data.next){
-            await renderNodePayload(data.next, {clearFeedback: false});
+            queueNextHand(data.next);
           } else {
             await showNode();
           }
@@ -2632,6 +2671,13 @@
           } else {
             await showSummary();
           }
+        });
+      }
+
+      if(nextHandBtn){
+        nextHandBtn.addEventListener('click', (event)=>{
+          event.preventDefault();
+          advanceToNextHand();
         });
       }
 
