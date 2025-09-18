@@ -76,9 +76,7 @@ class EpisodeBuilder:
 
         preflop = Node(
             street="preflop",
-            description=(
-                f"{self._rival_label} opens {ctx.open_size:.1f}bb."
-            ),
+            description=(f"{self._rival_label} opens {ctx.open_size:.1f}bb."),
             pot_bb=pot_after_open,
             effective_bb=self._stacks,
             hero_cards=ctx.hero_cards,
