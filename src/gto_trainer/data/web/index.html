@@ -1634,6 +1634,7 @@
       let correctDecisions = 0;
       let sessionHands = 0;
       let activeNode = null;
+      let isLoadingHand = false;
 
       const escapeHtml = (text) => String(text)
         .replace(/&/g, "&amp;")
@@ -2598,6 +2599,7 @@
             actionArea.classList.add('is-hidden');
             actionArea.innerHTML = '';
           }
+          isLoadingHand = true;
           showPlaceholderCards();
           show('#panel-play');
           setStatusMessage('Preparing a fresh scenario…');
@@ -2609,15 +2611,23 @@
           setStatusMessage(`Unable to start session — ${message}`);
           show('#panel-start');
         } finally {
+          isLoadingHand = false;
           startBusy = false;
           setStartButtonState(false);
         }
       };
 
       const showNode = async () => {
+        isLoadingHand = true;
         showPlaceholderCards();
-        const payload = await api(`/api/session/${sid}/node`);
-        await renderNodePayload(payload, {clearFeedback: true});
+        try {
+          const payload = await api(`/api/session/${sid}/node`);
+          isLoadingHand = false;
+          await renderNodePayload(payload, {clearFeedback: true});
+        } catch (err) {
+          isLoadingHand = false;
+          throw err;
+        }
       };
 
       const renderNodePayload = async (payload, {clearFeedback = false} = {}) => {
@@ -2663,12 +2673,20 @@
         const heroEl = $('#hand');
         const heroCardsHtml = renderCards(node.hero_cards);
         if(heroEl){
-          heroEl.innerHTML = heroCardsHtml || renderHeroPlaceholder();
+          if(heroCardsHtml){
+            heroEl.innerHTML = heroCardsHtml;
+          } else {
+            heroEl.innerHTML = isLoadingHand ? renderHeroPlaceholder() : '<span class="text-sm text-muted">Hand pending</span>';
+          }
         }
         const boardEl = $('#board');
-        const boardCardsHtml = renderCards(node.board_cards);
         if(boardEl){
-          boardEl.innerHTML = boardCardsHtml || renderBoardPlaceholder();
+          const boardCardsHtml = renderCards(node.board_cards);
+          if(boardCardsHtml){
+            boardEl.innerHTML = boardCardsHtml;
+          } else {
+            boardEl.innerHTML = isLoadingHand ? renderBoardPlaceholder() : '<span class="text-sm text-muted">Board pending</span>';
+          }
         }
         const optionList = Array.isArray(payload.options) ? payload.options : [];
         renderActions(optionList, node);
