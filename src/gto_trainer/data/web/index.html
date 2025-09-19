@@ -1363,16 +1363,16 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 8px 0;
+        gap: 16px;
+        padding: 12px 0;
       }
       .drawer-col {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
       }
       .drawer-value {
-        font-size: 1rem;
+        font-size: 1.02rem;
         color: var(--text-primary);
         font-weight: 600;
       }
@@ -1389,12 +1389,15 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 2px 8px;
-        border-radius: 999px;
-        font-size: 0.7rem;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.72rem;
         font-weight: 650;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+        background: color-mix(in srgb, var(--action-accent-bg) 70%, transparent);
+        color: var(--action-accent-text);
+        border: 1px solid var(--action-accent-border);
       }
       .drawer-chip--best {
         background: color-mix(in srgb, var(--action-accent-bg) 70%, transparent);
@@ -1402,9 +1405,9 @@
         border: 1px solid var(--action-accent-border);
       }
       .drawer-chip--chosen {
-        background: color-mix(in srgb, var(--action-neutral-bg) 70%, transparent);
-        color: var(--action-neutral-text);
-        border: 1px solid var(--action-neutral-border);
+        background: color-mix(in srgb, var(--action-accent-bg) 70%, transparent);
+        color: var(--action-accent-text);
+        border: 1px solid var(--action-accent-border);
       }
       .drawer-chip--alt {
         background: color-mix(in srgb, var(--muted-bg) 70%, transparent);
