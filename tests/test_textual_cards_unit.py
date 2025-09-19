@@ -76,7 +76,7 @@ def test_hand_progress_fragment_shows_remaining_hands():
     app._current_hand_index = 2
     fragment = app._hand_progress_fragment()
     assert "Hand 2/4" in fragment
-    assert "(2 left)" in fragment
+    assert "left" not in fragment
 
 
 def test_build_headline_marks_final_hand():
@@ -95,7 +95,6 @@ def test_build_headline_marks_final_hand():
     )
     headline = app._build_headline(node)
     assert "Hand 3/3" in headline
-    assert "(final)" in headline
     assert "River" in headline
     assert "Facing" not in headline
     assert "Range" not in headline
@@ -110,7 +109,7 @@ def test_session_perf_fragment_reports_accuracy_and_ev():
     fragment = app._session_perf_fragment()
     assert fragment is not None
     assert "ΔEV -1.25 bb" in fragment
-    assert "Acc 3/4 (75%)" in fragment
+    assert "75%" in fragment
 
 
 def test_preparing_text_includes_hint():

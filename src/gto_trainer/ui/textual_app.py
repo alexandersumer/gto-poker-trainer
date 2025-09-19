@@ -396,26 +396,18 @@ class TrainerApp(App[None]):
     def _hand_progress_fragment(self) -> str:
         if not self._total_hands:
             return ""
-        if self._current_hand_index <= 0:
-            index = 1
-            suffix = " (awaiting start)"
-        else:
-            index = self._current_hand_index
-            remaining = max(0, self._total_hands - index)
-            if remaining == 0:
-                suffix = " (final)"
-            elif remaining == 1:
-                suffix = " (1 left)"
-            else:
-                suffix = f" ({remaining} left)"
-        return f"[b #2f6bff]Hand {index}/{self._total_hands}[/][dim]{suffix}[/]"
+        index = max(1, min(self._current_hand_index or 1, self._total_hands))
+        return f"[b #2f6bff]Hand {index}/{self._total_hands}[/]"
 
     def _session_perf_fragment(self) -> str | None:
         if self._decisions_played <= 0:
             return None
         accuracy_pct = (100.0 * self._best_hits) / self._decisions_played if self._decisions_played else 0.0
         ev_delta = -self._total_ev_lost
-        return f"[#2d3b62]ΔEV {ev_delta:+.2f} bb[/]  [dim]Acc {self._best_hits}/{self._decisions_played} ({accuracy_pct:.0f}%)[/]"
+        return (
+            f"[#2d3b62]ΔEV {ev_delta:+.2f} bb[/]"
+            f"  [dim]{accuracy_pct:.0f}% hits ({self._best_hits}/{self._decisions_played})[/]"
+        )
 
     def _headline_for_state(
         self,
