@@ -151,26 +151,26 @@
         --suit-heart: #c33f55;
         --suit-club: #2d8f62;
         --suit-diamond: #2d6fe0;
-        --action-neutral-text: #1F2937;
-        --action-neutral-bg: #E5E7EB;
-        --action-neutral-border: #D1D5DB;
-        --action-neutral-selected-bg: #D6DAE0;
-        --action-neutral-selected-border: #4C6FB3;
-        --action-accent-text: #16324F;
-        --action-accent-bg: #D7E3F8;
-        --action-accent-border: #9BB7E8;
-        --action-accent-selected-bg: #C7D6F4;
-        --action-accent-selected-border: #4A6AA0;
-        --action-caution-text: #5A1A1A;
-        --action-caution-bg: #F9D8DB;
-        --action-caution-border: #E9A3AC;
-        --action-caution-selected-bg: #F4C2C7;
-        --action-caution-selected-border: #D47D88;
-        --action-negative-text: #3C1F1F;
-        --action-negative-bg: #F4DAD4;
-        --action-negative-border: #E3A79B;
-        --action-negative-selected-bg: #E8C3BA;
-        --action-negative-selected-border: #CB8273;
+        --action-neutral-text: #33415d;
+        --action-neutral-bg: #edf2fb;
+        --action-neutral-border: #d7e1f4;
+        --action-neutral-selected-bg: #dee7f8;
+        --action-neutral-selected-border: #7488d6;
+        --action-accent-text: #4a3b6b;
+        --action-accent-bg: #f3eefc;
+        --action-accent-border: #e1d7f5;
+        --action-accent-selected-bg: #e9e1f8;
+        --action-accent-selected-border: #8a7cd6;
+        --action-caution-text: #6c4459;
+        --action-caution-bg: #f9e7f0;
+        --action-caution-border: #f0d4e1;
+        --action-caution-selected-bg: #f3dbe7;
+        --action-caution-selected-border: #dfb9cc;
+        --action-negative-text: #6b444d;
+        --action-negative-bg: #f7e8eb;
+        --action-negative-border: #ebd3da;
+        --action-negative-selected-bg: #efdfe3;
+        --action-negative-selected-border: #d7b0ba;
         --chipbar-bg: #EAEFF7;
         --chipbar-text: #0F172A;
         --chipbar-border: color-mix(in srgb, #94A3B8 35%, transparent);
@@ -851,6 +851,7 @@
         bottom: calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
         display: flex;
         flex-direction: column;
+        align-items: center;
         gap: calc(var(--space-1) * 0.75);
         padding: calc(var(--space-1) - 3px) calc(var(--space-1)) calc(var(--space-1) + env(safe-area-inset-bottom, 0px) - 3px);
         background: transparent;
@@ -934,12 +935,14 @@
         to { transform: rotate(360deg); }
       }
       .action-main {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        display: flex;
+        flex-direction: column;
         gap: var(--space-1);
+        width: min(100%, 340px);
+        margin-inline: auto;
       }
       .next-hand-main {
-        justify-items: center;
+        align-items: center;
       }
       .next-hand-main .action-slot {
         width: min(220px, 100%);
@@ -947,6 +950,7 @@
       .action-slot {
         min-height: calc(var(--min-tap) - 4px);
         border-radius: var(--radius-md);
+        width: 100%;
       }
       .action-slot.is-placeholder {
         border: 1px solid transparent;
@@ -957,6 +961,7 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+        width: 100%;
         background: color-mix(in srgb, var(--action-accent-bg) 82%, var(--surface-1) 18%);
         border: 1px solid color-mix(in srgb, var(--action-accent-border) 70%, transparent);
         border-radius: var(--radius-md);
@@ -976,19 +981,19 @@
         min-height: calc(var(--min-tap) - 10px);
       }
       .action-sizes .action-button {
-        background: color-mix(in srgb, var(--action-accent-bg) 88%, var(--surface-1) 12%);
-        border-color: color-mix(in srgb, var(--action-accent-border) 70%, transparent);
+        background: var(--action-accent-bg);
+        border-color: var(--action-accent-border);
         color: var(--action-accent-text);
       }
       .action-sizes .action-button:nth-child(2) {
-        background: color-mix(in srgb, var(--action-accent-bg) 82%, var(--surface-1) 18%);
+        background: color-mix(in srgb, var(--action-accent-bg) 92%, var(--action-accent-selected-bg) 8%);
       }
       .action-sizes .action-button:nth-child(3) {
-        background: color-mix(in srgb, var(--action-accent-bg) 76%, var(--surface-1) 24%);
+        background: color-mix(in srgb, var(--action-accent-bg) 88%, var(--action-accent-selected-bg) 12%);
       }
       .action-sizes .action-button:hover {
         border-color: var(--action-accent-selected-border);
-        background: color-mix(in srgb, var(--action-accent-selected-bg) 24%, var(--action-accent-bg) 76%);
+        background: color-mix(in srgb, var(--action-accent-selected-bg) 30%, var(--action-accent-bg) 70%);
       }
       .action-sizes.is-hidden {
         display: none;
@@ -1003,7 +1008,7 @@
         min-height: calc(var(--min-tap) - 8px);
         border-radius: var(--radius-md);
         border: 1px solid var(--field-border);
-        background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+        background: #f9faff;
         color: var(--text-primary);
         font: 600 var(--text-size-body)/1.3 var(--font-sans);
         padding: calc(var(--space-1) - 4px) calc(var(--space-1) + 2px);
@@ -1047,22 +1052,22 @@
         border-color: var(--action-accent-selected-border);
       }
       .action-button.action-destructive {
-        background: color-mix(in srgb, var(--action-caution-bg) 70%, var(--surface-1) 30%);
-        border-color: color-mix(in srgb, var(--action-caution-border) 70%, transparent);
-        color: color-mix(in srgb, var(--action-caution-text) 85%, var(--text-primary) 15%);
+        background: color-mix(in srgb, var(--action-caution-bg) 85%, var(--surface-1) 15%);
+        border-color: color-mix(in srgb, var(--action-caution-border) 60%, transparent);
+        color: var(--action-caution-text);
       }
       .action-button.action-destructive:hover {
-        background: color-mix(in srgb, var(--action-caution-bg) 65%, var(--surface-1) 35%);
-        border-color: color-mix(in srgb, var(--action-caution-selected-border) 70%, transparent);
+        background: color-mix(in srgb, var(--action-caution-selected-bg) 70%, var(--action-caution-bg) 30%);
+        border-color: color-mix(in srgb, var(--action-caution-selected-border) 65%, transparent);
       }
       .action-button.action-negative {
-        background: color-mix(in srgb, var(--action-negative-bg) 70%, var(--surface-1) 30%);
-        border-color: color-mix(in srgb, var(--action-negative-border) 70%, transparent);
-        color: color-mix(in srgb, var(--action-negative-text) 85%, var(--text-primary) 15%);
+        background: color-mix(in srgb, var(--action-negative-bg) 85%, var(--surface-1) 15%);
+        border-color: color-mix(in srgb, var(--action-negative-border) 60%, transparent);
+        color: var(--action-negative-text);
       }
       .action-button.action-negative:hover {
-        background: color-mix(in srgb, var(--action-negative-bg) 65%, var(--surface-1) 35%);
-        border-color: color-mix(in srgb, var(--action-negative-selected-border) 70%, transparent);
+        background: color-mix(in srgb, var(--action-negative-selected-bg) 70%, var(--action-negative-bg) 30%);
+        border-color: color-mix(in srgb, var(--action-negative-selected-border) 65%, transparent);
       }
       .action-button[disabled] {
         opacity: 0.55;
@@ -1071,7 +1076,7 @@
       }
       .action-button.is-armed {
         transform: scale(1.02);
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
       }
       .action-button.is-armed.action-neutral {
         background: var(--action-neutral-selected-bg);
@@ -2276,16 +2281,6 @@
           });
         }
 
-        const foldButton = appendMainButton('fold', foldOpt, 'action-negative');
-        if(foldButton && foldOpt){
-          foldButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            selectedMainAction = null;
-            refreshMainArming();
-            choose(foldOpt.index);
-          });
-        }
-
         const jamButton = appendMainButton('jam', jamOpt, 'action-destructive');
         if(jamButton && jamOpt){
           jamButton.addEventListener('click', (event) => {
@@ -2293,6 +2288,16 @@
             selectedMainAction = null;
             refreshMainArming();
             choose(jamOpt.index);
+          });
+        }
+
+        const foldButton = appendMainButton('fold', foldOpt, 'action-negative');
+        if(foldButton && foldOpt){
+          foldButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            selectedMainAction = null;
+            refreshMainArming();
+            choose(foldOpt.index);
           });
         }
 

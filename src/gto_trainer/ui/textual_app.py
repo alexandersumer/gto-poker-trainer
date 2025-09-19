@@ -23,22 +23,22 @@ from ..solver.oracle import CompositeOptionProvider, CSVStrategyOracle
 
 _ACTION_PALETTE: dict[str, dict[str, str]] = {
     "fold": {
-        "bg": "#f7e5e8",
-        "border": "#ebd1d6",
-        "text": "#734d57",
-        "hover": "#f1dbe0",
+        "bg": "#f8e9ed",
+        "border": "#ebd5da",
+        "text": "#6f4b55",
+        "hover": "#f2dfe4",
     },
     "passive": {
-        "bg": "#f3f5fd",
-        "border": "#e0e6f4",
-        "text": "#3c4760",
-        "hover": "#ecf0fa",
+        "bg": "#f2f5fe",
+        "border": "#dde5f6",
+        "text": "#35425c",
+        "hover": "#eaf0fb",
     },
     "aggressive": {
-        "bg": "#f6eefb",
-        "border": "#e3d7f2",
-        "text": "#59446d",
-        "hover": "#ede4f5",
+        "bg": "#f5f0fc",
+        "border": "#e5daf4",
+        "text": "#524067",
+        "hover": "#ece4f7",
     },
 }
 
@@ -202,9 +202,9 @@ _BASE_CSS = """
         text-align: center;
         margin: 0;
     }
-    .option-button { background: #f9fbff; border: 1px solid #d4dcef; color: #1d2842; }
-    .option-button:hover { background: #eff3ff; }
-    .option-button:focus { border: 1px solid #5c79f0; }
+    .option-button { background: #f9faff; border: 1px solid #d8e0f2; color: #1f273c; }
+    .option-button:hover { background: #f0f4ff; }
+    .option-button:focus { border: 1px solid #6b7fe6; }
 """
 
 _POST_ACTION_CSS = """
