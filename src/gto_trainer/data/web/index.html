@@ -103,6 +103,9 @@
         --chipbar-border: color-mix(in srgb, #94A3B8 35%, transparent);
         --chipbar-hover: #DDE5F3;
         --chip-selected-border: #4A6AA0;
+        --placeholder-base: color-mix(in srgb, var(--muted-border) 70%, white 30%);
+        --placeholder-highlight: color-mix(in srgb, var(--brand) 22%, white 78%);
+        --placeholder-border: color-mix(in srgb, var(--outline) 70%, transparent);
       }
 
       /* Dark palette overrides */
@@ -179,6 +182,9 @@
         --chipbar-border: color-mix(in srgb, #94A3B8 45%, transparent);
         --chipbar-hover: #2B3648;
         --chip-selected-border: #93B4F6;
+        --placeholder-base: color-mix(in srgb, var(--surface-2) 80%, var(--surface-1) 20%);
+        --placeholder-highlight: color-mix(in srgb, var(--brand) 24%, var(--surface-1) 76%);
+        --placeholder-border: color-mix(in srgb, var(--outline) 55%, transparent);
       }
 
       :root:not([data-theme]),
@@ -253,13 +259,13 @@
         flex: 0 0 clamp(38px, 6.8vw, 56px);
       }
       .card.placeholder {
-        color: color-mix(in srgb, var(--text-tertiary) 80%, transparent);
+        color: color-mix(in srgb, var(--text-tertiary) 70%, transparent);
         background: linear-gradient(
           135deg,
-          color-mix(in srgb, var(--muted-bg) 74%, var(--surface-1) 26%) 0%,
-          color-mix(in srgb, var(--muted-bg) 90%, var(--surface-1) 10%) 100%
+          var(--placeholder-base) 0%,
+          color-mix(in srgb, var(--placeholder-base) 85%, white 15%) 100%
         );
-        border: 1px solid color-mix(in srgb, var(--outline) 62%, transparent);
+        border: 1px solid var(--placeholder-border);
         box-shadow: none;
         opacity: 0.95;
         position: relative;
@@ -272,7 +278,12 @@
         bottom: 0;
         left: -60%;
         width: 45%;
-        background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.18) 50%, transparent 100%);
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          color-mix(in srgb, var(--placeholder-highlight) 65%, transparent) 50%,
+          transparent 100%
+        );
         animation: placeholder-sheen 1.9s ease-in-out infinite;
       }
       @keyframes placeholder-sheen {
@@ -283,9 +294,10 @@
       .card.placeholder .placeholder-icon {
         font-size: 1.15em;
         line-height: 1;
-        opacity: 0.55;
         letter-spacing: 0.04em;
         transition: opacity 0.3s ease;
+        color: color-mix(in srgb, var(--placeholder-highlight) 55%, var(--text-tertiary) 45%);
+        opacity: 0.65;
       }
       .card.placeholder.placeholder-wide {
         padding-inline: 0.95rem;
