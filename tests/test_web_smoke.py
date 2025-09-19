@@ -12,6 +12,7 @@ def test_web_endpoints_session_flow():
     r = client.get("/")
     assert r.status_code == 200
     assert "GTO Trainer" in r.text
+    assert "card poker-card placeholder" in r.text
     assert "width: clamp(38px, 6.8vw, 56px)" in r.text
 
     # Create a session for 2 hands

@@ -247,9 +247,48 @@
         flex: 0 0 clamp(38px, 6.8vw, 56px);
       }
       .card.placeholder {
-        color: var(--text-secondary);
-        background: color-mix(in srgb, var(--card-face) 70%, transparent);
-        border-style: dashed;
+        color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+        background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--surface-2) 78%, transparent) 0%,
+          color-mix(in srgb, var(--surface-2) 92%, var(--surface-1) 8%) 100%
+        );
+        border: 1px solid color-mix(in srgb, var(--outline) 55%, transparent);
+        box-shadow: none;
+        opacity: 0.9;
+        position: relative;
+        overflow: hidden;
+      }
+      .card.placeholder::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: -60%;
+        width: 45%;
+        background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.18) 50%, transparent 100%);
+        animation: placeholder-sheen 1.9s ease-in-out infinite;
+      }
+      @keyframes placeholder-sheen {
+        0% { left: -60%; }
+        60% { left: 120%; }
+        100% { left: 120%; }
+      }
+      .card.placeholder .placeholder-icon {
+        font-size: 1.15em;
+        line-height: 1;
+        opacity: 0.55;
+        letter-spacing: 0.04em;
+        transition: opacity 0.3s ease;
+      }
+      .card.placeholder.placeholder-wide {
+        padding-inline: 0.95rem;
+      }
+      .density-compact .card.placeholder {
+        padding-inline: 0.6rem;
+      }
+      .density-compact .card.placeholder.placeholder-wide {
+        padding-inline: 0.8rem;
       }
       .card.s { color: var(--suit-spade); }
       .card.c { color: var(--suit-club); }
@@ -1694,10 +1733,10 @@
         }
 
         const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : formatBb(0);
-        chips.push({ label: 'EV Δ', value: evDisplay });
+        chips.push({ label: 'EV Shift', value: evDisplay });
         if(answered > 0){
           const accPct = Math.round((correctDecisions / Math.max(1, answered)) * 100);
-          chips.push({ label: 'Acc', value: `${accPct}%` });
+          chips.push({ label: 'Accuracy', value: `${accPct}%` });
         }
         renderStatusChips(chips);
       };
@@ -1724,16 +1763,7 @@
         } else {
           rivalLine = 'Rival to act';
         }
-
-        const rows = [{ label: 'Rival', value: rivalLine }];
-        if(typeof node.pot_bb === 'number'){
-          rows.push({ label: 'Pot', value: formatBb(node.pot_bb) });
-        }
-        if(typeof node.effective_bb === 'number' && node.pot_bb){
-          const spr = node.effective_bb / Math.max(1, node.pot_bb);
-          rows.push({ label: 'SPR', value: fmt(spr, 1) });
-        }
-        return rows;
+        return [{ label: 'Rival', value: rivalLine }];
       };
 
 
@@ -2291,9 +2321,18 @@
         }).join(' ');
       }
 
-      const placeholderCard = () => '<span class="card poker-card placeholder">--</span>';
-      const renderHeroPlaceholder = () => `${placeholderCard()} ${placeholderCard()}`;
-      const renderBoardPlaceholder = () => Array.from({length: 5}, placeholderCard).join(' ');
+      const placeholderGlyphs = ["♠", "♥", "♦", "♣", "★"];
+      const placeholderCard = (icon = "♢", wide = false) =>
+        `<span class="card poker-card placeholder${wide ? ' placeholder-wide' : ''}" aria-hidden="true" role="presentation">` +
+        `<span class="placeholder-icon">${icon}</span>` +
+        `</span>`;
+      const renderHeroPlaceholder = () => [0, 1]
+        .map((i) => placeholderCard(placeholderGlyphs[i] ?? "♢"))
+        .join(' ');
+      const renderBoardPlaceholder = () => placeholderGlyphs
+        .slice(0, 5)
+        .map((icon, index) => placeholderCard(icon, index === 0))
+        .join(' ');
 
       const showPlaceholderCards = () => {
         const heroEl = $('#hand');
