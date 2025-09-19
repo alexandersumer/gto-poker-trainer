@@ -1763,7 +1763,8 @@
         } else {
           rivalLine = 'Rival to act';
         }
-        return [{ label: 'Rival', value: rivalLine }];
+        rivalLine = rivalLine.replace(/Rival\s*\([^)]*\)\s*/i, 'Rival ');
+        return [{ label: 'Rival', value: rivalLine.replace(/\s+/g, ' ').trim() }];
       };
 
 
