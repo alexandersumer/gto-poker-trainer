@@ -79,23 +79,6 @@ def test_hand_progress_fragment_shows_remaining_hands():
     assert "(2 left)" in fragment
 
 
-def test_describe_facing_action_preflop_open_size():
-    app = TrainerApp()
-    node = Node(
-        street="preflop",
-        description="",
-        pot_bb=3.0,
-        effective_bb=97.0,
-        hero_cards=[],
-        board=[],
-        actor="SB",
-        context={"open_size": 2.5},
-    )
-    info = app._describe_facing_action(node)
-    assert info is not None
-    assert "Facing open to 2.50 bb" in info
-
-
 def test_build_headline_marks_final_hand():
     app = TrainerApp()
     app._total_hands = 3
@@ -114,7 +97,9 @@ def test_build_headline_marks_final_hand():
     assert "Hand 3/3" in headline
     assert "(final)" in headline
     assert "River" in headline
-    assert "Check to hero" in headline
+    assert "Facing" not in headline
+    assert "Range" not in headline
+    assert "Check to hero" not in headline
 
 
 def test_session_perf_fragment_reports_accuracy_and_ev():
@@ -133,3 +118,24 @@ def test_preparing_text_includes_hint():
     app._preparing_hint = "[dim]Custom hint[/]"
     text = app._format_preparing_text()
     assert "Custom hint" in text
+
+
+def test_apply_preparing_placeholders_sets_defaults():
+    class Dummy:
+        def __init__(self) -> None:
+            self.payload = None
+
+        def update(self, value: str) -> None:
+            self.payload = value
+
+    app = TrainerApp()
+    hand = Dummy()
+    board = Dummy()
+    meta = Dummy()
+    app._hand_panel = hand  # type: ignore[assignment]
+    app._board_panel = board  # type: ignore[assignment]
+    app._meta_panel = meta  # type: ignore[assignment]
+    app._apply_preparing_placeholders()
+    assert hand.payload is not None and "-- --" in hand.payload
+    assert board.payload is not None and board.payload.count("--") == 5
+    assert meta.payload is not None and "Crunching equities" in meta.payload

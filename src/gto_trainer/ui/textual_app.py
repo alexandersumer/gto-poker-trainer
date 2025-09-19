@@ -383,6 +383,16 @@ class TrainerApp(App[None]):
         self._preparing_frame_index = (self._preparing_frame_index + 1) % len(self._PREPARING_FRAMES)
         self._status_panel.update(self._format_preparing_text())
 
+    def _apply_preparing_placeholders(self) -> None:
+        if self._hand_panel:
+            self._hand_panel.update("[b #1b2d55]Hero[/]: [dim]-- --[/] [dim](awaiting cards)[/]")
+        if self._board_panel:
+            self._board_panel.update(f"[b #1b2d55]Board[/]\n{self._format_board_rows([])}")
+        if self._meta_panel:
+            self._meta_panel.update("[dim]Crunching equities and sizing context…[/]")
+        if self._options_container:
+            self._options_container.remove_children()
+
     def _hand_progress_fragment(self) -> str:
         if not self._total_hands:
             return ""
@@ -428,32 +438,9 @@ class TrainerApp(App[None]):
             return "[b #1b2d55]GTO Trainer[/]"
         return "  [dim]•[/]  ".join(fragments)
 
-    def _describe_facing_action(self, node: Node) -> str | None:
-        ctx = node.context or {}
-        facing = str(ctx.get("facing") or "").lower()
-        bet = ctx.get("bet")
-        if node.street == "preflop":
-            open_size = ctx.get("open_size")
-            if isinstance(open_size, (int, float)):
-                return f"[#2d3b62]Facing open to {open_size:.2f} bb[/]"
-            return "[#2d3b62]Preflop decision[/]"
-        if facing == "check":
-            return "[#2d3b62]Check through[/]"
-        if facing == "oop-check":
-            return "[#2d3b62]Check to hero[/]"
-        if facing == "bet" or isinstance(bet, (int, float)):
-            if isinstance(bet, (int, float)):
-                return f"[#2d3b62]Facing bet {bet:.2f} bb[/]"
-            return "[#2d3b62]Facing a bet[/]"
-        villain_range = ctx.get("villain_range")
-        if isinstance(villain_range, str) and villain_range:
-            return f"[#2d3b62]Range: {villain_range}[/]"
-        return None
-
     def _build_headline(self, node: Node) -> str:
         street = node.street.title()
-        info = self._describe_facing_action(node)
-        return self._headline_for_state(street=street, info=info, stats=self._session_perf_fragment())
+        return self._headline_for_state(street=street, stats=self._session_perf_fragment())
 
     def compose(self) -> ComposeResult:  # type: ignore[override]
         yield Header(show_clock=False)
@@ -525,8 +512,7 @@ class TrainerApp(App[None]):
             return
         if self._feedback_panel:
             self._feedback_panel.update("")
-        if self._options_container:
-            self._options_container.remove_children()
+        self._apply_preparing_placeholders()
         self._start_preparing_animation()
         self._engine_thread = threading.Thread(target=self._engine_run, daemon=True)
         self._engine_thread.start()
@@ -570,6 +556,7 @@ class TrainerApp(App[None]):
         self._decisions_played = 0
         self._best_hits = 0
         self._total_ev_lost = 0.0
+        self._apply_preparing_placeholders()
         if self._headline_label:
             plural = "s" if total_hands != 1 else ""
             info = f"[#2d3b62]{total_hands} hand{plural} queued[/]"
@@ -585,6 +572,7 @@ class TrainerApp(App[None]):
     def show_hand_start(self, hand_index: int, total_hands: int) -> None:
         self._current_hand_index = hand_index
         self._total_hands = total_hands
+        self._apply_preparing_placeholders()
         if self._headline_label:
             self._headline_label.update(
                 self._headline_for_state(
@@ -718,7 +706,6 @@ class TrainerApp(App[None]):
             self._headline_label.update(
                 self._headline_for_state(
                     street=_node.street.title(),
-                    info=self._describe_facing_action(_node),
                     stats=self._session_perf_fragment(),
                 )
             )
