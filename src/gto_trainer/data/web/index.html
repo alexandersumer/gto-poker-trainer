@@ -1530,6 +1530,10 @@
       let betGroupCounter = 0;
       let pendingNextPayload = null;
       let nextHandButton = null;
+      let totalEvLost = 0;
+      let correctDecisions = 0;
+      let sessionHands = 0;
+      let activeNode = null;
 
       const clearNextHandQueue = () => {
         pendingNextPayload = null;
@@ -1667,26 +1671,30 @@
         return value.charAt(0).toUpperCase() + value.slice(1);
       };
 
-      const updateHeaderStatus = (node) => {
+      const updateHeaderStatus = (node, opts = {}) => {
         if(!statusChips) return;
-        if(!node){
-          renderStatusChips([{ label: 'State', value: 'Ready' }]);
-          return;
+        const { state } = opts;
+        const chips = [];
+        if(node){
+          const street = streetLabel(node.street);
+          if(street) chips.push({ label: 'Street', value: street });
+          if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
+            chips.push({ label: 'Hand', value: `${node.hand_no}/${node.total_hands}` });
+            sessionHands = node.total_hands;
+          }
+        } else if(state){
+          chips.push({ label: 'State', value: state });
+        } else {
+          chips.push({ label: 'State', value: 'Ready' });
         }
-        const street = streetLabel(node.street);
-        const parts = [];
-        if(street) parts.push(street);
-        if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
-          parts.push(`H${node.hand_no}/${node.total_hands}`);
+
+        const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : `${formatBb(0)}`;
+        chips.push({ label: 'EV Δ', value: evDisplay });
+        if(answered > 0){
+          const accPct = Math.round((correctDecisions / Math.max(1, answered)) * 100);
+          chips.push({ label: 'Acc', value: `${accPct}%` });
         }
-        if(typeof node.pot_bb === 'number'){
-          parts.push(`P ${formatBb(node.pot_bb)}`);
-        }
-        if(typeof node.effective_bb === 'number'){
-          parts.push(`E ${formatBb(node.effective_bb)}`);
-        }
-        const summary = parts.join(' • ');
-        renderStatusChips([{ label: 'Info', value: summary }]);
+        renderStatusChips(chips);
       };
 
       const formatStatusLine = (node, descriptor) => {
@@ -2125,6 +2133,12 @@
         if(!feedbackBanner || !feedbackRecommendation || !feedbackChoice){
           return;
         }
+        if(typeof feedback?.ev_loss === 'number'){
+          totalEvLost += Math.max(0, feedback.ev_loss);
+        }
+        if(feedback?.correct){
+          correctDecisions += 1;
+        }
         const correct = Boolean(feedback?.correct);
         const bestLabel = feedback?.best?.key || 'Best action';
         const bestEv = typeof feedback?.best?.ev === 'number' ? formatBb(feedback.best.ev) : null;
@@ -2152,6 +2166,7 @@
           }
         }
         feedbackBanner.classList.remove('hidden');
+        updateHeaderStatus(activeNode);
       };
 
       const resetFeedback = () => {
@@ -2178,7 +2193,7 @@
         screen.classList.toggle('density-compact', shouldCompact);
       };
 
-      updateHeaderStatus(null);
+      updateHeaderStatus(null, { state: 'Ready' });
       if(statusLineEl){
         statusLineEl.dataset.active = '';
         renderStatusLine([{ label: 'Status', value: 'Ready for a new hand' }]);
@@ -2199,8 +2214,9 @@
         const target = $(id);
         if(target){ target.classList.remove('hidden'); }
         if(id === '#panel-start'){
-          updateHeaderStatus(null);
+          updateHeaderStatus(null, { state: 'Ready' });
           autoScrolledToPlay = false;
+          activeNode = null;
           if(statusLineEl){
             statusLineEl.dataset.active = '';
             renderStatusLine([{ label: 'Status', value: 'Ready for a new hand' }]);
@@ -2212,6 +2228,7 @@
           }
         }
         if(id === '#panel-summary' && statusLineEl){
+          updateHeaderStatus(null, { state: 'Summary' });
           statusLineEl.dataset.active = '';
           renderStatusLine([{ label: 'Status', value: 'Session summary ready' }]);
         }
@@ -2412,6 +2429,9 @@
           const data = await api('/api/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands, mc})});
           sid = data.session;
           answered = 0;
+          correctDecisions = 0;
+          totalEvLost = 0;
+          sessionHands = hands;
           pending = false;
           pendingSummary = null;
           autoScrolledToPlay = false;
@@ -2423,6 +2443,7 @@
           }
           show('#panel-play');
           setStatusMessage('Preparing a fresh scenario…');
+          updateHeaderStatus(null, { state: 'Preparing' });
           await showNode();
         } catch (err) {
           console.error(err);
@@ -2445,7 +2466,8 @@
         if(payload.done){
           pendingSummary = payload.summary || null;
           setSummaryAvailability(true);
-          updateHeaderStatus(null);
+          activeNode = null;
+          updateHeaderStatus(null, { state: 'Summary' });
           renderStatusChips([{ label: 'State', value: 'Summary' }]);
           if(statusLineEl){
             statusLineEl.dataset.active = '';
@@ -2462,6 +2484,7 @@
         pendingSummary = null;
         setSummaryAvailability(false);
         const node = payload.node;
+        activeNode = node;
         const descriptor = parseDescriptor(node);
         updateHeaderStatus(node);
         const streetName = streetLabel(node.street);
