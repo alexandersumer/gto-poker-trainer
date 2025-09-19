@@ -1686,45 +1686,37 @@
           if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
             chips.push({ label: 'Hand', value: `${node.hand_no}/${node.total_hands}` });
             sessionHands = node.total_hands;
+            highestHand = Math.max(highestHand, node.hand_no);
           }
         } else if(state){
           chips.push({ label: 'State', value: state });
         } else {
           chips.push({ label: 'State', value: 'Ready' });
         }
-
-        const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : `${formatBb(0)}`;
-        chips.push({ label: 'EV Δ', value: evDisplay });
-        if(answered > 0){
-          const accPct = Math.round((correctDecisions / Math.max(1, answered)) * 100);
-          chips.push({ label: 'Acc', value: `${accPct}%` });
-        }
         renderStatusChips(chips);
+        renderSessionSummary();
       };
 
-      const formatStatusLine = (node, descriptor) => {
-        const facing = (node?.context?.facing || '').toString().toLowerCase();
-        const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
-        const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
-        let actionValue = '';
-        if(facing === 'check'){
-          actionValue = 'Rival checks';
-        } else if(facing === 'oop-check'){
-          actionValue = 'Rival checks to hero';
-        } else if(facing === 'bet'){
-          actionValue = betSize ? `Rival bets ${betSize}` : 'Rival bets';
-        } else if(openSize){
-          actionValue = `Open to ${openSize}`;
-        } else if(descriptor){
-          const cleaned = descriptor
-            .replace(/\s+/g, ' ')
-            .trim()
-            .replace(/[.]+$/g, '');
-          actionValue = cleaned || 'Rival to act';
-        } else {
-          actionValue = 'Rival to act';
+      const sessionStatusItems = () => {
+        const items = [];
+        items.push({ label: 'Decisions', value: String(answered) });
+        if(answered > 0){
+          const accPct = Math.round((correctDecisions / Math.max(1, answered)) * 100);
+          items.push({ label: 'Correct', value: `${correctDecisions} (${accPct}%)` });
         }
-        return [{ label: 'Rival', value: actionValue }];
+        const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : formatBb(0);
+        items.push({ label: 'EV Δ', value: evDisplay });
+        if(sessionHands){
+          const progress = `${Math.max(highestHand, activeNode?.hand_no || 0)}/${sessionHands}`;
+          items.push({ label: 'Hands', value: progress });
+        }
+        return items.slice(0, 4);
+      };
+
+      const renderSessionSummary = () => {
+        if(!statusLineEl) return;
+        statusLineEl.dataset.active = 'session';
+        renderStatusLine(sessionStatusItems());
       };
 
       const parseActionLabel = (label) => {
@@ -2199,10 +2191,7 @@
       };
 
       updateHeaderStatus(null, { state: 'Ready' });
-      if(statusLineEl){
-        statusLineEl.dataset.active = '';
-        renderStatusLine([{ label: 'Status', value: 'Ready for a new hand' }]);
-      }
+      renderSessionSummary();
       if(actionArea){
         actionArea.classList.add('is-hidden');
         actionArea.innerHTML = '';
@@ -2222,20 +2211,16 @@
           updateHeaderStatus(null, { state: 'Ready' });
           autoScrolledToPlay = false;
           activeNode = null;
-          if(statusLineEl){
-            statusLineEl.dataset.active = '';
-            renderStatusLine([{ label: 'Status', value: 'Ready for a new hand' }]);
-          }
+          renderSessionSummary();
           if(actionArea){
             actionArea.classList.add('is-hidden');
             actionArea.innerHTML = '';
             delete actionArea.dataset.pending;
           }
         }
-        if(id === '#panel-summary' && statusLineEl){
+        if(id === '#panel-summary'){
           updateHeaderStatus(null, { state: 'Summary' });
-          statusLineEl.dataset.active = '';
-          renderStatusLine([{ label: 'Status', value: 'Session summary ready' }]);
+          renderSessionSummary();
         }
       }
 
@@ -2520,10 +2505,7 @@
           statusBits.push('Decision live');
         }
         setStatusMessage(statusBits.join(' — '));
-        if(statusLineEl){
-          statusLineEl.dataset.active = 'node';
-          renderStatusLine(formatStatusLine(node, descriptor));
-        }
+        renderSessionSummary();
         const heroEl = $('#hand');
         const heroCards = renderCards(node.hero_cards);
         if(heroEl) heroEl.innerHTML = heroCards || '<span class="text-sm text-muted">Dealing…</span>';
