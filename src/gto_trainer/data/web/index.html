@@ -2566,9 +2566,11 @@
         if(!statusBits.length){
           statusBits.push('Decision live');
         }
-        setStatusMessage(statusBits.join(' — '));
         if(statusLineEl){
           statusLineEl.dataset.active = 'node';
+        }
+        setStatusMessage(statusBits.join(' — '));
+        if(statusLineEl){
           renderStatusLine(formatStatusLine(node, descriptor));
         }
         const heroEl = $('#hand');
