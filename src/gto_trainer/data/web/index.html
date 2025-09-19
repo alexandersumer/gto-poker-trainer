@@ -1089,16 +1089,17 @@
         padding: calc(var(--space-1) - 2px) calc(var(--space-2) - 2px);
         border-radius: var(--radius-md);
         border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
-        border-left: 4px solid var(--brand);
         background: var(--surface-1);
         color: var(--text-secondary);
         box-shadow: var(--shadow-card);
       }
       .feedback-banner[data-state="correct"] {
-        border-left-color: var(--success);
+        border-color: color-mix(in srgb, var(--success) 65%, transparent);
+        box-shadow: 0 2px 6px color-mix(in srgb, var(--success) 32%, transparent);
       }
       .feedback-banner[data-state="incorrect"] {
-        border-left-color: var(--error);
+        border-color: color-mix(in srgb, var(--error) 65%, transparent);
+        box-shadow: 0 2px 6px color-mix(in srgb, var(--error) 28%, transparent);
       }
       .feedback-text {
         display: flex;
@@ -2277,17 +2278,14 @@
           correctDecisions += 1;
         }
         const correct = Boolean(feedback?.correct);
-        const bestLabel = feedback?.best?.key || 'Best action';
-        const bestEv = typeof feedback?.best?.ev === 'number' ? formatBb(feedback.best.ev) : null;
+        const bestLabel = feedback?.best?.key || 'Best';
         const chosenLabel = feedback?.chosen?.key || '—';
         const deltaValue = typeof feedback?.ev_loss === 'number' ? Math.abs(feedback.ev_loss) : null;
         const summaryLine = correct
-          ? `Optimal line · ${chosenLabel}`
+          ? `Optimal • ${chosenLabel}`
           : deltaValue
-            ? `EV gap ${formatBb(deltaValue)} · Best ${bestLabel}`
-            : bestEv
-              ? `Best ${bestLabel} (${bestEv})`
-              : `Best ${bestLabel}`;
+            ? `Gap ${formatBb(deltaValue)} • Best ${bestLabel}`
+            : `Best • ${bestLabel}`;
         const resolutionNote = feedback?.chosen?.resolution_note || '';
         feedbackBanner.dataset.state = correct ? 'correct' : 'incorrect';
         feedbackRecommendation.textContent = summaryLine;
