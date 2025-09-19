@@ -647,7 +647,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         Option(
             "Fold",
             0.0,
-            "Release the hand and wait for better spot.",
+            "Fold and wait for a better spot.",
             ends_hand=True,
             meta={"street": "turn", "action": "fold", "villain_bet": villain_bet},
         )
