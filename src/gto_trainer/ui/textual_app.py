@@ -533,6 +533,8 @@ class TrainerApp(App[None]):
                 hands=self._config.hands,
                 mc_trials=self._config.mc_trials,
             )
+        except Exception as exc:  # pragma: no cover - surfaced via UI
+            self.call_from_thread(self._handle_engine_error, exc)
         finally:
             if self._engine_thread is current:
                 self._engine_thread = None
@@ -788,6 +790,22 @@ class TrainerApp(App[None]):
             self._status_panel.update(
                 "[b #1b2d55]Session on pause[/]\n[dim]Restart when you're ready to keep sharpening.[/]"
             )
+
+    def _handle_engine_error(self, exc: Exception) -> None:
+        if self._status_panel:
+            self._status_panel.update(
+                "[b #9f3b56]Engine issue[/]\n[dim]Failed to prepare hand; see feedback for details.[/]"
+            )
+        if self._feedback_panel:
+            self._feedback_panel.update(f"[red]Engine error:[/] {exc}")
+        if self._options_container:
+            self._options_container.remove_children()
+        if self._headline_label:
+            self._headline_label.update(
+                self._headline_for_state(info="[#9f3b56]Engine error[/]", stats=self._session_perf_fragment())
+            )
+        self._pending_restart = False
+        self._idle_after_stop = False
 
     # --- UI events ---
     @on(Button.Pressed, "#btn-new")

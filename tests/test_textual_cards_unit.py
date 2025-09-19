@@ -138,3 +138,36 @@ def test_apply_preparing_placeholders_sets_defaults():
     assert hand.payload is not None and "-- --" in hand.payload
     assert board.payload is not None and board.payload.count("--") == 5
     assert meta.payload is not None and "Crunching equities" in meta.payload
+
+
+def test_handle_engine_error_updates_status():
+    class Dummy:
+        def __init__(self) -> None:
+            self.payload = None
+
+        def update(self, value: str) -> None:
+            self.payload = value
+
+    app = TrainerApp()
+    status = Dummy()
+    feedback = Dummy()
+    headline = Dummy()
+    options = []
+
+    class OptionsContainer:
+        def __init__(self) -> None:
+            self.cleared = False
+
+        def remove_children(self) -> None:
+            self.cleared = True
+
+    container = OptionsContainer()
+    app._status_panel = status  # type: ignore[assignment]
+    app._feedback_panel = feedback  # type: ignore[assignment]
+    app._headline_label = headline  # type: ignore[assignment]
+    app._options_container = container  # type: ignore[assignment]
+    app._handle_engine_error(RuntimeError("boom"))
+    assert status.payload and "Engine issue" in status.payload
+    assert feedback.payload and "boom" in feedback.payload
+    assert headline.payload and "Engine error" in headline.payload
+    assert container.cleared
