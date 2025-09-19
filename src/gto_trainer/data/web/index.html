@@ -2421,6 +2421,20 @@
         }
         feedbackBanner.classList.remove('hidden');
         updateHeaderStatus(activeNode);
+        const rivalOutcome = (() => {
+          const note = resolutionNote.toLowerCase();
+          if(!note) return null;
+          if(note.includes('rival folds') || note.includes('villain folds')) return 'Folds';
+          if(note.includes('rival calls') || note.includes('villain calls')) return 'Calls';
+          if(note.includes('rival raises') || note.includes('villain raises')) return 'Raises';
+          return null;
+        })();
+        if(rivalOutcome){
+          renderStatusLine([{ label: 'Rival', value: rivalOutcome }]);
+          if(statusLineEl){
+            statusLineEl.dataset.active = 'resolution';
+          }
+        }
       };
 
       const resetFeedback = () => {
