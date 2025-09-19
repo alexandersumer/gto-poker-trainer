@@ -1652,10 +1652,11 @@
       };
 
       const setStatusMessage = (message) => {
-        if(headerStatus) headerStatus.textContent = message;
         if(statusLineEl && (!statusLineEl.dataset.active || statusLineEl.dataset.active !== 'node')){
           renderStatusLine(message ? [{ label: 'Status', value: message }] : []);
-          renderStatusChips([{ label: 'State', value: message || 'Ready' }]);
+          updateHeaderStatus(activeNode, { state: message || 'Ready' });
+        } else if(!activeNode && headerStatus){
+          headerStatus.textContent = message;
         }
       };
 
@@ -1718,28 +1719,45 @@
       const updateHeaderStatus = (node, opts = {}) => {
         if(!statusChips) return;
         const { state } = opts;
-        const chips = [];
+        const stageParts = [];
+        const metricParts = [];
         if(node){
           const street = streetLabel(node.street);
-          if(street) chips.push({ label: 'ST', value: street });
+          if(street) stageParts.push(street);
           if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
-            chips.push({ label: 'HN', value: `${node.hand_no}/${node.total_hands}` });
+            stageParts.push(`Hand ${node.hand_no}/${node.total_hands}`);
             sessionHands = node.total_hands;
           }
         } else if(state){
-          chips.push({ label: 'ST', value: state });
+          stageParts.push(state);
         } else {
-          chips.push({ label: 'ST', value: 'Ready' });
+          stageParts.push('Ready');
         }
 
         const evMagnitude = Math.abs(totalEvLost);
         const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : `+${formatBb(evMagnitude)}`;
-        chips.push({ label: 'ΔEV', value: evDisplay });
+        metricParts.push(`ΔEV ${evDisplay}`);
         if(answered > 0){
           const accPct = Math.round((correctDecisions / Math.max(1, answered)) * 100);
-          chips.push({ label: 'ACC', value: `${accPct}%` });
+          metricParts.push(`Hit ${accPct}%`);
         }
-        renderStatusChips(chips);
+
+        const stageText = stageParts.join(' · ');
+        if(headerStatus) headerStatus.textContent = stageText;
+
+        if(statusChipDynamic){
+          statusChipDynamic.innerHTML = metricParts.length
+            ? `<span class="status-chip" role="listitem"><span class="chip-label">Metrics</span><span class="chip-value">${metricParts.join(' · ')}</span></span>`
+            : '';
+        }
+
+        const primaryChip = statusChips.querySelector('.status-chip');
+        if(primaryChip){
+          const label = primaryChip.querySelector('.chip-label');
+          const value = primaryChip.querySelector('.chip-value');
+          if(label) label.textContent = 'Stage';
+          if(value) value.textContent = stageText;
+        }
       };
 
       const formatStatusLine = (node, descriptor) => {
