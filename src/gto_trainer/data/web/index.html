@@ -1702,6 +1702,40 @@
         renderStatusChips(chips);
       };
 
+      const formatStatusLine = (node, descriptor) => {
+        if(!node){
+          return [{ label: 'Status', value: descriptor || 'Ready for a new hand' }];
+        }
+        const facing = (node?.context?.facing || '').toString().toLowerCase();
+        const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
+        const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
+        let rivalLine = '';
+        if(facing === 'check'){
+          rivalLine = 'Rival checks';
+        } else if(facing === 'oop-check'){
+          rivalLine = 'Rival checks to hero';
+        } else if(facing === 'bet'){
+          rivalLine = betSize ? `Rival bets ${betSize}` : 'Rival bets';
+        } else if(openSize){
+          rivalLine = `Rival opened ${openSize}`;
+        } else if(descriptor){
+          const cleaned = descriptor.replace(/\s+/g, ' ').trim().replace(/[.]+$/g, '');
+          rivalLine = cleaned || 'Rival to act';
+        } else {
+          rivalLine = 'Rival to act';
+        }
+
+        const rows = [{ label: 'Rival', value: rivalLine }];
+        if(typeof node.pot_bb === 'number'){
+          rows.push({ label: 'Pot', value: formatBb(node.pot_bb) });
+        }
+        if(typeof node.effective_bb === 'number' && node.pot_bb){
+          const spr = node.effective_bb / Math.max(1, node.pot_bb);
+          rows.push({ label: 'SPR', value: fmt(spr, 1) });
+        }
+        return rows;
+      };
+
 
       const parseActionLabel = (label) => {
         if(!label) return { primary: "Action", meta: "" };
