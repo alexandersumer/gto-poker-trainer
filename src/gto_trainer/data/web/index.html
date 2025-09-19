@@ -751,21 +751,54 @@
         width: 100%;
       }
       .status-chip .chip-label {
-        color: color-mix(in srgb, var(--chipbar-text) 70%, transparent);
+        color: color-mix(in srgb, var(--chipbar-text) 68%, transparent);
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.12em;
         font-size: 0.68rem;
-        opacity: 0.78;
-        min-width: 78px;
+        opacity: 0.8;
+        min-width: 84px;
         white-space: nowrap;
       }
       .status-chip .chip-value {
         color: var(--chipbar-text);
-        font-weight: 650;
+        font-weight: 600;
         width: 100%;
         white-space: normal;
         line-height: 1.25;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .status-chip .chip-value .metric-seg {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        white-space: nowrap;
+      }
+      .status-chip .chip-value .metric-seg strong {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: color-mix(in srgb, var(--chipbar-text) 62%, transparent);
+      }
+      .status-chip .chip-value .metric-value {
+        font-size: 0.92rem;
+        font-weight: 650;
+        color: var(--chipbar-text);
+      }
+      .status-chip .chip-value .chip-sep {
+        opacity: 0.35;
+      }
+      #header-status {
+        display: inline-flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      #header-status .chip-sep {
+        opacity: 0.35;
       }
       .status-chip .chip-value .metric-seg strong,
       .status-chip .chip-value strong {
@@ -1071,8 +1104,9 @@
         display: flex;
         flex-direction: column;
         gap: 4px;
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         color: var(--text-secondary);
+        max-width: 100%;
       }
       .feedback-line strong {
         color: var(--text-primary);
@@ -1085,16 +1119,18 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 6px 12px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--outline);
-        background: var(--surface-1);
-        color: var(--text-secondary);
-        font-size: 0.8rem;
-        font-weight: 600;
-        transition: background 0.2s ease, border-color 0.2s ease;
+        padding: 6px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--outline) 75%, transparent);
+        background: color-mix(in srgb, var(--surface-1) 96%, transparent);
+        color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+        font-size: 0.82rem;
+        font-weight: 700;
+        min-width: 28px;
+        min-height: 28px;
+        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
       }
-      .feedback-detail:hover { background: var(--ghost-hover); }
+      .feedback-detail:hover { background: var(--ghost-hover); color: var(--text-primary); }
       .feedback-detail:focus-visible { outline: var(--focus-ring) solid var(--focus-color); outline-offset: 2px; }
       #panel-play .panel-soft {
         display: flex;
@@ -1433,7 +1469,7 @@
             <span id="feedback-choice" class="feedback-line hidden"></span>
             <span id="feedback-resolution" class="feedback-line feedback-resolution hidden"></span>
           </div>
-          <button type="button" id="feedback-detail" class="feedback-detail" aria-label="Show more feedback">More</button>
+          <button type="button" id="feedback-detail" class="feedback-detail" aria-label="Show detailed feedback">ℹ</button>
         </div>
 
         <div class="flex justify-center" id="end-session-container">
@@ -1599,6 +1635,13 @@
       let sessionHands = 0;
       let activeNode = null;
 
+      const escapeHtml = (text) => String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
       const clearNextHandQueue = () => {
         pendingNextPayload = null;
         if(nextHandButton){
@@ -1762,22 +1805,21 @@
           : null;
         metricParts.push(`Accuracy ${accPct !== null ? `${accPct}%` : '--'}`);
 
-        const stageText = stageParts
+        const formatSegments = (parts) => parts
           .map((part) => {
-            const [label, ...rest] = part.split(' ');
-            return `<span class="metric-seg"><strong>${label}</strong> ${rest.join(' ')}</span>`;
+            const [rawLabel = '', ...rest] = part.split(' ');
+            const label = escapeHtml(rawLabel);
+            const value = escapeHtml(rest.join(' ') || '—');
+            return `<span class="metric-seg"><strong>${label}</strong><span class="metric-value">${value}</span></span>`;
           })
           .join('<span class="chip-sep">·</span>');
-        if(headerStatus) headerStatus.innerHTML = stageText;
+
+        const stageMarkup = formatSegments(stageParts);
+        if(headerStatus) headerStatus.innerHTML = stageMarkup;
 
         if(statusChipDynamic){
-          const metricsText = metricParts
-            .map((part) => {
-              const [label, ...rest] = part.split(' ');
-              return `<span class="metric-seg"><strong>${label}</strong> ${rest.join(' ')}</span>`;
-            })
-            .join('<span class="chip-sep">·</span>');
-          statusChipDynamic.innerHTML = `<span class="status-chip" role="listitem"><span class="chip-label">Metrics</span><span class="chip-value">${metricsText}</span></span>`;
+          const metricsMarkup = formatSegments(metricParts);
+          statusChipDynamic.innerHTML = `<span class="status-chip" role="listitem"><span class="chip-label">Metrics</span><span class="chip-value">${metricsMarkup}</span></span>`;
         }
 
         const primaryChip = statusChips.querySelector('.status-chip');
@@ -1785,7 +1827,7 @@
           const label = primaryChip.querySelector('.chip-label');
           const value = primaryChip.querySelector('.chip-value');
           if(label) label.textContent = 'Stage';
-          if(value) value.innerHTML = stageText;
+          if(value) value.innerHTML = stageMarkup;
         }
       };
 
@@ -2242,12 +2284,12 @@
         const chosenLabel = feedback?.chosen?.key || '—';
         const deltaValue = typeof feedback?.ev_loss === 'number' ? Math.abs(feedback.ev_loss) : null;
         const summaryLine = correct
-          ? `Optimal: ${chosenLabel}`
+          ? `Best hit • ${chosenLabel}`
           : deltaValue
-            ? `Missed −${formatBb(deltaValue)} • Best: ${bestLabel}`
+            ? `EV miss ${formatBb(deltaValue)} • Best ${bestLabel}`
             : bestEv
-              ? `Best: ${bestLabel} (${bestEv})`
-              : `Best: ${bestLabel}`;
+              ? `Best ${bestLabel} (${bestEv})`
+              : `Best ${bestLabel}`;
         const resolutionNote = feedback?.chosen?.resolution_note || '';
         feedbackBanner.dataset.state = correct ? 'correct' : 'incorrect';
         feedbackRecommendation.textContent = summaryLine;
@@ -2372,18 +2414,16 @@
         }).join(' ');
       }
 
-      const placeholderGlyphs = ["♠", "♥", "♦", "♣", "★"];
-      const placeholderCard = (icon = "♢", wide = false) =>
+      const placeholderGlyphs = ["?", "?", "?", "?", "?"];
+      const placeholderCard = (wide = false) =>
         `<span class="card poker-card placeholder${wide ? ' placeholder-wide' : ''}" aria-hidden="true" role="presentation">` +
-        `<span class="placeholder-icon">${icon}</span>` +
+        `<span class="placeholder-icon">?</span>` +
         `</span>`;
-      const renderHeroPlaceholder = () => [0, 1]
-        .map((i) => placeholderCard(placeholderGlyphs[i] ?? "♢"))
-        .join(' ');
-      const renderBoardPlaceholder = () => placeholderGlyphs
-        .slice(0, 5)
-        .map((icon, index) => placeholderCard(icon, index === 0))
-        .join(' ');
+      const renderHeroPlaceholder = () => `${placeholderCard()} ${placeholderCard()}`;
+      const renderBoardPlaceholder = () =>
+        placeholderGlyphs
+          .map((_, index) => placeholderCard(index === 0))
+          .join(' ');
 
       const showPlaceholderCards = () => {
         const heroEl = $('#hand');
@@ -2621,11 +2661,15 @@
           renderStatusLine(formatStatusLine(node, descriptor));
         }
         const heroEl = $('#hand');
-        const heroCards = renderCards(node.hero_cards);
-        if(heroEl) heroEl.innerHTML = heroCards || '<span class="text-sm text-muted">Dealing…</span>';
+        const heroCardsHtml = renderCards(node.hero_cards);
+        if(heroEl){
+          heroEl.innerHTML = heroCardsHtml || renderHeroPlaceholder();
+        }
         const boardEl = $('#board');
-        const boardCards = renderCards(node.board_cards);
-        if(boardEl) boardEl.innerHTML = boardCards || '<span class="text-sm text-muted">Board pending</span>';
+        const boardCardsHtml = renderCards(node.board_cards);
+        if(boardEl){
+          boardEl.innerHTML = boardCardsHtml || renderBoardPlaceholder();
+        }
         const optionList = Array.isArray(payload.options) ? payload.options : [];
         renderActions(optionList, node);
         if(optionList.length === 0 && actionArea){
