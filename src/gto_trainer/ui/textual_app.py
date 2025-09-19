@@ -23,22 +23,22 @@ from ..solver.oracle import CompositeOptionProvider, CSVStrategyOracle
 
 _ACTION_PALETTE: dict[str, dict[str, str]] = {
     "fold": {
-        "bg": "#f2d6d9",
-        "border": "#dfbcc1",
-        "text": "#684249",
-        "hover": "#ebcacf",
+        "bg": "#f3dade",
+        "border": "#e5c4ca",
+        "text": "#6d4b55",
+        "hover": "#edd1d7",
     },
     "passive": {
-        "bg": "#eef2fb",
-        "border": "#d9e0f2",
-        "text": "#3f4a63",
-        "hover": "#e5e9f6",
+        "bg": "#f0f3fc",
+        "border": "#dee4f4",
+        "text": "#414c66",
+        "hover": "#e9edf7",
     },
     "aggressive": {
-        "bg": "#ece6f5",
-        "border": "#d6cde8",
-        "text": "#4d3d66",
-        "hover": "#e3dced",
+        "bg": "#f0e9f7",
+        "border": "#dbd2eb",
+        "text": "#503f67",
+        "hover": "#e8e1f2",
     },
 }
 
