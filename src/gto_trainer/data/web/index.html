@@ -1467,7 +1467,7 @@
             <span id="feedback-choice" class="feedback-line hidden"></span>
             <span id="feedback-resolution" class="feedback-line feedback-resolution hidden"></span>
           </div>
-          <button type="button" id="feedback-detail" class="feedback-detail" aria-label="Show detailed feedback">ℹ</button>
+          <button type="button" id="feedback-detail" class="feedback-detail" aria-label="Show detailed feedback">Details</button>
         </div>
 
         <div class="flex justify-center" id="end-session-container">
@@ -2283,7 +2283,7 @@
         const chosenLabel = feedback?.chosen?.key || '—';
         const deltaValue = typeof feedback?.ev_loss === 'number' ? Math.abs(feedback.ev_loss) : null;
         const summaryLine = correct
-          ? `Exact match · ${chosenLabel}`
+          ? `Optimal line · ${chosenLabel}`
           : deltaValue
             ? `EV gap ${formatBb(deltaValue)} · Best ${bestLabel}`
             : bestEv
