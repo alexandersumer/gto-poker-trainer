@@ -1632,7 +1632,6 @@
       let correctDecisions = 0;
       let sessionHands = 0;
       let activeNode = null;
-      let isLoadingHand = false;
 
       const escapeHtml = (text) => String(text)
         .replace(/&/g, "&amp;")
@@ -2413,16 +2412,26 @@
         }).join(' ');
       }
 
-      const placeholderGlyphs = ["?", "?", "?", "?", "?"];
       const placeholderCard = (wide = false) =>
         `<span class="card poker-card placeholder${wide ? ' placeholder-wide' : ''}" aria-hidden="true" role="presentation">` +
         `<span class="placeholder-icon">?</span>` +
         `</span>`;
       const renderHeroPlaceholder = () => `${placeholderCard()} ${placeholderCard()}`;
       const renderBoardPlaceholder = () =>
-        placeholderGlyphs
-          .map((_, index) => placeholderCard(index === 0))
-          .join(' ');
+        Array.from({ length: 5 }, (_, index) => placeholderCard(index === 0)).join(' ');
+      const renderBoardWithPlaceholders = (cards) => {
+        const list = Array.isArray(cards) ? cards : [];
+        const actualMarkup = list.length ? renderCards(list) : '';
+        const remaining = Math.max(0, 5 - list.length);
+        if(!remaining){
+          return actualMarkup || renderBoardPlaceholder();
+        }
+        const placeholders = Array.from({ length: remaining }, (_, idx) => placeholderCard(list.length === 0 && idx === 0)).join(' ');
+        if(!actualMarkup){
+          return placeholders || renderBoardPlaceholder();
+        }
+        return `${actualMarkup} ${placeholders}`.trim();
+      };
 
       const showPlaceholderCards = () => {
         const heroEl = $('#hand');
@@ -2597,7 +2606,6 @@
             actionArea.classList.add('is-hidden');
             actionArea.innerHTML = '';
           }
-          isLoadingHand = true;
           showPlaceholderCards();
           show('#panel-play');
           setStatusMessage('Preparing a fresh scenario…');
@@ -2609,21 +2617,17 @@
           setStatusMessage(`Unable to start session — ${message}`);
           show('#panel-start');
         } finally {
-          isLoadingHand = false;
           startBusy = false;
           setStartButtonState(false);
         }
       };
 
       const showNode = async () => {
-        isLoadingHand = true;
         showPlaceholderCards();
         try {
           const payload = await api(`/api/session/${sid}/node`);
-          isLoadingHand = false;
           await renderNodePayload(payload, {clearFeedback: true});
         } catch (err) {
-          isLoadingHand = false;
           throw err;
         }
       };
@@ -2671,20 +2675,11 @@
         const heroEl = $('#hand');
         const heroCardsHtml = renderCards(node.hero_cards);
         if(heroEl){
-          if(heroCardsHtml){
-            heroEl.innerHTML = heroCardsHtml;
-          } else {
-            heroEl.innerHTML = isLoadingHand ? renderHeroPlaceholder() : '<span class="text-sm text-muted">Hand pending</span>';
-          }
+          heroEl.innerHTML = heroCardsHtml || renderHeroPlaceholder();
         }
         const boardEl = $('#board');
         if(boardEl){
-          const boardCardsHtml = renderCards(node.board_cards);
-          if(boardCardsHtml){
-            boardEl.innerHTML = boardCardsHtml;
-          } else {
-            boardEl.innerHTML = isLoadingHand ? renderBoardPlaceholder() : '<span class="text-sm text-muted">Board pending</span>';
-          }
+          boardEl.innerHTML = renderBoardWithPlaceholders(node.board_cards || []);
         }
         const optionList = Array.isArray(payload.options) ? payload.options : [];
         renderActions(optionList, node);
