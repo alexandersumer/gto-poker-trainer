@@ -259,7 +259,7 @@
         position: relative;
         overflow: hidden;
       }
-      .card.placeholder::after {
+      .card.placeholder.placeholder-loading::after {
         content: "";
         position: absolute;
         top: 0;
@@ -2410,23 +2410,23 @@
         }).join(' ');
       }
 
-      const placeholderCard = (wide = false) =>
-        `<span class="card poker-card placeholder${wide ? ' placeholder-wide' : ''}" aria-hidden="true" role="presentation">` +
+      const placeholderCard = (state = 'loading', wide = false) =>
+        `<span class="card poker-card placeholder placeholder-${state}${wide ? ' placeholder-wide' : ''}" aria-hidden="true" role="presentation">` +
         `<span class="placeholder-icon">?</span>` +
         `</span>`;
-      const renderHeroPlaceholder = () => `${placeholderCard()} ${placeholderCard()}`;
-      const renderBoardPlaceholder = () =>
-        Array.from({ length: 5 }, (_, index) => placeholderCard(index === 0)).join(' ');
-      const renderBoardWithPlaceholders = (cards) => {
+      const renderHeroPlaceholder = (state = 'loading') => `${placeholderCard(state)} ${placeholderCard(state)}`;
+      const renderBoardPlaceholder = (state = 'loading') =>
+        Array.from({ length: 5 }, (_, index) => placeholderCard(state, index === 0)).join(' ');
+      const renderBoardWithPlaceholders = (cards, state = 'pending') => {
         const list = Array.isArray(cards) ? cards : [];
         const actualMarkup = list.length ? renderCards(list) : '';
         const remaining = Math.max(0, 5 - list.length);
         if(!remaining){
-          return actualMarkup || renderBoardPlaceholder();
+          return actualMarkup || renderBoardPlaceholder(state);
         }
-        const placeholders = Array.from({ length: remaining }, (_, idx) => placeholderCard(list.length === 0 && idx === 0)).join(' ');
+        const placeholders = Array.from({ length: remaining }, (_, idx) => placeholderCard(state, list.length === 0 && idx === 0)).join(' ');
         if(!actualMarkup){
-          return placeholders || renderBoardPlaceholder();
+          return placeholders || renderBoardPlaceholder(state);
         }
         return `${actualMarkup} ${placeholders}`.trim();
       };
@@ -2434,8 +2434,8 @@
       const showPlaceholderCards = () => {
         const heroEl = $('#hand');
         const boardEl = $('#board');
-        if(heroEl) heroEl.innerHTML = renderHeroPlaceholder();
-        if(boardEl) boardEl.innerHTML = renderBoardPlaceholder();
+        if(heroEl) heroEl.innerHTML = renderHeroPlaceholder('loading');
+        if(boardEl) boardEl.innerHTML = renderBoardPlaceholder('loading');
       };
 
       const setSummaryAvailability = (enabled) => {
@@ -2673,7 +2673,7 @@
         const heroEl = $('#hand');
         const heroCardsHtml = renderCards(node.hero_cards);
         if(heroEl){
-          heroEl.innerHTML = heroCardsHtml || renderHeroPlaceholder();
+          heroEl.innerHTML = heroCardsHtml || renderHeroPlaceholder('pending');
         }
         const boardEl = $('#board');
         if(boardEl){
