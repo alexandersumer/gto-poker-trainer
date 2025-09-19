@@ -5,8 +5,7 @@ GTO Trainer is a heads-up no-limit hold’em practice environment with both a Te
 ## Project status
 
 - **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
-- **Branding** – The codebase, CLI, and deployment all present as **GTO Trainer**.
-- **Runtime target** – Python **3.12.11** across CLI, tests, and CI keeps solver output deterministic.
+- **Python target** – version **3.12.11** across CLI, tests, and CI keeps solver output deterministic.
 
 ## Requirements
 
@@ -74,6 +73,14 @@ CI runs the same trio as `make check` (`ruff format --check`, `ruff check`, `pyt
 
 - Per decision we report `ev_loss = best_ev - chosen_ev`.
 - Score aggregates EV loss (as pot %) across decisions; larger mistakes carry exponentially higher penalties.
+
+## Solver architecture (quick tour)
+
+- **Episode generator** – `src/gto_trainer/dynamic/generator.py` creates preflop→river node trees, alternating blinds via `SeatRotation` so training covers both positions.
+- **Trainer loop** – `SessionManager` (and CLI/web adapters) request actions from `dynamic.policy`, cache option lists defensively, and record outcomes for scoring.
+- **Solver logic** – `dynamic.policy` samples villain ranges, runs equity Monte Carlo with adaptive precision, and emits `Option` objects carrying EVs, justifications, and metadata for resolution.
+- **Rival model** – `dynamic.villain_strategy` consumes cached range profiles to decide folds/calls/raises so postflop play mirrors solver frequencies instead of perfect clairvoyance.
+- **Resolution & scoring** – `dynamic.policy.resolve_for` applies actions, updates stacks/pot state, and `core.scoring` aggregates EV loss into session summaries.
 
 ## License
 
