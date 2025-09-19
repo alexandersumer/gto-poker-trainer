@@ -1721,23 +1721,23 @@
         const chips = [];
         if(node){
           const street = streetLabel(node.street);
-          if(street) chips.push({ label: '🧭', value: street });
+          if(street) chips.push({ label: 'ST', value: street });
           if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
-            chips.push({ label: '✋', value: `${node.hand_no}/${node.total_hands}` });
+            chips.push({ label: 'HN', value: `${node.hand_no}/${node.total_hands}` });
             sessionHands = node.total_hands;
           }
         } else if(state){
-          chips.push({ label: 'ℹ️', value: state });
+          chips.push({ label: 'ST', value: state });
         } else {
-          chips.push({ label: 'ℹ️', value: 'Ready' });
+          chips.push({ label: 'ST', value: 'Ready' });
         }
 
         const evMagnitude = Math.abs(totalEvLost);
         const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : `+${formatBb(evMagnitude)}`;
-        chips.push({ label: 'Δ', value: evDisplay });
+        chips.push({ label: 'ΔEV', value: evDisplay });
         if(answered > 0){
           const accPct = Math.round((correctDecisions / Math.max(1, answered)) * 100);
-          chips.push({ label: '🎯', value: `${accPct}%` });
+          chips.push({ label: 'ACC', value: `${accPct}%` });
         }
         renderStatusChips(chips);
       };
