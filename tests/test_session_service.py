@@ -131,7 +131,9 @@ def test_summary_scoring_matches_decision_scores():
     assert summary.decisions == 2
     assert summary.hits == 0
     assert summary.ev_lost == pytest.approx(0.9)
-    expected = sum(decision_score(r) for r in records) / len(records)
+    pots = [float(r.get("pot_bb", 0.0)) for r in records]
+    weights = [p if p > 0 else 1.0 for p in pots]
+    expected = sum(decision_score(r) * w for r, w in zip(records, weights)) / sum(weights)
     assert summary.score == pytest.approx(expected, rel=1e-3)
 
 

@@ -6,11 +6,15 @@ from dataclasses import dataclass
 from typing import Any
 
 MIN_POT = 1e-6
-RATIO_NOISE_FLOOR = 0.003  # 0.3% of pot ~ solver noise floor
-RATIO_DECAY = 20.0  # Controls how aggressively large mistakes are penalised for ratio-based features
 
-# New EV-based scoring tuned around practical solver error margins.
-EV_NOISE_FLOOR = 0.02  # Ignore < 0.02 bb diffs as solver noise
+# Ratio scoring parameters (dimensionless).
+RATIO_NOISE_FLOOR_BASE = 0.003  # 0.3% baseline solver noise
+RATIO_NOISE_FLOOR_PCT = 0.00075  # additional tolerance per bb of pot
+RATIO_DECAY = 20.0  # Controls how aggressively large mistakes are penalised
+
+# EV-based scoring tuned around practical solver error margins.
+EV_NOISE_FLOOR_BASE = 0.02  # Ignore < 0.02 bb diffs as solver noise
+EV_NOISE_FLOOR_PCT = 0.0025  # Additional tolerance (0.25% of pot in bb)
 EV_DECAY = 2.0  # Higher = harsher punishment for bigger EV mistakes
 
 
@@ -54,13 +58,14 @@ def decision_loss_ratio(record: Mapping[str, Any]) -> float:
 
 
 def decision_score(record: Mapping[str, Any]) -> float:
+    pot = _extract_pot(record)
     ev_loss = max(0.0, _as_float(record.get("best_ev", 0.0)) - _as_float(record.get("chosen_ev", 0.0)))
-    score_ev = _score_for_ev_loss(ev_loss)
-    score_ratio = _score_for_ratio(decision_loss_ratio(record))
+    score_ev = _score_for_ev_loss(ev_loss, noise_floor=_ev_noise_floor(pot))
+    score_ratio = _score_for_ratio(decision_loss_ratio(record), noise_floor=_ratio_noise_floor(pot))
     return min(score_ev, score_ratio)
 
 
-def _score_for_ratio(ratio: float, *, noise_floor: float = RATIO_NOISE_FLOOR, decay: float = RATIO_DECAY) -> float:
+def _score_for_ratio(ratio: float, *, noise_floor: float, decay: float = RATIO_DECAY) -> float:
     adjusted = max(0.0, ratio - noise_floor)
     raw = 100.0 * math.exp(-decay * adjusted)
     if raw < 0.001:
@@ -70,7 +75,7 @@ def _score_for_ratio(ratio: float, *, noise_floor: float = RATIO_NOISE_FLOOR, de
     return raw
 
 
-def _score_for_ev_loss(ev_loss: float, *, noise_floor: float = EV_NOISE_FLOOR, decay: float = EV_DECAY) -> float:
+def _score_for_ev_loss(ev_loss: float, *, noise_floor: float, decay: float = EV_DECAY) -> float:
     adjusted = max(0.0, ev_loss - noise_floor)
     raw = 100.0 * math.exp(-decay * adjusted)
     if raw < 0.001:
@@ -100,12 +105,18 @@ def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
     hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
     hands = len(hand_ids) if hand_ids else decisions
 
+    pots = [_extract_pot(r) for r in records]
+    weights = [max(p, MIN_POT) for p in pots]
+    total_weight = sum(weights)
+
     loss_ratios = [decision_loss_ratio(r) for r in records]
-    avg_loss_ratio = sum(loss_ratios) / decisions
+    weighted_loss_ratio = sum(ratio * weight for ratio, weight in zip(loss_ratios, weights))
+    avg_loss_ratio = (weighted_loss_ratio / total_weight) if total_weight > 0 else 0.0
     avg_loss_pct = 100.0 * avg_loss_ratio
 
     decision_scores = [decision_score(r) for r in records]
-    score_pct = sum(decision_scores) / decisions
+    weighted_score = sum(score * weight for score, weight in zip(decision_scores, weights))
+    score_pct = (weighted_score / total_weight) if total_weight > 0 else 0.0
 
     avg_ev_lost = total_ev_lost / decisions
 
@@ -120,3 +131,13 @@ def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
         avg_loss_pct=avg_loss_pct,
         score_pct=score_pct,
     )
+
+
+def _ev_noise_floor(pot: float) -> float:
+    dynamic = EV_NOISE_FLOOR_PCT * max(pot, MIN_POT)
+    return max(EV_NOISE_FLOOR_BASE, dynamic)
+
+
+def _ratio_noise_floor(pot: float) -> float:
+    dynamic = RATIO_NOISE_FLOOR_PCT * max(pot, MIN_POT)
+    return max(RATIO_NOISE_FLOOR_BASE, dynamic)
