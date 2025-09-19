@@ -2805,7 +2805,9 @@
         const sum = $('#summary');
         if(sum){
           const decisions = s.decisions ?? answered;
-          const accuracy = decisions ? Math.round((s.hits / decisions) * 100) : 0;
+          const totalDecisions = typeof decisions === 'number' ? decisions : 0;
+          const accuracy = totalDecisions ? Math.round((s.hits / totalDecisions) * 100) : 0;
+          const hitsDisplay = `${s.hits}/${totalDecisions || 0}`;
           const summaryEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
           const avgEvLoss = s.hands ? summaryEvLost / s.hands : summaryEvLost;
           sum.innerHTML = `
@@ -2828,7 +2830,7 @@
               </div>
               <div class="surface-card px-4 py-3 summary-card">
                 <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Best choices hit</dt>
-                <dd class="text-lg font-semibold text-primary">${s.hits}</dd>
+                <dd class="text-lg font-semibold text-primary">${hitsDisplay}</dd>
                 <dd class="text-xs text-muted">Accuracy per decision: ${accuracy}%</dd>
               </div>
             </dl>
