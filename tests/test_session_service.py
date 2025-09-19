@@ -3,6 +3,8 @@ from __future__ import annotations
 import pytest
 
 from gto_trainer.application import ChoiceResult, NodeResponse, SessionConfig, SessionManager
+from gto_trainer.application.session_service import _ensure_active_node, _ensure_options
+from gto_trainer.core.models import Option
 
 
 def test_session_manager_basic_flow():
@@ -169,6 +171,38 @@ def test_summary_counts_unique_hands():
 
     assert summary.hands == 2
     assert summary.decisions == 2
+
+
+def test_option_cache_returns_defensive_copies(monkeypatch: pytest.MonkeyPatch):
+    manager = SessionManager()
+    sid = manager.create_session(SessionConfig(hands=1, mc_trials=30, seed=777))
+    state = manager._sessions[sid]
+    node = _ensure_active_node(state)
+
+    shared_options = [
+        Option("Fold", 0.0, "orig"),
+        Option("Call", 0.1, "orig"),
+    ]
+
+    def fake_options_for(_node, _rng, _mc_trials):
+        return shared_options
+
+    monkeypatch.setattr(
+        "gto_trainer.application.session_service.options_for",
+        fake_options_for,
+    )
+
+    first = _ensure_options(state, node)
+    assert first[0].why == "orig"
+    first[0].why = "mutated"
+
+    # Cached entry remains immutable despite caller mutation
+    cached = state.cached_options[id(node)][0]
+    assert cached.why == "orig"
+
+    second = _ensure_options(state, node)
+    assert second[0].why == "orig"
+    assert second[0] is not first[0]
 
 
 def _play_session_with_policy(manager, sid, chooser):

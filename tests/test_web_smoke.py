@@ -14,7 +14,7 @@ def test_web_endpoints_session_flow():
     assert "GTO Trainer" in r.text
     assert "card poker-card placeholder" in r.text
     assert "width: clamp(38px, 6.8vw, 56px)" in r.text
-    assert "${hitsDisplay}" in r.text
+    assert "data-summary-score" in r.text
 
     # Create a session for 2 hands
     r = client.post("/api/session", json={"hands": 2, "mc": 60})

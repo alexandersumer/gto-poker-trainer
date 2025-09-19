@@ -25,6 +25,8 @@
         --line-height: 1.4;
         --focus-ring: 2px;
         --focus-color: #60A5FA;
+        --summary-gap-base: calc(var(--space-1) * 0.65);
+        --summary-gap-tight: calc(var(--summary-gap-base) * 0.45);
       }
 
       :root:not([data-theme]),
@@ -890,33 +892,32 @@
       #panel-play .panel-soft > * + * {
         margin-top: calc(var(--space-1) + 1px);
       }
-      #panel-summary .summary-header {
+      #panel-summary .summary__header {
         display: flex;
         flex-direction: column;
-        gap: calc(var(--space-1) * 0.25);
+        gap: var(--summary-gap-tight);
       }
-      #panel-summary .summary-score {
-        margin-top: calc(var(--space-1) * 0.18);
+      #panel-summary .summary__score {
+        margin-top: calc(var(--summary-gap-tight) * 0.9);
         text-align: right;
       }
-      #panel-summary .summary-stats {
-        margin-top: calc(var(--space-1) * 0.65);
-        gap: calc(var(--space-1) * 0.65);
+      #panel-summary .summary__stats {
+        margin-top: var(--summary-gap-base);
+        gap: var(--summary-gap-base);
       }
-      #panel-summary .summary-card {
-        padding-top: 0.62rem;
-        padding-bottom: 0.62rem;
+      #panel-summary .summary__card {
+        padding-block: 0.62rem;
       }
-      #panel-summary .summary-card dd + dd {
+      #panel-summary .summary__card dd + dd {
         margin-top: 0.35rem;
       }
       @media (min-width: 640px) {
-        #panel-summary .summary-header {
+        #panel-summary .summary__header {
           flex-direction: row;
           align-items: flex-start;
           justify-content: space-between;
         }
-        #panel-summary .summary-score {
+        #panel-summary .summary__score {
           margin-top: 0;
         }
       }
@@ -1527,6 +1528,33 @@
 
       <section id="panel-summary" class="page-section hidden space-y-4">
         <div class="rounded-lg panel-box panel-soft p-6 text-secondary" id="summary"></div>
+        <template id="summary-template">
+          <div class="summary">
+            <div class="summary__header">
+              <h2 class="text-lg font-semibold text-primary">Session summary</h2>
+              <div class="summary__score">
+                <div class="text-xs uppercase tracking-wide text-muted">Score (0–100)</div>
+                <div class="text-2xl font-bold text-primary" data-summary-score></div>
+              </div>
+            </div>
+            <dl class="summary__stats grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div class="surface-card px-4 summary__card">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
+                <dd class="text-lg font-semibold text-primary" data-summary-ev-lost></dd>
+                <dd class="text-xs text-muted" data-summary-avg-ev></dd>
+              </div>
+              <div class="surface-card px-4 summary__card">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Hands answered</dt>
+                <dd class="text-lg font-semibold text-primary" data-summary-hands></dd>
+              </div>
+              <div class="surface-card px-4 summary__card">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Best choices hit</dt>
+                <dd class="text-lg font-semibold text-primary" data-summary-hits></dd>
+                <dd class="text-xs text-muted" data-summary-accuracy></dd>
+              </div>
+            </dl>
+          </div>
+        </template>
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <button id="btn-new" class="w-full sm:w-auto rounded-md px-4 py-2 font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-primary">Start new session</button>
           <button id="btn-summary-close" class="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline-none btn btn-ghost">Review last hand</button>
@@ -2815,31 +2843,27 @@
           const hitsDisplay = `${s.hits}/${totalDecisions || 0}`;
           const summaryEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
           const avgEvLoss = s.hands ? summaryEvLost / s.hands : summaryEvLost;
-          sum.innerHTML = `
-            <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between summary-header">
-              <h2 class="text-lg font-semibold text-primary">Session summary</h2>
-              <div class="text-right summary-score">
-                <div class="text-xs uppercase tracking-wide text-muted">Score (0–100)</div>
-                <div class="text-2xl font-bold text-primary">${Math.round(s.score)}</div>
-              </div>
-            </div>
-            <dl class="grid grid-cols-1 gap-3 sm:grid-cols-3 summary-stats">
-              <div class="surface-card px-4 py-3 summary-card">
-                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
-                <dd class="text-lg font-semibold text-primary">${formatBb(summaryEvLost)}</dd>
-                <dd class="text-xs text-muted">Avg / hand: ${formatBb(avgEvLoss)}</dd>
-              </div>
-              <div class="surface-card px-4 py-3 summary-card">
-                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Hands answered</dt>
-                <dd class="text-lg font-semibold text-primary">${s.hands}</dd>
-              </div>
-              <div class="surface-card px-4 py-3 summary-card">
-                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Best choices hit</dt>
-                <dd class="text-lg font-semibold text-primary">${hitsDisplay}</dd>
-                <dd class="text-xs text-muted">Accuracy per decision: ${accuracy}%</dd>
-              </div>
-            </dl>
-          `;
+          const template = document.getElementById('summary-template');
+          if(template?.content){
+            const fragment = template.content.cloneNode(true);
+            const setText = (selector, value) => {
+              const el = fragment.querySelector(selector);
+              if(el){
+                el.textContent = value;
+              }
+            };
+            setText('[data-summary-score]', String(Math.round(s.score)));
+            setText('[data-summary-ev-lost]', formatBb(summaryEvLost));
+            setText('[data-summary-avg-ev]', `Avg / hand: ${formatBb(avgEvLoss)}`);
+            setText('[data-summary-hands]', String(s.hands));
+            setText('[data-summary-hits]', hitsDisplay);
+            setText('[data-summary-accuracy]', `Accuracy per decision: ${accuracy}%`);
+            if(sum){
+              sum.replaceChildren(fragment);
+            }
+          } else if(sum){
+            sum.textContent = 'Summary unavailable (template missing).';
+          }
         }
         pendingSummary = s;
         answered = s.decisions ?? answered;

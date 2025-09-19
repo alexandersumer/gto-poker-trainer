@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import copy
+import math
 import random
 from collections.abc import Iterable
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
@@ -91,31 +93,6 @@ def _fold_continue_stats(hero_equities: Iterable[float], villain_threshold: floa
     return fe, avg_eq, continue_ratio
 
 
-def _combo_precision(mc_trials: int, street: str) -> tuple[int, float]:
-    street_key = street.lower()
-    base_trials = max(40, int(mc_trials * 0.55))
-
-    if street_key == "river":
-        return max(base_trials, int(mc_trials * 0.95)), 0.025
-    if street_key == "turn":
-        return max(base_trials, int(mc_trials * 0.8)), 0.03
-    if street_key == "flop":
-        return max(base_trials, int(mc_trials * 0.65)), 0.04
-    return base_trials, 0.05
-
-
-def _resolve_precision(meta: dict[str, Any] | None, street: str) -> tuple[int, float]:
-    default_trials, default_std = _combo_precision(80, street)
-    if not isinstance(meta, dict):
-        return default_trials, default_std
-    trials = int(meta.get("combo_trials", default_trials) or default_trials)
-    try:
-        target = float(meta.get("target_std_error", default_std))
-    except (TypeError, ValueError):
-        target = default_std
-    return max(1, trials), target
-
-
 def _sample_cap_preflop(mc_trials: int) -> int:
     return max(50, min(200, int(mc_trials * 1.2)))
 
@@ -148,6 +125,51 @@ def _default_open_size(node: Node) -> float:
 
 # Public alias preserved for tests that monkeypatch hero_equity_vs_range.
 hero_equity_vs_range = _hero_equity_vs_range
+
+
+@dataclass(frozen=True)
+class MonteCarloPrecision:
+    trials: int
+    target_std_error: float | None = None
+
+    def to_meta(self) -> dict[str, float | int]:
+        data: dict[str, float | int] = {"combo_trials": self.trials}
+        if self.target_std_error is not None:
+            data["target_std_error"] = self.target_std_error
+        return data
+
+
+def _precision_for_street(mc_trials: int, street: str) -> MonteCarloPrecision:
+    street_key = street.lower()
+    base_trials = max(40, int(mc_trials * 0.55))
+
+    if street_key == "river":
+        return MonteCarloPrecision(trials=max(base_trials, int(mc_trials * 0.95)), target_std_error=0.025)
+    if street_key == "turn":
+        return MonteCarloPrecision(trials=max(base_trials, int(mc_trials * 0.8)), target_std_error=0.03)
+    if street_key == "flop":
+        return MonteCarloPrecision(trials=max(base_trials, int(mc_trials * 0.65)), target_std_error=0.04)
+    return MonteCarloPrecision(trials=base_trials, target_std_error=0.05)
+
+
+def _precision_from_meta(meta: dict[str, Any] | None, street: str) -> MonteCarloPrecision:
+    default = _precision_for_street(80, street)
+    if not isinstance(meta, dict):
+        return default
+    trials_raw = meta.get("combo_trials", default.trials)
+    try:
+        trials = int(trials_raw)
+    except (TypeError, ValueError):
+        trials = default.trials
+    target_raw = meta.get("target_std_error", default.target_std_error)
+    target: float | None
+    try:
+        target = float(target_raw) if target_raw is not None else default.target_std_error
+    except (TypeError, ValueError):
+        target = default.target_std_error
+    if target is not None and (not math.isfinite(target) or target <= 0):
+        target = default.target_std_error
+    return MonteCarloPrecision(trials=max(1, trials), target_std_error=target)
 
 
 @lru_cache(maxsize=2048)
@@ -227,21 +249,21 @@ def _combo_equity(
     hero: list[int],
     board: list[int],
     combo: tuple[int, int],
-    trials: int,
-    target_std_error: float | None,
+    precision: MonteCarloPrecision,
 ) -> float:
-    if target_std_error is not None:
+    target = precision.target_std_error
+    if target is not None:
         try:
             return hero_equity_vs_combo(
                 hero,
                 board,
                 combo,
-                trials,
-                target_std_error=target_std_error,
+                precision.trials,
+                target_std_error=target,
             )
         except TypeError:
             pass
-    return hero_equity_vs_combo(hero, board, combo, trials)
+    return hero_equity_vs_combo(hero, board, combo, precision.trials)
 
 
 def _hand_state(node: Node) -> dict[str, Any] | None:
@@ -375,11 +397,8 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     blocked = _blocked_cards(hero, [])
     open_range = _villain_base_range(node, blocked)
     sampled_range = _sample_range(open_range, _sample_cap_preflop(mc_trials)) or open_range
-    combo_trials, target_std_error = _combo_precision(mc_trials, "preflop")
-    equities = {
-        combo: _combo_equity(hero, [], combo, combo_trials, target_std_error)
-        for combo in sampled_range
-    }
+    precision = _precision_for_street(mc_trials, "preflop")
+    equities = {combo: _combo_equity(hero, [], combo, precision) for combo in sampled_range}
     avg_range_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options: list[Option] = [
@@ -453,14 +472,13 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "action": "3bet",
             "raise_to": raise_to,
             "villain_threshold": be_threshold,
-            "combo_trials": combo_trials,
-            "target_std_error": target_std_error,
             "pot_before": pot,
             "hero_add": hero_add,
             "villain_call": villain_call,
             "villain_fe": fe,
             "villain_continue_ratio": continue_ratio,
         }
+        meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
         options.append(Option(f"3-bet to {raise_to:.2f}bb", ev, why, meta=meta))
 
@@ -491,13 +509,12 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "raise_to": jam_to,
             "risk": hero_add,
             "villain_threshold": be_threshold,
-            "combo_trials": combo_trials,
-            "target_std_error": target_std_error,
             "pot_before": pot,
             "villain_call_cost": villain_call_to,
             "villain_fe": fe,
             "villain_continue_ratio": continue_ratio,
         }
+        meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
         options.append(
             Option(
@@ -521,11 +538,8 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     blocked = _blocked_cards(hero, board)
     open_range = _villain_base_range(node, blocked)
     sampled_range = _sample_range(open_range, _sample_cap_postflop(mc_trials)) or open_range
-    combo_trials, target_std_error = _combo_precision(mc_trials, "flop")
-    equities = {
-        combo: _combo_equity(hero, board, combo, combo_trials, target_std_error)
-        for combo in sampled_range
-    }
+    precision = _precision_for_street(mc_trials, "flop")
+    equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options: list[Option] = [
@@ -563,11 +577,10 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "action": "bet",
             "bet": bet,
             "villain_threshold": be_threshold,
-            "combo_trials": combo_trials,
-            "target_std_error": target_std_error,
             "villain_fe": fe,
             "villain_continue_ratio": continue_ratio,
         }
+        meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
 
@@ -589,13 +602,12 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "street": "flop",
             "action": "jam",
             "risk": risk,
-            "combo_trials": combo_trials,
-            "target_std_error": target_std_error,
             "villain_threshold": be_threshold,
             "pot_before": pot,
             "villain_fe": fe,
             "villain_continue_ratio": continue_ratio,
         }
+        meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
         options.append(
             Option(
@@ -627,11 +639,8 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     # Rival betting range is tightened to the stronger half of their holdings.
     bet_range = tighten_range(base_range, 0.55)
     sampled_range = _sample_range(bet_range, _sample_cap_postflop(mc_trials)) or bet_range
-    combo_trials, target_std_error = _combo_precision(mc_trials, "turn")
-    equities = {
-        combo: _combo_equity(hero, board, combo, combo_trials, target_std_error)
-        for combo in sampled_range
-    }
+    precision = _precision_for_street(mc_trials, "turn")
+    equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options = [
@@ -658,8 +667,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
                 "street": "turn",
                 "action": "call",
                 "villain_bet": villain_bet,
-                "combo_trials": combo_trials,
-                "target_std_error": target_std_error,
+                **precision.to_meta(),
             },
         )
     )
@@ -691,12 +699,11 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         "raise_to": raise_to,
         "villain_threshold": be_threshold,
         "villain_bet": villain_bet,
-        "combo_trials": combo_trials,
-        "target_std_error": target_std_error,
         "pot_before": pot_start,
         "villain_fe": fe,
         "villain_continue_ratio": continue_ratio,
     }
+    meta.update(precision.to_meta())
     _apply_profile_meta(meta, profile, continue_range)
     options.append(Option(f"Raise to {raise_to:.2f} bb", ev, why_raise, meta=meta))
 
@@ -714,11 +721,8 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     # After checking river, assume villain keeps medium-strength holdings.
     check_range = tighten_range(base_range, 0.65)
     sampled_range = _sample_range(check_range, _sample_cap_postflop(mc_trials)) or check_range
-    combo_trials, target_std_error = _combo_precision(mc_trials, "river")
-    equities = {
-        combo: _combo_equity(hero, board, combo, combo_trials, target_std_error)
-        for combo in sampled_range
-    }
+    precision = _precision_for_street(mc_trials, "river")
+    equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options: list[Option] = [
@@ -726,12 +730,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "Check",
             avg_eq * pot,
             f"Showdown equity {_fmt_pct(avg_eq, 1)} vs check range.",
-            meta={
-                "street": "river",
-                "action": "check",
-                "combo_trials": combo_trials,
-                "target_std_error": target_std_error,
-            },
+            meta={"street": "river", "action": "check", **precision.to_meta()},
         )
     ]
 
@@ -763,11 +762,10 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "action": "bet",
             "bet": bet,
             "villain_threshold": be_threshold,
-            "combo_trials": combo_trials,
-            "target_std_error": target_std_error,
             "villain_fe": fe,
             "villain_continue_ratio": continue_ratio,
         }
+        meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
 
@@ -788,13 +786,12 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "street": "river",
             "action": "jam",
             "risk": risk,
-            "combo_trials": combo_trials,
-            "target_std_error": target_std_error,
             "villain_threshold": be_threshold,
             "pot_before": pot,
             "villain_fe": fe,
             "villain_continue_ratio": continue_ratio,
         }
+        meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
         options.append(
             Option(
@@ -874,7 +871,7 @@ def _resolve_preflop(
         raise_to = float(option.meta.get("raise_to", hero_contrib))
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
-        combo_trials, target_std_error = _resolve_precision(option.meta, "preflop")
+        precision = _precision_from_meta(option.meta, "preflop")
         decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
         if decision.folds:
             _update_villain_range(hand_state, option.meta, True)
@@ -894,7 +891,7 @@ def _resolve_preflop(
         _update_villain_range(hand_state, option.meta, False)
         if villain_cards is None:
             return OptionResolution(note=f"3-bet to {raise_to:.1f}bb. Pot now {hand_state['pot']:.2f}bb.")
-        hero_eq = _combo_equity(hero_cards, [], villain_cards, combo_trials, target_std_error)
+        hero_eq = _combo_equity(hero_cards, [], villain_cards, precision)
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(note=f"Rival calls the 3-bet. Your equity {equity_note}.")
 
@@ -902,7 +899,7 @@ def _resolve_preflop(
         jam_to = float(option.meta.get("raise_to", hero_contrib + _state_value(hand_state, "hero_stack")))
         hero_add = max(0.0, jam_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
-        combo_trials, target_std_error = _resolve_precision(option.meta, "preflop")
+        precision = _precision_from_meta(option.meta, "preflop")
         hand_state["hand_over"] = True
         decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
         if decision.folds:
@@ -921,7 +918,7 @@ def _resolve_preflop(
         _update_villain_range(hand_state, option.meta, False)
         if villain_cards is None:
             return OptionResolution(hand_ended=True, note=f"You jam to {jam_to:.2f}bb. Rival action hidden.")
-        hero_eq = _combo_equity(hero_cards, [], villain_cards, combo_trials, target_std_error)
+        hero_eq = _combo_equity(hero_cards, [], villain_cards, precision)
         villain_text = format_cards_spaced(list(villain_cards))
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(
@@ -954,7 +951,7 @@ def _resolve_flop(
 
     if action == "bet":
         bet_size = float(option.meta.get("bet", 0.0))
-        combo_trials, target_std_error = _resolve_precision(option.meta, "flop")
+        precision = _precision_from_meta(option.meta, "flop")
         _apply_contribution(hand_state, "hero", bet_size)
         decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
         if decision.folds:
@@ -975,7 +972,7 @@ def _resolve_flop(
         _update_villain_range(hand_state, option.meta, False)
         if villain_cards is None:
             return OptionResolution(note=f"You bet {bet_size:.2f}bb. (Rival response hidden)")
-        hero_eq = _combo_equity(hero_cards, board, villain_cards, combo_trials, target_std_error)
+        hero_eq = _combo_equity(hero_cards, board, villain_cards, precision)
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(
             note=f"Rival calls. Pot {_state_value(hand_state, 'pot'):.2f}bb. Your equity {equity_note}."
@@ -983,7 +980,7 @@ def _resolve_flop(
 
     if action in {"jam", "allin", "all-in"}:
         risk = float(option.meta.get("risk", _state_value(hand_state, "hero_stack", node.effective_bb)))
-        combo_trials, target_std_error = _resolve_precision(option.meta, "flop")
+        precision = _precision_from_meta(option.meta, "flop")
         _apply_contribution(hand_state, "hero", risk)
         hand_state["hand_over"] = True
         decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
@@ -1001,7 +998,7 @@ def _resolve_flop(
         _update_villain_range(hand_state, option.meta, False)
         if villain_cards is None:
             return OptionResolution(hand_ended=True, note=f"You jam for {risk:.2f}bb. Rival action hidden.")
-        hero_eq = _combo_equity(hero_cards, board, villain_cards, combo_trials, target_std_error)
+        hero_eq = _combo_equity(hero_cards, board, villain_cards, precision)
         villain_text = format_cards_spaced(list(villain_cards))
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(
@@ -1048,7 +1045,7 @@ def _resolve_turn(
 
     if action == "raise":
         raise_to = float(option.meta.get("raise_to", villain_bet * 2.5))
-        combo_trials, target_std_error = _resolve_precision(option.meta, "turn")
+        precision = _precision_from_meta(option.meta, "turn")
         hero_contrib = _state_value(hand_state, "hero_contrib")
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
@@ -1074,7 +1071,7 @@ def _resolve_turn(
             return OptionResolution(
                 note=f"You raise to {raise_to:.2f}bb. Pot now {_state_value(hand_state, 'pot'):.2f}bb."
             )
-        hero_eq = _combo_equity(hero_cards, board, villain_cards, combo_trials, target_std_error)
+        hero_eq = _combo_equity(hero_cards, board, villain_cards, precision)
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(
             note=f"Rival calls raise. Pot {_state_value(hand_state, 'pot'):.2f}bb. Your equity {equity_note}."
