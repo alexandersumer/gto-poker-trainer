@@ -1665,19 +1665,6 @@
         return value.charAt(0).toUpperCase() + value.slice(1);
       };
 
-      const heroSeatFromNode = (node) => {
-        const actor = (node?.actor || "").toString().toUpperCase();
-        if(actor === "BB" || actor === "SB") return actor;
-        const ctxHero = (node?.context || {}).hero_seat;
-        if(typeof ctxHero === "string" && ctxHero){
-          const seat = ctxHero.toUpperCase();
-          if(seat === "BB" || seat === "SB") return seat;
-        }
-        return "BB";
-      };
-
-      const villainSeatFor = (heroSeat) => (heroSeat === "BB" ? "SB" : "BB");
-
       const updateHeaderStatus = (node) => {
         if(!statusChips) return;
         if(!node){
@@ -1685,14 +1672,11 @@
           return;
         }
         const street = streetLabel(node.street);
-        const heroSeat = heroSeatFromNode(node);
-        const villainSeat = villainSeatFor(heroSeat);
         const parts = [];
         if(street) parts.push(street);
         if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
           parts.push(`H${node.hand_no}/${node.total_hands}`);
         }
-        parts.push(`${heroSeat}/${villainSeat}`);
         if(typeof node.pot_bb === 'number'){
           parts.push(`P ${formatBb(node.pot_bb)}`);
         }
@@ -1704,34 +1688,37 @@
       };
 
       const formatStatusLine = (node, descriptor) => {
-        const heroSeat = heroSeatFromNode(node);
-        const villainSeat = villainSeatFor(heroSeat);
         const facing = (node?.context?.facing || '').toString().toLowerCase();
         const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
         const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
         let actionValue = '';
         if(facing === 'check' || facing === 'oop-check'){
-          actionValue = `${villainSeat} checked`;
+          actionValue = facing === 'oop-check' ? 'Check to hero' : 'Check through';
         } else if(facing === 'bet'){
-          actionValue = betSize ? `${villainSeat} bet ${betSize}` : `${villainSeat} bet`;
+          actionValue = betSize ? `Facing bet ${betSize}` : 'Facing bet';
         } else if(openSize){
-          actionValue = `${villainSeat} opened ${openSize}`;
+          actionValue = `Facing open ${openSize}`;
         } else if(descriptor){
           const cleaned = descriptor
+            .replace(/Rival/gi, '')
+            .replace(/Hero/gi, '')
             .replace(/•/g, ' ')
-            .replace(/Rival/gi, villainSeat)
-            .replace(/Hero/gi, heroSeat)
             .replace(/\s+/g, ' ')
             .trim()
             .replace(/[.]+$/g, '');
-          actionValue = cleaned || `${villainSeat} to act`;
+          actionValue = cleaned || 'Decision live';
         } else {
-          actionValue = `${villainSeat} to act`;
+          actionValue = 'Decision live';
         }
-        const actionSummary = actionValue.replace(new RegExp(`^${villainSeat}\\s+`, 'i'), '').trim() || actionValue;
-        return [
-          { label: 'Rival', value: actionSummary },
-        ];
+        const rows = [{ label: 'Action', value: actionValue.trim() }];
+        if(typeof node.pot_bb === 'number'){
+          rows.push({ label: 'Pot', value: formatBb(node.pot_bb) });
+        }
+        if(typeof node.effective_bb === 'number'){
+          const sprDenom = Math.max(1, Number(node.pot_bb) || 0.0001);
+          rows.push({ label: 'SPR', value: fmt(node.effective_bb / sprDenom, 1) });
+        }
+        return rows;
       };
 
       const parseActionLabel = (label) => {
