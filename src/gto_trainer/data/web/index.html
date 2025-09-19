@@ -1119,15 +1119,13 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 6px;
-        border-radius: 999px;
-        border: 1px solid color-mix(in srgb, var(--outline) 75%, transparent);
-        background: color-mix(in srgb, var(--surface-1) 96%, transparent);
-        color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
-        font-size: 0.82rem;
-        font-weight: 700;
-        min-width: 28px;
-        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+        background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+        color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+        font-size: 0.76rem;
+        font-weight: 600;
         transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
       }
       .feedback-detail:hover { background: var(--ghost-hover); color: var(--text-primary); }
@@ -2285,9 +2283,9 @@
         const chosenLabel = feedback?.chosen?.key || '—';
         const deltaValue = typeof feedback?.ev_loss === 'number' ? Math.abs(feedback.ev_loss) : null;
         const summaryLine = correct
-          ? `Best hit • ${chosenLabel}`
+          ? `Exact match · ${chosenLabel}`
           : deltaValue
-            ? `EV miss ${formatBb(deltaValue)} • Best ${bestLabel}`
+            ? `EV gap ${formatBb(deltaValue)} · Best ${bestLabel}`
             : bestEv
               ? `Best ${bestLabel} (${bestEv})`
               : `Best ${bestLabel}`;
