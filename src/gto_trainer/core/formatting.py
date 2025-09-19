@@ -14,11 +14,19 @@ def _safe_pct(numerator: float, denominator: float) -> float:
 
 
 def _fmt_pct(value: float) -> str:
-    if value >= 100 or value == 0:
-        return f"{value:.0f}%"
-    if value < 1:
-        return f"{value:.2f}%"
-    return f"{value:.1f}%" if (value * 10) % 10 else f"{value:.0f}%"
+    """Format pot percentages without trailing .0 noise."""
+
+    if value <= 0:
+        return "0%"
+    if value >= 100:
+        return f"{round(value):.0f}%"
+
+    decimals = 2 if value < 1 else 1
+    number = f"{value:.{decimals}f}"
+    number = number.rstrip("0").rstrip(".")
+    if not number:
+        number = "0"
+    return f"{number}%"
 
 
 def format_option_label(node: Node, option: Option) -> str:

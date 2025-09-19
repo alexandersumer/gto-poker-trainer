@@ -1640,6 +1640,10 @@
         if(trimmed.endsWith('.')) trimmed = trimmed.slice(0, -1);
         return trimmed;
       };
+      const normalizePercent = (text) => {
+        if(!text) return text;
+        return text.replace(/(\d+)(?:\.0+)%/g, '$1%');
+      };
       const progressBar = document.getElementById('progress-bar');
       let inflight = 0;
       let hideProgressTimer = null;
@@ -1935,7 +1939,7 @@
         if(!primary){
           primary = "Action";
         }
-        return { primary, meta };
+        return { primary: normalizePercent(primary), meta: normalizePercent(meta) };
       };
 
       const parseDescriptor = (node) => {
@@ -2009,10 +2013,11 @@
       const chipLabel = (descriptor) => {
         if(!descriptor) return '';
         if(descriptor.meta){
-          if(/%/.test(descriptor.meta)){
-            return descriptor.meta.replace(/\s*pot/i, '').replace(/\s+/g, ' ').trim();
+          const meta = normalizePercent(descriptor.meta);
+          if(/%/.test(meta)){
+            return meta.replace(/\s*pot/i, '').replace(/\s+/g, ' ').trim();
           }
-          return descriptor.meta.replace(/\s+bb$/i, ' bb').trim();
+          return meta.replace(/\s+bb$/i, ' bb').trim();
         }
         if(typeof descriptor.numeric === 'number' && Number.isFinite(descriptor.numeric)){
           return `${fmt(descriptor.numeric, descriptor.numeric < 10 ? 1 : 0)}bb`;
@@ -2039,7 +2044,7 @@
           : '';
         if(includeSize){
           if(descriptor.meta && /%/.test(descriptor.meta)){
-            const cleaned = descriptor.meta.replace(/\s*pot/i, '').trim();
+            const cleaned = normalizePercent(descriptor.meta).replace(/\s*pot/i, '').trim();
             return { label: `${verb} ${cleaned}`.trim(), meta: '' };
           }
           if(numeric){
@@ -2121,8 +2126,8 @@
 
         const makeLabelMeta = (descriptor, override = {}) => {
           if(!descriptor) return { label: override.fallbackLabel || '', meta: '' };
-          const baseLabel = override.label ?? descriptor.primary;
-          const baseMeta = override.meta ?? descriptor.meta ?? '';
+          const baseLabel = normalizePercent(override.label ?? descriptor.primary);
+          const baseMeta = normalizePercent(override.meta ?? descriptor.meta ?? '');
           return { label: baseLabel, meta: baseMeta };
         };
 

@@ -136,10 +136,11 @@ def _cached_equity(
     board: tuple[int, ...],
     villain: tuple[int, ...],
     trials: int,
+    target_std_error: float | None,
 ) -> float:
     if len(board) >= 3:
         return _enumerate_remaining(hero, board, villain)
-    seed = hash((hero, board, villain, trials)) & 0xFFFFFFFF
+    seed = hash((hero, board, villain, trials, round(target_std_error or 0.0, 4))) & 0xFFFFFFFF
     rng = random.Random(seed)
     hero_list = list(hero)
     board_list = list(board)
@@ -150,6 +151,7 @@ def _cached_equity(
         villain_list,
         base_trials=trials,
         rng=rng,
+        target_std_error=target_std_error,
     )
 
 
@@ -236,11 +238,19 @@ def _adaptive_monte_carlo(
     return (wins + 0.5 * ties) / max(1, trials)
 
 
-def hero_equity_vs_combo(hero: list[int], board: list[int], combo: tuple[int, int], trials: int) -> float:
+def hero_equity_vs_combo(
+    hero: list[int],
+    board: list[int],
+    combo: tuple[int, int],
+    trials: int,
+    *,
+    target_std_error: float | None = None,
+) -> float:
     hero_t = _sorted_tuple(hero)
     board_t = _sorted_tuple(board)
     villain_t = _sorted_tuple(combo)
-    return _cached_equity(hero_t, board_t, villain_t, trials)
+    target = target_std_error if target_std_error and target_std_error > 0 else None
+    return _cached_equity(hero_t, board_t, villain_t, trials, target)
 
 
 def hero_equity_vs_range(
@@ -248,11 +258,13 @@ def hero_equity_vs_range(
     board: list[int],
     combos: Iterable[tuple[int, int]],
     trials: int,
+    *,
+    target_std_error: float | None = None,
 ) -> float:
     combos_list = list(combos)
     if not combos_list:
         return 0.0
     total = 0.0
     for combo in combos_list:
-        total += hero_equity_vs_combo(hero, board, combo, trials)
+        total += hero_equity_vs_combo(hero, board, combo, trials, target_std_error=target_std_error)
     return total / len(combos_list)

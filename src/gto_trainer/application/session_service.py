@@ -177,7 +177,7 @@ class SessionState:
     hand_index: int = 0
     current_index: int = 0
     records: list[dict[str, Any]] = field(default_factory=list)
-    cached_options: list[Option] | None = None
+    cached_options: dict[int, list[Option]] = field(default_factory=dict)
 
 
 class SessionManager:
@@ -249,7 +249,7 @@ class SessionManager:
             ends = getattr(chosen_feedback, "ends_hand", False)
             episode = state.episodes[state.hand_index]
             state.current_index = len(episode.nodes) if ends else state.current_index + 1
-            state.cached_options = None
+            state.cached_options.clear()
             next_node = _ensure_active_node(state)
             next_payload = (
                 NodeResponse(done=True, summary=_summary_payload(state.records))
@@ -306,9 +306,14 @@ def _ensure_active_node(state: SessionState) -> Node | None:
 
 
 def _ensure_options(state: SessionState, node: Node) -> list[Option]:
-    if state.cached_options is None:
-        state.cached_options = options_for(node, state.engine.rng, state.config.mc_trials)
-    return state.cached_options
+    cache_key = id(node)
+    cached = state.cached_options.get(cache_key)
+    if cached is None:
+        options = options_for(node, state.engine.rng, state.config.mc_trials)
+        state.cached_options[cache_key] = options
+        cached = options
+    # Return defensive copies so downstream consumers cannot mutate cached entries.
+    return [replace(opt) for opt in cached]
 
 
 def _node_payload(state: SessionState, node: Node) -> NodePayload:

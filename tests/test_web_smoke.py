@@ -40,6 +40,7 @@ def test_web_endpoints_session_flow():
         for option in data["options"]:
             assert isinstance(option, dict), "options should be dict payloads"
             assert "label" in option and isinstance(option["label"], str)
+            assert ".0%" not in option["label"], f"label retains trailing .0%: {option['label']}"
         # choose first option
         r2 = client.post(f"/api/session/{sid}/choose", json={"choice": 0})
         assert r2.status_code == 200

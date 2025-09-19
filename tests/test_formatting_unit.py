@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from gto_trainer.core.formatting import format_option_label
+from gto_trainer.core.formatting import _fmt_pct, format_option_label
 from gto_trainer.core.models import Option
 from gto_trainer.dynamic.generator import Node
 
@@ -100,3 +100,13 @@ def test_format_option_label_preflop_jam_literal():
     opt = Option("Jam option", 0.0, "", meta={"action": "jam"})
     label = format_option_label(_preflop_node(), opt)
     assert label == "All-in"
+
+
+def test_fmt_pct_strips_trailing_zero():
+    assert _fmt_pct(33.0) == "33%"
+    assert _fmt_pct(50.0) == "50%"
+
+
+def test_fmt_pct_preserves_fractional_precision():
+    assert _fmt_pct(12.5) == "12.5%"
+    assert _fmt_pct(0.75) == "0.75%"
