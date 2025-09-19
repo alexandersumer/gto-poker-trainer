@@ -2369,16 +2369,29 @@
         const summaryLine = correct
           ? `Optimal • ${chosenLabel}`
           : deltaValue
-            ? `Gap ${formatBb(deltaValue)} • Best ${bestLabel}`
+            ? `EV loss ${formatBb(deltaValue)} • Best ${bestLabel}`
             : `Best • ${bestLabel}`;
+        const condenseWhy = (text) => {
+          if(!text) return '';
+          const normalized = text.replace(/\s+/g, ' ').trim();
+          if(!normalized) return '';
+          const sentences = normalized.split(/(?<=[.!?])\s+/);
+          const first = sentences[0] || normalized;
+          if(first.length <= 110) return first;
+          return `${first.slice(0, 107).trim()}…`;
+        };
+        const secondaryLine = correct
+          ? condenseWhy(feedback?.chosen?.why)
+          : condenseWhy(feedback?.best?.why);
         const resolutionNote = feedback?.chosen?.resolution_note || '';
         feedbackBanner.dataset.state = correct ? 'correct' : 'incorrect';
         feedbackRecommendation.textContent = summaryLine;
         feedbackChoice.textContent = '';
         feedbackChoice.classList.add('hidden');
         if(feedbackResolution){
-          if(resolutionNote){
-            feedbackResolution.textContent = resolutionNote;
+          const detailText = secondaryLine || resolutionNote;
+          if(detailText){
+            feedbackResolution.textContent = detailText;
             feedbackResolution.classList.remove('hidden');
           } else {
             feedbackResolution.textContent = '';
