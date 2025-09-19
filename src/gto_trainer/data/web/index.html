@@ -1721,22 +1721,23 @@
         const chips = [];
         if(node){
           const street = streetLabel(node.street);
-          if(street) chips.push({ label: 'Street', value: street });
+          if(street) chips.push({ label: '🧭', value: street });
           if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
-            chips.push({ label: 'Hand', value: `${node.hand_no}/${node.total_hands}` });
+            chips.push({ label: '✋', value: `${node.hand_no}/${node.total_hands}` });
             sessionHands = node.total_hands;
           }
         } else if(state){
-          chips.push({ label: 'State', value: state });
+          chips.push({ label: 'ℹ️', value: state });
         } else {
-          chips.push({ label: 'State', value: 'Ready' });
+          chips.push({ label: 'ℹ️', value: 'Ready' });
         }
 
-        const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : formatBb(0);
-        chips.push({ label: 'EV Shift', value: evDisplay });
+        const evMagnitude = Math.abs(totalEvLost);
+        const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : `+${formatBb(evMagnitude)}`;
+        chips.push({ label: 'Δ', value: evDisplay });
         if(answered > 0){
           const accPct = Math.round((correctDecisions / Math.max(1, answered)) * 100);
-          chips.push({ label: 'Accuracy', value: `${accPct}%` });
+          chips.push({ label: '🎯', value: `${accPct}%` });
         }
         renderStatusChips(chips);
       };
