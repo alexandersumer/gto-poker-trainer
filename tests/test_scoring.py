@@ -39,12 +39,9 @@ def test_summary_uses_pot_weighting():
 
     pots = [r["pot_bb"] for r in records]
     weights = [p if p > 0 else 1.0 for p in pots]
-    expected_score = sum(
-        scoring.decision_score(r) * w for r, w in zip(records, weights, strict=False)
-    ) / sum(weights)
+    expected_score = sum(scoring.decision_score(r) * w for r, w in zip(records, weights, strict=False)) / sum(weights)
     expected_loss_pct = 100.0 * (
-        sum(scoring.decision_loss_ratio(r) * w for r, w in zip(records, weights, strict=False))
-        / sum(weights)
+        sum(scoring.decision_loss_ratio(r) * w for r, w in zip(records, weights, strict=False)) / sum(weights)
     )
 
     assert summary.score_pct == pytest.approx(expected_score, rel=1e-6)

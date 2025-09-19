@@ -241,9 +241,7 @@ def _update_villain_range(hand_state: dict[str, Any], meta: dict[str, Any] | Non
     if not isinstance(cont_range, (list, tuple)):
         return
     normalized = [
-        tuple(int(c) for c in combo)
-        for combo in cont_range
-        if isinstance(combo, (list, tuple)) and len(combo) == 2
+        tuple(int(c) for c in combo) for combo in cont_range if isinstance(combo, (list, tuple)) and len(combo) == 2
     ]
     if normalized:
         hand_state["villain_continue_range"] = normalized
@@ -624,6 +622,8 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
         )
 
     return options
+
+
 def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
     del rng
     hero = node.hero_cards
@@ -802,9 +802,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     if risk_allin > 0:
         final_pot_allin = pot_after_bet + 2 * risk_allin
         be_threshold_allin = risk_allin / final_pot_allin if final_pot_allin > 0 else 1.0
-        fe_ai, eq_call_ai, continue_ratio_ai = _fold_continue_stats(
-            equities.values(), be_threshold_allin
-        )
+        fe_ai, eq_call_ai, continue_ratio_ai = _fold_continue_stats(equities.values(), be_threshold_allin)
         ev_called_ai = eq_call_ai * final_pot_allin - risk_allin if continue_ratio_ai else -risk_allin
         ev_ai = fe_ai * pot_after_bet + (1 - fe_ai) * ev_called_ai
         profile_ai, continue_range_ai = _villain_profile(
@@ -839,6 +837,8 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         )
 
     return options
+
+
 def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
     del rng
     facing = str(node.context.get("facing") or "bet").lower()

@@ -194,9 +194,7 @@ class EpisodeBuilder:
         if turn_mode == "bet":
             bet_multiplier = self._rng.choice(_TURN_BET_SIZES)
             bet_turn = round(max(0.25, hand_state["pot"] * bet_multiplier), 2)
-            turn_description = (
-                f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {hand_state['pot']:.2f}bb."
-            )
+            turn_description = f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {hand_state['pot']:.2f}bb."
             turn_context = self._node_context(
                 ctx,
                 hand_state,

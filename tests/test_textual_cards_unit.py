@@ -152,6 +152,7 @@ def test_handle_engine_error_updates_status():
     status = Dummy()
     feedback = Dummy()
     headline = Dummy()
+
     class OptionsContainer:
         def __init__(self) -> None:
             self.cleared = False

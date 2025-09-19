@@ -554,9 +554,7 @@ class TrainerApp(App[None]):
         if self._headline_label:
             plural = "s" if total_hands != 1 else ""
             info = f"[#2d3b62]{total_hands} hand{plural} queued[/]"
-            self._headline_label.update(
-                self._headline_for_state(info=info, stats=self._session_perf_fragment())
-            )
+            self._headline_label.update(self._headline_for_state(info=info, stats=self._session_perf_fragment()))
         if self._meta_panel:
             self._meta_panel.update("")
         plural = "s" if total_hands != 1 else ""
@@ -578,9 +576,7 @@ class TrainerApp(App[None]):
             self._feedback_panel.update("")
         if self._options_container:
             self._options_container.remove_children()
-        self._preparing_hint = (
-            f"[dim]Decision {hand_index}/{total_hands} — building tree and equities…[/]"
-        )
+        self._preparing_hint = f"[dim]Decision {hand_index}/{total_hands} — building tree and equities…[/]"
         self._start_preparing_animation()
 
     def _render_card_token(self, card: int | None, *, placeholder: str = "--") -> str:
