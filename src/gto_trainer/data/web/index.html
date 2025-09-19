@@ -2563,9 +2563,6 @@
         if(node?.hand_no && node?.total_hands){
           statusBits.push(`Hand ${node.hand_no}/${node.total_hands}`);
         }
-        if(descriptor){
-          statusBits.push(descriptor);
-        }
         if(!statusBits.length){
           statusBits.push('Decision live');
         }
