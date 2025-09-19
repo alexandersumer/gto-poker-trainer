@@ -1751,18 +1751,17 @@
         const evMagnitude = Math.abs(totalEvLost);
         const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : `+${formatBb(evMagnitude)}`;
         metricParts.push(`ΔEV ${evDisplay}`);
-        if(answered > 0){
-          const accPct = Math.round((correctDecisions / Math.max(1, answered)) * 100);
-          metricParts.push(`Hit ${accPct}%`);
-        }
+        const accPct = answered > 0
+          ? Math.round((correctDecisions / Math.max(1, answered)) * 100)
+          : null;
+        metricParts.push(`Hit ${accPct !== null ? `${accPct}%` : '--'}`);
 
         const stageText = stageParts.join(' · ');
         if(headerStatus) headerStatus.textContent = stageText;
 
         if(statusChipDynamic){
-          statusChipDynamic.innerHTML = metricParts.length
-            ? `<span class="status-chip" role="listitem"><span class="chip-label">Metrics</span><span class="chip-value">${metricParts.join(' · ')}</span></span>`
-            : '';
+          const metricsText = metricParts.join(' · ');
+          statusChipDynamic.innerHTML = `<span class="status-chip" role="listitem"><span class="chip-label">Metrics</span><span class="chip-value">${metricsText}</span></span>`;
         }
 
         const primaryChip = statusChips.querySelector('.status-chip');
@@ -1783,23 +1782,24 @@
         const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
         const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
         const villainSeat = (context?.villain_seat || context?.villainSeat || '').toString().toUpperCase();
-        const rivalLabel = villainSeat ? `Rival (${villainSeat})` : 'Rival';
-        let rivalLine = '';
+        const seatToken = villainSeat ? `(${villainSeat})` : '';
+        let actionText = '';
         if(facing === 'check'){
-          rivalLine = `${rivalLabel} checks`;
+          actionText = 'checks';
         } else if(facing === 'oop-check'){
-          rivalLine = `${rivalLabel} checks to hero`;
+          actionText = 'checks to hero';
         } else if(facing === 'bet'){
-          rivalLine = betSize ? `${rivalLabel} bets ${betSize}` : `${rivalLabel} bets`;
+          actionText = betSize ? `bets ${betSize}` : 'bets';
         } else if(openSize){
-          rivalLine = `${rivalLabel} opened ${openSize}`;
+          actionText = `opened ${openSize}`;
         } else if(descriptor){
-          const cleaned = descriptor.replace(/\s+/g, ' ').trim().replace(/[.]+$/g, '');
-          rivalLine = cleaned ? `${rivalLabel} ${cleaned.replace(/^Rival\s+/i, '')}` : `${rivalLabel} to act`;
+          const cleaned = descriptor.replace(/Rival\s+/i, '').replace(/\s+/g, ' ').trim().replace(/[.]+$/g, '');
+          actionText = cleaned || 'to act';
         } else {
-          rivalLine = `${rivalLabel} to act`;
+          actionText = 'to act';
         }
-        return [{ label: 'Rival', value: rivalLine.replace(/\s+/g, ' ').trim() }];
+        const value = `${seatToken ? seatToken + ' ' : ''}${actionText}`.trim();
+        return [{ label: 'Rival', value }];
       };
 
 
