@@ -35,8 +35,8 @@ def test_generate_episode_structure_and_contexts_bb_defense():
     # Basic sanity of contexts
     assert "open_size" in ep.nodes[0].context
     assert ep.nodes[1].context.get("facing") == "check"
-    assert ep.nodes[2].context.get("facing") == "bet"
-    assert ep.nodes[3].context.get("facing") == "oop-check"
+    assert ep.nodes[2].context.get("facing") in {"bet", "check"}
+    assert ep.nodes[3].context.get("facing") in {"oop-check", "bet"}
 
     # Pot arithmetic consistency across streets
     n_pf, n_flop, n_turn, n_river = ep.nodes
@@ -67,11 +67,16 @@ def test_generate_episode_structure_and_contexts_bb_defense():
     assert n_turn.pot_bb == pytest.approx(n_flop.pot_bb)
 
     turn_opts = options_for(n_turn, sim_rng, 120)
-    call_turn = next(o for o in turn_opts if o.meta and o.meta.get("action") == "call")
-    resolve_for(n_turn, call_turn, sim_rng)
-    expected_turn_bet = float(n_turn.context["bet"])
-    assert expected_turn_bet == pytest.approx(round(0.5 * n_flop.pot_bb, 2))
-    assert n_river.pot_bb == pytest.approx(n_turn.pot_bb + expected_turn_bet)
+    facing_turn = str(n_turn.context.get("facing"))
+    if facing_turn == "bet":
+        call_turn = next(o for o in turn_opts if o.meta and o.meta.get("action") == "call")
+        resolve_for(n_turn, call_turn, sim_rng)
+        expected_turn_bet = float(n_turn.context["bet"])
+        assert n_river.pot_bb == pytest.approx(n_turn.pot_bb + expected_turn_bet)
+    else:
+        check_turn = next(o for o in turn_opts if o.meta and o.meta.get("action") == "check")
+        resolve_for(n_turn, check_turn, sim_rng)
+        assert n_river.pot_bb == pytest.approx(n_turn.pot_bb)
 
     # Rival hole cards are unique and never duplicated on board or hero hand.
     villain_cards = hand_states[0]["villain_cards"]
@@ -124,11 +129,16 @@ def test_generate_episode_structure_and_contexts_sb_ip():
     assert n_turn.pot_bb == pytest.approx(n_flop.pot_bb)
 
     turn_opts = options_for(n_turn, sim_rng, 120)
-    call_turn = next(o for o in turn_opts if o.meta and o.meta.get("action") == "call")
-    resolve_for(n_turn, call_turn, sim_rng)
-    bet_turn = float(n_turn.context["bet"])
-    assert bet_turn == pytest.approx(round(0.5 * n_flop.pot_bb, 2))
-    assert n_river.pot_bb == pytest.approx(n_turn.pot_bb + bet_turn)
+    facing_turn = str(n_turn.context.get("facing"))
+    if facing_turn == "bet":
+        call_turn = next(o for o in turn_opts if o.meta and o.meta.get("action") == "call")
+        resolve_for(n_turn, call_turn, sim_rng)
+        bet_turn = float(n_turn.context["bet"])
+        assert n_river.pot_bb == pytest.approx(n_turn.pot_bb + bet_turn)
+    else:
+        check_turn = next(o for o in turn_opts if o.meta and o.meta.get("action") == "check")
+        resolve_for(n_turn, check_turn, sim_rng)
+        assert n_river.pot_bb == pytest.approx(n_turn.pot_bb)
 
     hand_state = hand_states[0]
     villain_cards = hand_state["villain_cards"]

@@ -23,6 +23,8 @@ _DEFAULT_STACKS = 100.0
 _DEFAULT_SB = 0.5
 _DEFAULT_BB = 1.0
 _OPEN_SIZES = (2.0, 2.5, 3.0)
+_TURN_BET_SIZES = (0.33, 0.5, 0.75, 1.0)
+_RIVER_LEAD_SIZES = (0.5, 1.0, 1.25)
 
 
 @dataclass
@@ -185,38 +187,71 @@ class EpisodeBuilder:
             ),
         )
 
-        bet_turn = round(0.5 * hand_state["pot"], 2)
         turn_board = ctx.board[:4]
         turn_desc = " ".join(format_card_ascii(card, upper=True) for card in turn_board)
+        turn_mode = "bet" if self._rng.random() < 0.65 else "check"
+        hand_state["turn_mode"] = turn_mode
+        if turn_mode == "bet":
+            bet_multiplier = self._rng.choice(_TURN_BET_SIZES)
+            bet_turn = round(max(0.25, hand_state["pot"] * bet_multiplier), 2)
+            turn_description = (
+                f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {hand_state['pot']:.2f}bb."
+            )
+            turn_context = self._node_context(
+                ctx,
+                hand_state,
+                extra={"facing": "bet", "bet": bet_turn, "villain_range": ctx.villain_range},
+            )
+        else:
+            bet_turn = 0.0
+            turn_description = f"{turn_desc}; {self._rival_label} checks."
+            turn_context = self._node_context(
+                ctx,
+                hand_state,
+                extra={"facing": "check", "villain_range": ctx.villain_range},
+            )
+
         turn_node = Node(
             street="turn",
-            description=(f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {hand_state['pot']:.2f}bb."),
+            description=turn_description,
             pot_bb=hand_state["pot"],
             effective_bb=hand_state["effective_stack"],
             hero_cards=ctx.hero_cards,
             board=turn_board,
             actor=self._display_seats.hero,
-            context=self._node_context(
-                ctx,
-                hand_state,
-                extra={"facing": "bet", "bet": bet_turn, "villain_range": ctx.villain_range},
-            ),
+            context=turn_context,
         )
 
         river_desc = " ".join(format_card_ascii(card, upper=True) for card in ctx.board)
+        river_mode = "lead" if self._rng.random() < 0.35 else "check"
+        hand_state["river_mode"] = river_mode
+        if river_mode == "lead":
+            lead_size = round(max(0.25, hand_state["pot"] * self._rng.choice(_RIVER_LEAD_SIZES)), 2)
+            river_description = (
+                f"{river_desc}; {self._rival_label} leads {lead_size:.2f}bb into {hand_state['pot']:.2f}bb."
+            )
+            river_context = self._node_context(
+                ctx,
+                hand_state,
+                extra={"facing": "bet", "bet": lead_size, "villain_range": ctx.villain_range},
+            )
+        else:
+            river_description = f"{river_desc}; choose your bet."
+            river_context = self._node_context(
+                ctx,
+                hand_state,
+                extra={"facing": "oop-check", "villain_range": ctx.villain_range},
+            )
+
         river_node = Node(
             street="river",
-            description=f"{river_desc}; choose your bet.",
+            description=river_description,
             pot_bb=hand_state["pot"],
             effective_bb=hand_state["effective_stack"],
             hero_cards=ctx.hero_cards,
             board=ctx.board,
             actor=self._display_seats.hero,
-            context=self._node_context(
-                ctx,
-                hand_state,
-                extra={"facing": "oop-check", "villain_range": ctx.villain_range},
-            ),
+            context=river_context,
         )
 
         return [flop_node, turn_node, river_node]
