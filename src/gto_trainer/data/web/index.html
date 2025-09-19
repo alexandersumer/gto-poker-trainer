@@ -242,9 +242,9 @@
         line-height: 1.02;
       }
       .poker-card {
-        min-width: clamp(32px, 5.4vw, 48px);
-        min-height: clamp(44px, 8vw, 58px);
-        flex: 0 0 auto;
+        width: clamp(32px, 5.4vw, 48px);
+        height: clamp(44px, 8vw, 58px);
+        flex: 0 0 clamp(32px, 5.4vw, 48px);
       }
       .card.s { color: var(--suit-spade); }
       .card.c { color: var(--suit-club); }
@@ -1127,8 +1127,9 @@
         }
         #hand .poker-card,
         #board .poker-card {
-          min-width: clamp(30px, 5.2vw, 44px);
-          min-height: clamp(42px, 7.4vw, 54px);
+          width: clamp(30px, 5.2vw, 44px);
+          height: clamp(42px, 7.4vw, 54px);
+          flex: 0 0 clamp(30px, 5.2vw, 44px);
         }
       }
       .feedback-drawer {
@@ -1238,8 +1239,9 @@
         gap: 6px;
       }
       .density-compact .poker-card {
-        min-width: clamp(30px, 4.8vw, 40px);
-        min-height: clamp(40px, 6.8vw, 52px);
+        width: clamp(30px, 4.8vw, 40px);
+        height: clamp(40px, 6.8vw, 52px);
+        flex: 0 0 clamp(30px, 4.8vw, 40px);
         font-size: clamp(1.06rem, 2.8vw, 1.3rem);
         padding: 0.28rem 0.48rem;
       }
@@ -1692,33 +1694,24 @@
         const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
         const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
         let actionValue = '';
-        if(facing === 'check' || facing === 'oop-check'){
-          actionValue = facing === 'oop-check' ? 'Check to hero' : 'Check through';
+        if(facing === 'check'){
+          actionValue = 'Rival checks';
+        } else if(facing === 'oop-check'){
+          actionValue = 'Rival checks to hero';
         } else if(facing === 'bet'){
-          actionValue = betSize ? `Facing bet ${betSize}` : 'Facing bet';
+          actionValue = betSize ? `Rival bets ${betSize}` : 'Rival bets';
         } else if(openSize){
-          actionValue = `Facing open ${openSize}`;
+          actionValue = `Open to ${openSize}`;
         } else if(descriptor){
           const cleaned = descriptor
-            .replace(/Rival/gi, '')
-            .replace(/Hero/gi, '')
-            .replace(/•/g, ' ')
             .replace(/\s+/g, ' ')
             .trim()
             .replace(/[.]+$/g, '');
-          actionValue = cleaned || 'Decision live';
+          actionValue = cleaned || 'Rival to act';
         } else {
-          actionValue = 'Decision live';
+          actionValue = 'Rival to act';
         }
-        const rows = [{ label: 'Action', value: actionValue.trim() }];
-        if(typeof node.pot_bb === 'number'){
-          rows.push({ label: 'Pot', value: formatBb(node.pot_bb) });
-        }
-        if(typeof node.effective_bb === 'number'){
-          const sprDenom = Math.max(1, Number(node.pot_bb) || 0.0001);
-          rows.push({ label: 'SPR', value: fmt(node.effective_bb / sprDenom, 1) });
-        }
-        return rows;
+        return [{ label: 'Rival', value: actionValue }];
       };
 
       const parseActionLabel = (label) => {
