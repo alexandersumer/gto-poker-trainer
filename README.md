@@ -5,11 +5,10 @@ GTO Trainer is a heads-up no-limit hold’em practice environment with both a Te
 ## Project status
 
 - **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
-- **Python target** – version **3.12.11** across CLI, tests, and CI keeps solver output deterministic.
 
 ## Requirements
 
-- Python 3.12.11 exactly (`pyenv` or another version manager is recommended).
+- Python 3.12.11 exactly (`pyenv` or another version manager is recommended to match CI).
 
 ## Install & run (CLI)
 
@@ -54,6 +53,13 @@ Controls inside the CLI: `1–9` choose an action, `h` opens contextual help, `?
 
 Environment overrides: `HANDS` and `MC` mirror the CLI flags when exported before launch.
 
+## How it works
+
+- **Simulation loop** – Each hand is generated from sampled preflop ranges, then walked street by street with Monte Carlo rollouts (`--mc`) to stabilise EV estimates.
+- **Solver logic** – Post-flop options blend heuristics with lookup data; when a CSV is supplied, the trainer wraps it in a composite provider that falls back to dynamic sizing rules.
+- **EV math** – For every action we store `best_ev`, `chosen_ev`, and compute `ev_loss = best_ev - chosen_ev`, rolling those numbers into session-level accuracy and EV summaries.
+- **Rival model** – Villain decisions come from range tightening plus fold / continue sampling, so the opponent profile updates as stacks and pot sizes change.
+
 ## Local development
 
 Common helper targets:
@@ -68,11 +74,6 @@ make render-smoke  # build Docker image & hit /healthz (Render parity)
 ```
 
 CI runs the same trio as `make check` (`ruff format --check`, `ruff check`, `pytest -q`).
-
-## Notes
-
-- Per decision we report `ev_loss = best_ev - chosen_ev`.
-- Score aggregates EV loss (as pot %) across decisions; larger mistakes carry exponentially higher penalties.
 
 ## Solver architecture (quick tour)
 
