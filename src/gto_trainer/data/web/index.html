@@ -751,20 +751,26 @@
         width: 100%;
       }
       .status-chip .chip-label {
-        color: color-mix(in srgb, var(--chipbar-text) 75%, transparent);
+        color: color-mix(in srgb, var(--chipbar-text) 70%, transparent);
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.12em;
         font-size: 0.68rem;
+        opacity: 0.78;
         min-width: 78px;
         white-space: nowrap;
       }
       .status-chip .chip-value {
         color: var(--chipbar-text);
-        font-weight: 600;
+        font-weight: 650;
         width: 100%;
         white-space: normal;
         line-height: 1.25;
+      }
+      .status-chip .chip-value .metric-seg strong,
+      .status-chip .chip-value strong {
+        font-weight: 700;
+        color: color-mix(in srgb, var(--chipbar-text) 95%, transparent);
       }
       @media (max-width: 640px) {
         .status-chip {
@@ -1585,7 +1591,6 @@
       let lastActionSignature = '';
       let selectedMainAction = null;
       let selectedRaiseIndex = null;
-      let autoScrolledToPlay = false;
       let betGroupCounter = 0;
       let pendingNextPayload = null;
       let nextHandButton = null;
@@ -1757,11 +1762,21 @@
           : null;
         metricParts.push(`Accuracy ${accPct !== null ? `${accPct}%` : '--'}`);
 
-        const stageText = stageParts.join(' · ');
-        if(headerStatus) headerStatus.textContent = stageText;
+        const stageText = stageParts
+          .map((part) => {
+            const [label, ...rest] = part.split(' ');
+            return `<span class="metric-seg"><strong>${label}</strong> ${rest.join(' ')}</span>`;
+          })
+          .join('<span class="chip-sep">·</span>');
+        if(headerStatus) headerStatus.innerHTML = stageText;
 
         if(statusChipDynamic){
-          const metricsText = metricParts.join(' · ');
+          const metricsText = metricParts
+            .map((part) => {
+              const [label, ...rest] = part.split(' ');
+              return `<span class="metric-seg"><strong>${label}</strong> ${rest.join(' ')}</span>`;
+            })
+            .join('<span class="chip-sep">·</span>');
           statusChipDynamic.innerHTML = `<span class="status-chip" role="listitem"><span class="chip-label">Metrics</span><span class="chip-value">${metricsText}</span></span>`;
         }
 
@@ -1770,7 +1785,7 @@
           const label = primaryChip.querySelector('.chip-label');
           const value = primaryChip.querySelector('.chip-value');
           if(label) label.textContent = 'Stage';
-          if(value) value.textContent = stageText;
+          if(value) value.innerHTML = stageText;
         }
       };
 
@@ -2297,7 +2312,6 @@
         if(target){ target.classList.remove('hidden'); }
         if(id === '#panel-start'){
           updateHeaderStatus(null, { state: 'Ready' });
-          autoScrolledToPlay = false;
           activeNode = null;
           if(statusLineEl){
             statusLineEl.dataset.active = '';
@@ -2538,7 +2552,6 @@
           sessionHands = hands;
           pending = false;
           pendingSummary = null;
-          autoScrolledToPlay = false;
           resetFeedback();
           setSummaryAvailability(false);
           if(actionArea){
@@ -2620,19 +2633,6 @@
         }
         if(clearFeedback){
           resetFeedback();
-        }
-        if(window.innerWidth < 640 && !autoScrolledToPlay){
-          window.requestAnimationFrame(()=>{
-            const panel = $('#panel-play');
-            if(panel){
-              const rect = panel.getBoundingClientRect();
-              const threshold = window.innerHeight * 0.25;
-              if(rect.top < -threshold || rect.top > threshold){
-                panel.scrollIntoView({behavior: 'smooth', block: 'start'});
-              }
-              autoScrolledToPlay = true;
-            }
-          });
         }
       };
 
@@ -2768,7 +2768,6 @@
           answered = 0;
           pending = false;
           pendingSummary = null;
-          autoScrolledToPlay = false;
           resetFeedback();
           setStartButtonState(false);
           setSummaryAvailability(false);
