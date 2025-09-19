@@ -6,8 +6,8 @@ import pytest
 
 pytest.importorskip("textual")
 
-from gto_trainer.ui.textual_app import TrainerApp
 from gto_trainer.dynamic.episode import Node
+from gto_trainer.ui.textual_app import TrainerApp
 
 
 def _split_rows(board_markup: str) -> tuple[str, str]:
@@ -152,8 +152,6 @@ def test_handle_engine_error_updates_status():
     status = Dummy()
     feedback = Dummy()
     headline = Dummy()
-    options = []
-
     class OptionsContainer:
         def __init__(self) -> None:
             self.cleared = False

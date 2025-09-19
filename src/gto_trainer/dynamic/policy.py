@@ -174,7 +174,7 @@ def _precision_from_meta(meta: dict[str, Any] | None, street: str) -> MonteCarlo
 
 @lru_cache(maxsize=2048)
 def _cached_profile(
-    tag: str,
+    _tag: str,
     combos_key: tuple[tuple[int, int], ...],
     fold_probability: float,
     continue_ratio: float,
@@ -240,7 +240,11 @@ def _update_villain_range(hand_state: dict[str, Any], meta: dict[str, Any] | Non
     cont_range = meta.get("villain_continue_range")
     if not isinstance(cont_range, (list, tuple)):
         return
-    normalized = [tuple(int(c) for c in combo) for combo in cont_range if isinstance(combo, (list, tuple)) and len(combo) == 2]
+    normalized = [
+        tuple(int(c) for c in combo)
+        for combo in cont_range
+        if isinstance(combo, (list, tuple)) and len(combo) == 2
+    ]
     if normalized:
         hand_state["villain_continue_range"] = normalized
 
@@ -785,7 +789,14 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, raise_profile, continue_range)
-    options.append(Option(f"Raise to {raise_to:.2f} bb", ev, f"Raise: FE {_fmt_pct(fe)}; EV {ev:.2f}bb.", meta=raise_meta))
+    options.append(
+        Option(
+            f"Raise to {raise_to:.2f} bb",
+            ev,
+            f"Raise: FE {_fmt_pct(fe)}; EV {ev:.2f}bb.",
+            meta=raise_meta,
+        )
+    )
 
     risk_allin = round(node.effective_bb, 2)
     if risk_allin > 0:
@@ -1375,14 +1386,25 @@ def _resolve_river(
         villain_text = format_cards_spaced(list(villain_cards))
         total_pot = _state_value(hand_state, "pot")
         if outcome > 0.5:
-            return OptionResolution(hand_ended=True, note=f"You call. Win vs {villain_text} for {total_pot:.2f}bb.", reveal_villain=True)
+            return OptionResolution(
+                hand_ended=True,
+                note=f"You call. Win vs {villain_text} for {total_pot:.2f}bb.",
+                reveal_villain=True,
+            )
         if outcome < 0.5:
-            return OptionResolution(hand_ended=True, note=f"You call. Lose vs {villain_text}.", reveal_villain=True)
-        return OptionResolution(hand_ended=True, note=f"You call. Chop with {villain_text}.", reveal_villain=True)
+            return OptionResolution(
+                hand_ended=True,
+                note=f"You call. Lose vs {villain_text}.",
+                reveal_villain=True,
+            )
+        return OptionResolution(
+            hand_ended=True,
+            note=f"You call. Chop with {villain_text}.",
+            reveal_villain=True,
+        )
 
     if action == "raise":
         raise_to = float(option.meta.get("raise_to", villain_bet * 2.5))
-        precision = _precision_from_meta(option.meta, "river")
         hero_contrib = _state_value(hand_state, "hero_contrib")
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)

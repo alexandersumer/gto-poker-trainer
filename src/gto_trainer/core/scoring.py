@@ -110,12 +110,16 @@ def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
     total_weight = sum(weights)
 
     loss_ratios = [decision_loss_ratio(r) for r in records]
-    weighted_loss_ratio = sum(ratio * weight for ratio, weight in zip(loss_ratios, weights))
+    weighted_loss_ratio = sum(
+        ratio * weight for ratio, weight in zip(loss_ratios, weights, strict=False)
+    )
     avg_loss_ratio = (weighted_loss_ratio / total_weight) if total_weight > 0 else 0.0
     avg_loss_pct = 100.0 * avg_loss_ratio
 
     decision_scores = [decision_score(r) for r in records]
-    weighted_score = sum(score * weight for score, weight in zip(decision_scores, weights))
+    weighted_score = sum(
+        score * weight for score, weight in zip(decision_scores, weights, strict=False)
+    )
     score_pct = (weighted_score / total_weight) if total_weight > 0 else 0.0
 
     avg_ev_lost = total_ev_lost / decisions

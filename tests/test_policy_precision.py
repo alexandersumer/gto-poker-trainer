@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import types
-
 import pytest
 
 from gto_trainer.dynamic import policy as pol
@@ -52,4 +50,3 @@ def test_precision_to_meta_roundtrips_optional_target():
 
     assert meta["combo_trials"] == 80
     assert meta["target_std_error"] == pytest.approx(0.03)
-
