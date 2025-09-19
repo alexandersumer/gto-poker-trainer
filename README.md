@@ -4,7 +4,7 @@ GTO Trainer is a heads-up no-limit hold’em practice environment with both a Te
 
 ## Project status
 
-- **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/) (Render free tier, so the first hit may cold-start).
+- **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
 - **Branding** – The codebase, CLI, and deployment all present as **GTO Trainer**.
 - **Runtime target** – Python **3.12.11** across CLI, tests, and CI keeps solver output deterministic.
 
@@ -45,7 +45,7 @@ Controls inside the CLI: `1–9` choose an action, `h` opens contextual help, `?
 
 ## Web UI
 
-- **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/) mirrors the CLI defaults.
+- **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
 - **Local** – Install dev extras and launch FastAPI with reload enabled:
 
   ```bash
