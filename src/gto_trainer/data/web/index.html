@@ -1686,38 +1686,22 @@
           if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
             chips.push({ label: 'Hand', value: `${node.hand_no}/${node.total_hands}` });
             sessionHands = node.total_hands;
-            highestHand = Math.max(highestHand, node.hand_no);
           }
         } else if(state){
           chips.push({ label: 'State', value: state });
         } else {
           chips.push({ label: 'State', value: 'Ready' });
         }
-        renderStatusChips(chips);
-        renderSessionSummary();
-      };
 
-      const sessionStatusItems = () => {
-        const items = [];
-        items.push({ label: 'Decisions', value: String(answered) });
+        const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : formatBb(0);
+        chips.push({ label: 'EV Δ', value: evDisplay });
         if(answered > 0){
           const accPct = Math.round((correctDecisions / Math.max(1, answered)) * 100);
-          items.push({ label: 'Correct', value: `${correctDecisions} (${accPct}%)` });
+          chips.push({ label: 'Acc', value: `${accPct}%` });
         }
-        const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : formatBb(0);
-        items.push({ label: 'EV Δ', value: evDisplay });
-        if(sessionHands){
-          const progress = `${Math.max(highestHand, activeNode?.hand_no || 0)}/${sessionHands}`;
-          items.push({ label: 'Hands', value: progress });
-        }
-        return items.slice(0, 4);
+        renderStatusChips(chips);
       };
 
-      const renderSessionSummary = () => {
-        if(!statusLineEl) return;
-        statusLineEl.dataset.active = 'session';
-        renderStatusLine(sessionStatusItems());
-      };
 
       const parseActionLabel = (label) => {
         if(!label) return { primary: "Action", meta: "" };
@@ -2191,7 +2175,10 @@
       };
 
       updateHeaderStatus(null, { state: 'Ready' });
-      renderSessionSummary();
+      if(statusLineEl){
+        statusLineEl.dataset.active = '';
+        renderStatusLine([{ label: 'Status', value: 'Ready for a new hand' }]);
+      }
       if(actionArea){
         actionArea.classList.add('is-hidden');
         actionArea.innerHTML = '';
@@ -2211,7 +2198,10 @@
           updateHeaderStatus(null, { state: 'Ready' });
           autoScrolledToPlay = false;
           activeNode = null;
-          renderSessionSummary();
+          if(statusLineEl){
+            statusLineEl.dataset.active = '';
+            renderStatusLine([{ label: 'Status', value: 'Ready for a new hand' }]);
+          }
           if(actionArea){
             actionArea.classList.add('is-hidden');
             actionArea.innerHTML = '';
@@ -2220,7 +2210,10 @@
         }
         if(id === '#panel-summary'){
           updateHeaderStatus(null, { state: 'Summary' });
-          renderSessionSummary();
+          if(statusLineEl){
+            statusLineEl.dataset.active = '';
+            renderStatusLine([{ label: 'Status', value: 'Session summary ready' }]);
+          }
         }
       }
 
@@ -2471,7 +2464,6 @@
           setSummaryAvailability(true);
           activeNode = null;
           updateHeaderStatus(null, { state: 'Summary' });
-          renderStatusChips([{ label: 'State', value: 'Summary' }]);
           if(statusLineEl){
             statusLineEl.dataset.active = '';
             renderStatusLine([{ label: 'Status', value: 'Session complete — view summary' }]);
@@ -2505,7 +2497,10 @@
           statusBits.push('Decision live');
         }
         setStatusMessage(statusBits.join(' — '));
-        renderSessionSummary();
+        if(statusLineEl){
+          statusLineEl.dataset.active = 'node';
+          renderStatusLine(formatStatusLine(node, descriptor));
+        }
         const heroEl = $('#hand');
         const heroCards = renderCards(node.hero_cards);
         if(heroEl) heroEl.innerHTML = heroCards || '<span class="text-sm text-muted">Dealing…</span>';

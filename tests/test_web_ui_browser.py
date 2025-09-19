@@ -62,17 +62,18 @@ def test_browser_flow_shows_initial_hand() -> None:
         page.goto(base_url, wait_until="domcontentloaded")
         page.click("#btn-start")
         page.wait_for_selector("#hand .card", timeout=15_000)
+        page.wait_for_selector("#hand .card:not(.placeholder)", timeout=15_000)
 
         # The UI should swap out the placeholder copy with actual cards.
-        hand_text = page.inner_text("#hand").strip()
-        assert hand_text
-        assert "awaiting cards" not in hand_text.lower()
+        hand_html = page.inner_html("#hand").strip().lower()
+        assert "placeholder" not in hand_html
+        assert "--" not in hand_html
 
         # Ensure an action is presented so the drill can continue.
         page.wait_for_selector("#action-area .action-button", timeout=15_000)
 
         status = page.inner_text("#header-status").strip().lower()
-        assert "preparing a fresh scenario" not in status
+        assert "preparing" not in status
 
         assert not console_errors, f"Console errors captured: {console_errors}"
         assert not page_errors, f"Page errors captured: {page_errors}"
