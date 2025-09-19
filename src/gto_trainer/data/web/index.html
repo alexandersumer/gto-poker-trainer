@@ -1745,25 +1745,27 @@
         if(!node){
           return [{ label: 'Status', value: descriptor || 'Ready for a new hand' }];
         }
-        const facing = (node?.context?.facing || '').toString().toLowerCase();
+        const context = node?.context || {};
+        const facing = (context?.facing || '').toString().toLowerCase();
         const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
         const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
+        const villainSeat = (context?.villain_seat || context?.villainSeat || '').toString().toUpperCase();
+        const rivalLabel = villainSeat ? `Rival (${villainSeat})` : 'Rival';
         let rivalLine = '';
         if(facing === 'check'){
-          rivalLine = 'Rival checks';
+          rivalLine = `${rivalLabel} checks`;
         } else if(facing === 'oop-check'){
-          rivalLine = 'Rival checks to hero';
+          rivalLine = `${rivalLabel} checks to hero`;
         } else if(facing === 'bet'){
-          rivalLine = betSize ? `Rival bets ${betSize}` : 'Rival bets';
+          rivalLine = betSize ? `${rivalLabel} bets ${betSize}` : `${rivalLabel} bets`;
         } else if(openSize){
-          rivalLine = `Rival opened ${openSize}`;
+          rivalLine = `${rivalLabel} opened ${openSize}`;
         } else if(descriptor){
           const cleaned = descriptor.replace(/\s+/g, ' ').trim().replace(/[.]+$/g, '');
-          rivalLine = cleaned || 'Rival to act';
+          rivalLine = cleaned ? `${rivalLabel} ${cleaned.replace(/^Rival\s+/i, '')}` : `${rivalLabel} to act`;
         } else {
-          rivalLine = 'Rival to act';
+          rivalLine = `${rivalLabel} to act`;
         }
-        rivalLine = rivalLine.replace(/Rival\s*\([^)]*\)\s*/i, 'Rival ');
         return [{ label: 'Rival', value: rivalLine.replace(/\s+/g, ' ').trim() }];
       };
 
