@@ -74,6 +74,8 @@ def test_browser_flow_shows_initial_hand() -> None:
 
         status = page.inner_text("#header-status").strip().lower()
         assert "preparing" not in status
+        assert "rival" not in status
+        assert "(" not in status
 
         assert not console_errors, f"Console errors captured: {console_errors}"
         assert not page_errors, f"Page errors captured: {page_errors}"
