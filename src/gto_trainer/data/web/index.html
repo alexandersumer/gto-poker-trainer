@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0B0F14" />
+    <meta name="theme-color" content="#F8FAFC" />
     <title>GTO Trainer</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <style>
@@ -29,82 +29,9 @@
         --summary-gap-tight: calc(var(--summary-gap-base) * 0.45);
       }
 
-      :root:not([data-theme]),
-      :root[data-theme="dark"] {
-        color-scheme: dark;
-        --bg: #0B0F14;
-        --surface-1: #0F141A;
-        --surface-2: #141B23;
-        --surface-3: #0F172A;
-        --border: #2A3645;
-        --field-bg: color-mix(in srgb, var(--surface-2) 55%, var(--surface-1) 45%);
-        --field-bg-hover: color-mix(in srgb, var(--surface-2) 62%, var(--surface-1) 38%);
-        --field-border: color-mix(in srgb, var(--outline) 85%, transparent);
-        --field-border-hover: color-mix(in srgb, var(--outline) 78%, var(--brand) 18%);
-        --field-border-focus: color-mix(in srgb, var(--brand) 46%, var(--outline) 54%);
-        --field-placeholder: color-mix(in srgb, var(--text-tertiary) 72%, transparent);
-        --field-helper: color-mix(in srgb, var(--text-secondary) 78%, transparent);
-        --field-disabled-bg: color-mix(in srgb, var(--surface-2) 78%, var(--surface-1) 22%);
-        --field-disabled-border: color-mix(in srgb, var(--outline) 70%, transparent);
-        --field-error-border: color-mix(in srgb, var(--error) 48%, var(--outline) 52%);
-        --shadow-soft: 0 18px 34px rgba(11, 15, 20, 0.4);
-        --shadow-card: 0 1px 0 rgba(7, 11, 16, 0.35), 0 12px 24px rgba(7, 11, 16, 0.35);
-        --text-primary: #E6EDF3;
-        --text-secondary: #B7C1CC;
-        --text-tertiary: #8A94A6;
-        --text-inverse: #0B0F14;
-        --brand: #1D4ED8;
-        --on-brand: #F8FAFC;
-        --success: #16A34A;
-        --on-success: #04210E;
-        --warning: #F59E0B;
-        --on-warning: #1D1204;
-        --error: #EF4444;
-        --on-error: #2A0707;
-        --chip-bg: color-mix(in oklab, #1D4ED8 18%, transparent);
-        --chip-border: color-mix(in srgb, #1D4ED8 32%, transparent);
-        --chip-text: #E6EDF3;
-        --muted-bg: #141B23;
-        --muted-border: #2A3645;
-        --muted-hover: #1A2330;
-        --divider-soft: rgba(42, 54, 69, 0.55);
-        --outline: #2E3A49;
-        --ghost-hover: #1A2330;
-        --progress: #1D4ED8;
-        --card-face: #E9EDF5;
-        --card-edge: #D1DAE6;
-        --suit-spade: #273347;
-        --suit-heart: #d24a5f;
-        --suit-club: #2c9a6d;
-        --suit-diamond: #2d6fe6;
-        --action-neutral-text: #E5E7EB;
-        --action-neutral-bg: #374151;
-        --action-neutral-border: #4B5563;
-        --action-neutral-selected-bg: #4A5568;
-        --action-neutral-selected-border: #60A5FA;
-        --action-accent-text: #DCE8FF;
-        --action-accent-bg: #22314A;
-        --action-accent-border: #4A6AA0;
-        --action-accent-selected-bg: #2D4166;
-        --action-accent-selected-border: #93B4F6;
-        --action-caution-text: #FFDCE1;
-        --action-caution-bg: #47232A;
-        --action-caution-border: #B86774;
-        --action-caution-selected-bg: #5A2F38;
-        --action-caution-selected-border: #DE8C98;
-        --action-negative-text: #FFDAD1;
-        --action-negative-bg: #4A2B27;
-        --action-negative-border: #B97E73;
-        --action-negative-selected-bg: #5E3A34;
-        --action-negative-selected-border: #E09A8B;
-        --chipbar-bg: #1F2937;
-        --chipbar-text: #EAEFF7;
-        --chipbar-border: color-mix(in srgb, #94A3B8 45%, transparent);
-        --chipbar-hover: #2B3648;
-        --chip-selected-border: #93B4F6;
-      }
+      /* Light palette (default) */
+      :root {
 
-      :root[data-theme="light"] {
         color-scheme: light;
         --bg: #F8FAFC;
         --surface-1: #FFFFFF;
@@ -178,6 +105,83 @@
         --chip-selected-border: #4A6AA0;
       }
 
+      /* Dark palette overrides */
+      :root[data-theme="dark"] {
+
+        color-scheme: dark;
+        --bg: #0B0F14;
+        --surface-1: #0F141A;
+        --surface-2: #141B23;
+        --surface-3: #0F172A;
+        --border: #2A3645;
+        --field-bg: color-mix(in srgb, var(--surface-2) 55%, var(--surface-1) 45%);
+        --field-bg-hover: color-mix(in srgb, var(--surface-2) 62%, var(--surface-1) 38%);
+        --field-border: color-mix(in srgb, var(--outline) 85%, transparent);
+        --field-border-hover: color-mix(in srgb, var(--outline) 78%, var(--brand) 18%);
+        --field-border-focus: color-mix(in srgb, var(--brand) 46%, var(--outline) 54%);
+        --field-placeholder: color-mix(in srgb, var(--text-tertiary) 72%, transparent);
+        --field-helper: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+        --field-disabled-bg: color-mix(in srgb, var(--surface-2) 78%, var(--surface-1) 22%);
+        --field-disabled-border: color-mix(in srgb, var(--outline) 70%, transparent);
+        --field-error-border: color-mix(in srgb, var(--error) 48%, var(--outline) 52%);
+        --shadow-soft: 0 18px 34px rgba(11, 15, 20, 0.4);
+        --shadow-card: 0 1px 0 rgba(7, 11, 16, 0.35), 0 12px 24px rgba(7, 11, 16, 0.35);
+        --text-primary: #E6EDF3;
+        --text-secondary: #B7C1CC;
+        --text-tertiary: #8A94A6;
+        --text-inverse: #0B0F14;
+        --brand: #1D4ED8;
+        --on-brand: #F8FAFC;
+        --success: #16A34A;
+        --on-success: #04210E;
+        --warning: #F59E0B;
+        --on-warning: #1D1204;
+        --error: #EF4444;
+        --on-error: #2A0707;
+        --chip-bg: color-mix(in oklab, #1D4ED8 18%, transparent);
+        --chip-border: color-mix(in srgb, #1D4ED8 32%, transparent);
+        --chip-text: #E6EDF3;
+        --muted-bg: #141B23;
+        --muted-border: #2A3645;
+        --muted-hover: #1A2330;
+        --divider-soft: rgba(42, 54, 69, 0.55);
+        --outline: #2E3A49;
+        --ghost-hover: #1A2330;
+        --progress: #1D4ED8;
+        --card-face: #E9EDF5;
+        --card-edge: #D1DAE6;
+        --suit-spade: #273347;
+        --suit-heart: #d24a5f;
+        --suit-club: #2c9a6d;
+        --suit-diamond: #2d6fe6;
+        --action-neutral-text: #E5E7EB;
+        --action-neutral-bg: #374151;
+        --action-neutral-border: #4B5563;
+        --action-neutral-selected-bg: #4A5568;
+        --action-neutral-selected-border: #60A5FA;
+        --action-accent-text: #DCE8FF;
+        --action-accent-bg: #22314A;
+        --action-accent-border: #4A6AA0;
+        --action-accent-selected-bg: #2D4166;
+        --action-accent-selected-border: #93B4F6;
+        --action-caution-text: #FFDCE1;
+        --action-caution-bg: #47232A;
+        --action-caution-border: #B86774;
+        --action-caution-selected-bg: #5A2F38;
+        --action-caution-selected-border: #DE8C98;
+        --action-negative-text: #FFDAD1;
+        --action-negative-bg: #4A2B27;
+        --action-negative-border: #B97E73;
+        --action-negative-selected-bg: #5E3A34;
+        --action-negative-selected-border: #E09A8B;
+        --chipbar-bg: #1F2937;
+        --chipbar-text: #EAEFF7;
+        --chipbar-border: color-mix(in srgb, #94A3B8 45%, transparent);
+        --chipbar-hover: #2B3648;
+        --chip-selected-border: #93B4F6;
+      }
+
+      :root:not([data-theme]),
       body {
         min-height: 100vh;
         margin: 0;
@@ -1098,6 +1102,20 @@
         border-color: var(--action-negative-selected-border);
         color: var(--action-negative-text);
       }
+      .next-hand-btn {
+        margin-top: var(--space-2);
+        padding: calc(var(--space-1) + 6px) calc(var(--space-1) * 3);
+        font-size: 1rem;
+        font-weight: 650;
+        background: color-mix(in srgb, var(--action-neutral-selected-bg) 80%, var(--action-neutral-bg) 20%);
+        border-color: var(--action-neutral-selected-border);
+        color: var(--action-neutral-text);
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+      }
+      .next-hand-btn:hover {
+        background: color-mix(in srgb, var(--action-neutral-selected-bg) 65%, var(--action-neutral-bg) 35%);
+        border-color: color-mix(in srgb, var(--action-neutral-selected-border) 85%, transparent);
+      }
       .size-chip {
         border-radius: var(--radius-md);
         border: 1px solid var(--muted-border);
@@ -1604,7 +1622,7 @@
 
       const ThemeController = (() => {
         const STORAGE_KEY = 'gto-trainer.theme';
-        const DEFAULT = 'dark';
+        const DEFAULT = 'light';
         const SUPPORTED = new Set(['light', 'dark']);
         const listeners = new Set();
         const root = document.documentElement;
@@ -1612,7 +1630,8 @@
 
         const readStored = () => {
           try {
-            return localStorage.getItem(STORAGE_KEY);
+            const value = localStorage.getItem(STORAGE_KEY);
+            return value && SUPPORTED.has(value) ? value : null;
           } catch (error) {
             return null;
           }
@@ -1620,7 +1639,11 @@
 
         const writeStored = (value) => {
           try {
-            localStorage.setItem(STORAGE_KEY, value);
+            if (!value || value === DEFAULT) {
+              localStorage.removeItem(STORAGE_KEY);
+            } else {
+              localStorage.setItem(STORAGE_KEY, value);
+            }
           } catch (error) {
             /* ignore storage errors */
           }
@@ -1638,7 +1661,9 @@
 
         const apply = (value, { persist = false } = {}) => {
           const next = SUPPORTED.has(value) ? value : DEFAULT;
-          if (!root.dataset.theme || root.dataset.theme !== next) {
+          if (next === DEFAULT) {
+            delete root.dataset.theme;
+          } else {
             root.dataset.theme = next;
           }
           if (themeMeta) {
@@ -1670,9 +1695,7 @@
           const stored = readStored();
           const initial = SUPPORTED.has(preset)
             ? preset
-            : SUPPORTED.has(stored)
-            ? stored
-            : DEFAULT;
+            : stored || DEFAULT;
           apply(initial, { persist: false });
         };
 
@@ -2392,25 +2415,20 @@
           : deltaValue
             ? `EV loss ${formatBb(deltaValue)} • Best ${bestLabel}`
             : `Best • ${bestLabel}`;
-        const condenseWhy = (text) => {
+        const resolutionNote = feedback?.chosen?.resolution_note || '';
+        const summarizeResolution = (text) => {
           if(!text) return '';
           const normalized = text.replace(/\s+/g, ' ').trim();
           if(!normalized) return '';
-          const sentences = normalized.split(/(?<=[.!?])\s+/);
-          const first = sentences[0] || normalized;
-          if(first.length <= 110) return first;
-          return `${first.slice(0, 107).trim()}…`;
+          return normalized.length <= 110 ? normalized : `${normalized.slice(0, 107).trim()}…`;
         };
-        const secondaryLine = correct
-          ? condenseWhy(feedback?.chosen?.why)
-          : condenseWhy(feedback?.best?.why);
-        const resolutionNote = feedback?.chosen?.resolution_note || '';
+        const secondaryLine = summarizeResolution(resolutionNote);
         feedbackBanner.dataset.state = correct ? 'correct' : 'incorrect';
         feedbackRecommendation.textContent = summaryLine;
         feedbackChoice.textContent = '';
         feedbackChoice.classList.add('hidden');
         if(feedbackResolution){
-          const detailText = secondaryLine || resolutionNote;
+          const detailText = secondaryLine;
           if(detailText){
             feedbackResolution.textContent = detailText;
             feedbackResolution.classList.remove('hidden');
