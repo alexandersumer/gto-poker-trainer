@@ -1187,15 +1187,16 @@
       }
       .feedback-banner {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: space-between;
-        gap: calc(var(--space-1) - 4px);
+        gap: var(--space-2);
         padding: calc(var(--space-1) - 4px) calc(var(--space-2) - 4px);
         border-radius: var(--radius-md);
         border: 1px solid color-mix(in srgb, var(--outline) 65%, transparent);
         background: var(--surface-1);
         color: var(--text-secondary);
         box-shadow: var(--shadow-card);
+        flex-wrap: wrap;
       }
       .feedback-banner[data-state="correct"] {
         border-color: color-mix(in srgb, var(--success) 65%, transparent);
@@ -1212,6 +1213,7 @@
         font-size: 0.9rem;
         color: var(--text-secondary);
         max-width: 100%;
+        flex: 1;
       }
       .feedback-line strong {
         color: var(--text-primary);
@@ -1224,16 +1226,29 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 4px 10px;
-        border-radius: var(--radius-sm);
-        border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
-        background: color-mix(in srgb, var(--surface-1) 92%, transparent);
-        color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
-        font-size: 0.76rem;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--outline) 55%, transparent);
+        background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+        color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+        font-size: 0.78rem;
         font-weight: 600;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        letter-spacing: 0.01em;
+        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        align-self: center;
+        margin-left: auto;
       }
-      .feedback-detail:hover { background: var(--ghost-hover); color: var(--text-primary); }
+      .feedback-detail__icon {
+        font-size: 0.85em;
+        transition: transform 0.2s ease;
+      }
+      .feedback-detail:hover {
+        background: var(--ghost-hover);
+        color: var(--text-primary);
+        border-color: color-mix(in srgb, var(--outline) 40%, transparent);
+      }
+      .feedback-detail:hover .feedback-detail__icon { transform: translateX(2px); }
       .feedback-detail:focus-visible { outline: var(--focus-ring) solid var(--focus-color); outline-offset: 2px; }
       #panel-play .panel-soft {
         display: flex;
@@ -1598,7 +1613,10 @@
             <span id="feedback-choice" class="feedback-line hidden"></span>
             <span id="feedback-resolution" class="feedback-line feedback-resolution hidden"></span>
           </div>
-          <button type="button" id="feedback-detail" class="feedback-detail" aria-label="View explanation">Why this is best</button>
+          <button type="button" id="feedback-detail" class="feedback-detail" aria-label="View detailed reasoning">
+            <span class="feedback-detail__label">See reasoning</span>
+            <span class="feedback-detail__icon" aria-hidden="true">→</span>
+          </button>
         </div>
 
         <div class="flex justify-center" id="end-session-container">
