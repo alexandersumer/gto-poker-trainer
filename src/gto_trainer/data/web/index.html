@@ -702,10 +702,10 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 3px;
         min-width: 44px;
         height: 44px;
-        padding: 0 12px;
+        padding: 0 6px;
         border-radius: 999px;
         border: 1px solid var(--border);
         background: var(--surface-2);
@@ -733,14 +733,13 @@
         transition: opacity 0.25s ease, transform 0.25s ease;
       }
       .theme-icon svg {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
       .theme-toggle[data-mode="light"] .theme-icon--sun,
-      .theme-toggle[data-mode="dark"] .theme-icon--moon,
-      .theme-toggle[data-mode="system"] .theme-icon--system {
+      .theme-toggle[data-mode="dark"] .theme-icon--moon {
         opacity: 1;
         transform: scale(1);
       }
@@ -748,8 +747,8 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
         color: color-mix(in srgb, var(--text-secondary) 65%, transparent);
         margin-top: 1px;
       }
@@ -1572,7 +1571,7 @@
           </div>
           <div class="header-actions">
             <div class="theme-control">
-              <button id="theme-toggle" class="theme-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="theme-menu" aria-label="Change appearance" title="Change appearance" data-mode="system" data-open="false">
+              <button id="theme-toggle" class="theme-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="theme-menu" aria-label="Change appearance" title="Change appearance" data-mode="light" data-open="false">
                 <span class="theme-icon theme-icon--sun" aria-hidden="true">
                   <svg viewBox="0 0 24 24" role="presentation">
                     <circle cx="12" cy="12" r="4.25" fill="none" stroke="currentColor" stroke-width="1.6" />
@@ -1583,12 +1582,6 @@
                   <svg viewBox="0 0 24 24" role="presentation">
                     <path d="M16.6 3.4a7.2 7.2 0 1 0 5.2 11.5 5.8 5.8 0 0 1-5.2-11.5z" fill="currentColor" />
                     <path d="M14 4.3a6.2 6.2 0 1 0 6 10.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5" />
-                  </svg>
-                </span>
-                <span class="theme-icon theme-icon--system" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" role="presentation">
-                    <path d="M12 19.25a7.25 7.25 0 1 1 0-14.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M12 4.75a7.25 7.25 0 0 1 0 14.5" fill="currentColor" opacity="0.18" />
                   </svg>
                 </span>
                 <span class="theme-toggle__chevron" aria-hidden="true">
@@ -1791,6 +1784,7 @@
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         const systemMedia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
         let active = DEFAULT;
+        let applied = 'light';
 
         const readStored = () => {
           try {
@@ -1848,6 +1842,7 @@
           active = nextMode;
           const concrete = nextMode === 'system' ? resolveSystemTheme() : nextMode;
           applyDataTheme(concrete);
+          applied = concrete;
           if (persist) {
             writeStored(nextMode);
           }
@@ -1858,6 +1853,7 @@
         const set = (value, options) => apply(value, { persist: true, ...(options || {}) });
         const preview = (value, options) => apply(value, { persist: false, ...(options || {}) });
         const get = () => active;
+        const effective = () => applied;
         const onChange = (fn) => {
           if (typeof fn !== 'function') {
             return () => undefined;
@@ -1889,7 +1885,7 @@
 
         init();
 
-        return { get, set, preview, onChange, supported: () => Array.from(SUPPORTED) };
+        return { get, set, preview, onChange, supported: () => Array.from(SUPPORTED), effective };
       })();
 
       window.GTOTheme = ThemeController;
@@ -2068,11 +2064,17 @@
       const syncThemeToggle = (value) => {
         if(!themeToggle) return;
         const mode = value && THEME_LABELS[value] ? value : ThemeController.get();
-        const label = THEME_LABELS[mode] || 'Follow System';
-        themeToggle.dataset.mode = mode;
-        themeToggle.setAttribute('data-mode', mode);
-        themeToggle.setAttribute('title', `Appearance: ${label}`);
-        themeToggle.setAttribute('aria-label', `Appearance: ${label}`);
+        const effectiveMode = typeof ThemeController.effective === 'function'
+          ? ThemeController.effective()
+          : (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+        const baseLabel = THEME_LABELS[mode] || THEME_LABELS.system;
+        const descriptor = mode === 'system'
+          ? `${baseLabel} (${effectiveMode === 'dark' ? 'Dark' : 'Light'})`
+          : baseLabel;
+        themeToggle.dataset.mode = effectiveMode;
+        themeToggle.setAttribute('data-mode', effectiveMode);
+        themeToggle.setAttribute('title', `Appearance: ${descriptor}`);
+        themeToggle.setAttribute('aria-label', `Appearance: ${descriptor}`);
         if(themeMenuButtons.length){
           themeMenuButtons.forEach((btn) => {
             const isActive = btn.dataset.themeChoice === mode;
