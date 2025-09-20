@@ -762,29 +762,29 @@
       }
       .status-chip {
         display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        border-radius: 12px;
-        padding: 7px 14px;
-        font-size: 0.74rem;
+        align-items: center;
+        gap: 8px;
+        border-radius: 10px;
+        padding: 5px 12px;
+        font-size: 0.72rem;
         font-weight: 600;
         color: var(--chipbar-text);
-        background: color-mix(in srgb, var(--chipbar-bg) 90%, transparent);
-        border: 1px solid var(--chipbar-border);
+        background: color-mix(in srgb, var(--chipbar-bg) 88%, transparent);
+        border: 1px solid color-mix(in srgb, var(--chipbar-border) 80%, transparent);
         width: 100%;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
       }
       #status-chip-dynamic {
         width: 100%;
       }
       .status-chip .chip-label {
-        color: color-mix(in srgb, var(--chipbar-text) 68%, transparent);
+        color: color-mix(in srgb, var(--chipbar-text) 58%, transparent);
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.12em;
-        font-size: 0.64rem;
-        opacity: 0.78;
-        min-width: 72px;
+        letter-spacing: 0.1em;
+        font-size: 0.6rem;
+        opacity: 0.8;
+        min-width: 68px;
         white-space: nowrap;
       }
       .status-chip .chip-value {
@@ -926,6 +926,21 @@
       #panel-summary .summary__score {
         margin-top: calc(var(--summary-gap-tight) * 0.9);
         text-align: right;
+      }
+      #panel-summary .summary__quick {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: calc(var(--summary-gap-tight) * 0.4);
+        font-size: 0.82rem;
+        color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+        font-weight: 600;
+      }
+      #panel-summary .summary__quick-item {
+        white-space: nowrap;
+      }
+      #panel-summary .summary__quick-sep {
+        opacity: 0.4;
       }
       #panel-summary .summary__stats {
         margin-top: var(--summary-gap-base);
@@ -1077,27 +1092,26 @@
         border-color: var(--action-accent-selected-border);
       }
       .action-button.action-destructive {
-        background: color-mix(in srgb, var(--action-caution-bg) 85%, var(--surface-1) 15%);
-        border-color: color-mix(in srgb, var(--action-caution-border) 60%, transparent);
-        color: var(--action-caution-text);
+        background: color-mix(in srgb, var(--action-neutral-bg) 92%, transparent);
+        border-color: color-mix(in srgb, var(--action-neutral-border) 75%, transparent);
+        color: var(--action-neutral-text);
       }
       .action-button.action-destructive:hover {
-        background: color-mix(in srgb, var(--action-caution-selected-bg) 70%, var(--action-caution-bg) 30%);
-        border-color: color-mix(in srgb, var(--action-caution-selected-border) 65%, transparent);
-      }
-      .action-button.action-negative {
-        background: color-mix(in srgb, var(--action-negative-bg) 85%, var(--surface-1) 15%);
-        border-color: color-mix(in srgb, var(--action-negative-border) 60%, transparent);
-        color: var(--action-negative-text);
-      }
-      .action-button.action-negative:hover {
-        background: color-mix(in srgb, var(--action-negative-selected-bg) 70%, var(--action-negative-bg) 30%);
-        border-color: color-mix(in srgb, var(--action-negative-selected-border) 65%, transparent);
+        background: color-mix(in srgb, var(--action-neutral-selected-bg) 70%, var(--action-neutral-bg) 30%);
+        border-color: color-mix(in srgb, var(--action-neutral-selected-border) 80%, transparent);
       }
       .action-button[disabled] {
         opacity: 0.55;
         cursor: not-allowed;
         pointer-events: none;
+      }
+      .action-button.is-selected,
+      .action-button.is-armed {
+        background: var(--action-accent-selected-bg);
+        border-color: var(--action-accent-selected-border);
+        color: var(--action-accent-text);
+        transform: scale(1.01);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
       }
       .action-button.is-armed {
         transform: scale(1.02);
@@ -1584,7 +1598,7 @@
             <span id="feedback-choice" class="feedback-line hidden"></span>
             <span id="feedback-resolution" class="feedback-line feedback-resolution hidden"></span>
           </div>
-          <button type="button" id="feedback-detail" class="feedback-detail" aria-label="Show detailed feedback">Details</button>
+          <button type="button" id="feedback-detail" class="feedback-detail" aria-label="View explanation">Why this is best</button>
         </div>
 
         <div class="flex justify-center" id="end-session-container">
@@ -1604,6 +1618,13 @@
                 <div class="text-xs uppercase tracking-wide text-muted">Score (0–100)</div>
                 <div class="text-2xl font-bold text-primary" data-summary-score></div>
               </div>
+            </div>
+            <div class="summary__quick" aria-hidden="true">
+              <span class="summary__quick-item" data-summary-quick-score></span>
+              <span class="summary__quick-sep">•</span>
+              <span class="summary__quick-item" data-summary-quick-ev></span>
+              <span class="summary__quick-sep">•</span>
+              <span class="summary__quick-item" data-summary-quick-accuracy></span>
             </div>
             <dl class="summary__stats grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div class="surface-card px-4 summary__card">
@@ -2933,7 +2954,16 @@
                 el.textContent = value;
               }
             };
+            const scoreQuick = `${Math.round(s.score)} pts`;
+            const evMagnitude = Math.abs(summaryEvLost);
+            const evQuick = evMagnitude
+              ? `ΔEV -${formatBb(evMagnitude)}`
+              : 'ΔEV 0bb';
+            const accuracyQuick = `${accuracy}% accuracy`;
             setText('[data-summary-score]', String(Math.round(s.score)));
+            setText('[data-summary-quick-score]', scoreQuick);
+            setText('[data-summary-quick-ev]', evQuick);
+            setText('[data-summary-quick-accuracy]', accuracyQuick);
             setText('[data-summary-ev-lost]', formatBb(summaryEvLost));
             setText('[data-summary-avg-ev]', `Avg / hand: ${formatBb(avgEvLoss)}`);
             setText('[data-summary-hands]', String(s.hands));

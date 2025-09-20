@@ -9,9 +9,11 @@ keeping the training loop fast while still producing reasonable ranges.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from functools import lru_cache
 
 from .cards import fresh_deck
+from .hand_strength import combo_playability_score
 
 # Pre-compute and cache the full deck once; card ints are 0..51.
 _DECK = fresh_deck()
@@ -25,27 +27,7 @@ def _sorted_combo(a: int, b: int) -> tuple[int, int]:
 def _combo_strength(combo: tuple[int, int]) -> float:
     """Return a deterministic heuristic score for a preflop holding."""
 
-    a, b = combo
-    ra, rb = a // 4, b // 4
-    suited = (a % 4) == (b % 4)
-    high, low = (ra, rb) if ra >= rb else (rb, ra)
-
-    score = high * 10 + low
-    if high == low:
-        score += 80 + high * 5
-    if suited:
-        score += 5
-    gap = high - low - 1
-    if high != low:
-        if gap <= 0:
-            score += 4
-        elif gap == 1:
-            score += 3
-        elif gap == 2:
-            score += 1
-        elif gap >= 4:
-            score -= gap
-    return float(score)
+    return combo_playability_score(combo)
 
 
 @lru_cache(maxsize=1)
@@ -72,44 +54,57 @@ def top_percent(percent: float, blocked_cards: Iterable[int] | None = None) -> l
     return all_combos[:count]
 
 
+@dataclass(frozen=True)
+class RangeProfile:
+    percent: float
+
+
+_SB_OPEN_PROFILES: list[tuple[float, RangeProfile]] = [
+    (2.0, RangeProfile(percent=0.9)),
+    (2.2, RangeProfile(percent=0.87)),
+    (2.5, RangeProfile(percent=0.82)),
+    (2.8, RangeProfile(percent=0.75)),
+    (3.2, RangeProfile(percent=0.68)),
+]
+
+
+_BB_DEFEND_PROFILES: list[tuple[float, RangeProfile]] = [
+    (2.0, RangeProfile(percent=0.66)),
+    (2.3, RangeProfile(percent=0.58)),
+    (2.5, RangeProfile(percent=0.54)),
+    (2.8, RangeProfile(percent=0.45)),
+    (3.2, RangeProfile(percent=0.36)),
+]
+
+
+def _interpolate_profile(value: float, profiles: list[tuple[float, RangeProfile]]) -> RangeProfile:
+    if not profiles:
+        return RangeProfile(percent=0.5)
+    if value <= profiles[0][0]:
+        return profiles[0][1]
+    for (lo_x, lo_prof), (hi_x, hi_prof) in zip(profiles, profiles[1:]):
+        if value <= hi_x:
+            span = hi_x - lo_x
+            if span <= 0:
+                return hi_prof
+            t = (value - lo_x) / span
+            percent = lo_prof.percent * (1 - t) + hi_prof.percent * t
+            return RangeProfile(percent=percent)
+    return profiles[-1][1]
+
+
 def rival_sb_open_range(open_size: float, blocked_cards: Iterable[int] | None = None) -> list[tuple[int, int]]:
-    """Simple SB open-raise model by sizing.
+    """Solver-aligned SB open-raise model by sizing."""
 
-    Smaller opens incentivise wider ranges; larger opens tighten up. The
-    percentages below align with contemporary HU solver guidance that opens
-    ≈85–90% of hands when min-raising and ≈70–80% when using larger 2.5–3.0bb
-    sizes at 100bb effective.
-    """
-
-    if open_size <= 2.0:
-        percent = 0.88
-    elif open_size <= 2.3:
-        percent = 0.85
-    elif open_size <= 2.7:
-        percent = 0.78
-    else:
-        percent = 0.72
-    return top_percent(percent, blocked_cards)
+    profile = _interpolate_profile(open_size, _SB_OPEN_PROFILES)
+    return top_percent(profile.percent, blocked_cards)
 
 
 def rival_bb_defend_range(open_size: float, blocked_cards: Iterable[int] | None = None) -> list[tuple[int, int]]:
-    """Approximate BB defend range versus SB open sizing.
+    """Solver-aligned BB defend range versus SB open sizing."""
 
-    The thresholds roughly match contemporary HU recommendations where the BB
-    continues with ~70–75% versus a 2.0x open and gradually tightens as the SB
-    chooses larger sizes. This keep-logic mirrors the open range helper so both
-    positions share a consistent strength ordering.
-    """
-
-    if open_size <= 2.0:
-        percent = 0.74
-    elif open_size <= 2.3:
-        percent = 0.7
-    elif open_size <= 2.7:
-        percent = 0.62
-    else:
-        percent = 0.56
-    return top_percent(percent, blocked_cards)
+    profile = _interpolate_profile(open_size, _BB_DEFEND_PROFILES)
+    return top_percent(profile.percent, blocked_cards)
 
 
 def tighten_range(combos: Iterable[tuple[int, int]], fraction: float) -> list[tuple[int, int]]:

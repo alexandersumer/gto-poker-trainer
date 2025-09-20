@@ -16,6 +16,8 @@ from dataclasses import dataclass
 # The profile dictionary stored on Option.meta uses only standard Python
 # container types (lists/dicts) so it can be copied or serialised in tests.
 
+from .hand_strength import combo_playability_score
+
 
 @dataclass(frozen=True)
 class RivalDecision:
@@ -28,26 +30,7 @@ def _combo_strength(combo: Sequence[int]) -> float:
     """Replicate the heuristic ranking used by range_model without importing private helpers."""
 
     a, b = int(combo[0]), int(combo[1])
-    ra, rb = a // 4, b // 4
-    suited = (a % 4) == (b % 4)
-    high, low = (ra, rb) if ra >= rb else (rb, ra)
-
-    score = high * 10 + low
-    if high == low:
-        score += 80 + high * 5
-    if suited:
-        score += 5
-    gap = high - low - 1
-    if high != low:
-        if gap <= 0:
-            score += 4
-        elif gap == 1:
-            score += 3
-        elif gap == 2:
-            score += 1
-        elif gap >= 4:
-            score -= gap
-    return float(score)
+    return combo_playability_score((a, b))
 
 
 def _encode_combo(combo: Sequence[int]) -> str:
