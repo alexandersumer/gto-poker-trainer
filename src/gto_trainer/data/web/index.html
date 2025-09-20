@@ -834,6 +834,7 @@
       .status-bar {
         display: flex;
         align-items: center;
+        justify-content: center;
         min-height: 40px;
         font-size: 0.82rem;
         color: var(--text-secondary);
@@ -841,11 +842,12 @@
       .status-compact {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 4px;
         width: 100%;
         white-space: nowrap;
         overflow-x: auto;
-        padding: 2px 0;
+        padding: 3px clamp(10px, 1.6vw, 16px);
         scrollbar-width: none;
         -webkit-overflow-scrolling: touch;
       }
@@ -853,11 +855,15 @@
       .status-compact__text {
         display: inline-flex;
         align-items: baseline;
+        justify-content: center;
         gap: 6px;
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
         font-size: clamp(0.7rem, 0.68rem + 0.6vw, 0.8rem);
+        margin: 0 auto;
       }
+      .status-compact__text .status-seg:first-child { padding-left: 2px; }
+      .status-compact__text .status-seg:last-child { padding-right: 2px; }
       .status-seg {
         display: inline-flex;
         align-items: baseline;
@@ -2060,12 +2066,16 @@
         statusLineEl.innerHTML = Array.isArray(items)
           ? items
               .filter((item) => item && item.label && item.value)
-              .map((item) => `
+              .map((item) => {
+                const label = escapeHtml(withCardEmoji(item.label));
+                const value = escapeHtml(withCardEmoji(item.value));
+                return `
                 <div class="status-item">
-                  <span class="status-label">${item.label}</span>
-                  <span class="status-value">${item.value}</span>
+                  <span class="status-label">${label}</span>
+                  <span class="status-value">${value}</span>
                 </div>
-              `)
+              `;
+              })
               .join('')
           : '';
       };
@@ -2246,15 +2256,15 @@
         segments.push(`Acc ${accPct !== null ? `${accPct}%` : '--'}`);
 
         const formatSegment = (segment) => {
-          const trimmed = (segment || '').trim();
-          if(!trimmed) return '';
-          const firstSpace = trimmed.indexOf(' ');
+          const raw = (segment || '').trim();
+          if(!raw) return '';
+          const firstSpace = raw.indexOf(' ');
           if(firstSpace === -1){
-            return `<span class="status-seg">${escapeHtml(trimmed)}</span>`;
+            return `<span class="status-seg">${escapeHtml(withCardEmoji(raw))}</span>`;
           }
-          const label = trimmed.slice(0, firstSpace);
-          const value = trimmed.slice(firstSpace + 1).trim();
-          return `<span class="status-seg"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></span>`;
+          const label = raw.slice(0, firstSpace);
+          const value = raw.slice(firstSpace + 1).trim();
+          return `<span class="status-seg"><strong>${escapeHtml(withCardEmoji(label))}</strong><span>${escapeHtml(withCardEmoji(value))}</span></span>`;
         };
 
         const markup = segments
@@ -2664,7 +2674,7 @@
 
       const announceAction = (message) => {
         if(actionAnnouncer){
-          actionAnnouncer.textContent = message ? `Action selected: ${message}` : '';
+          setTextWithCards(actionAnnouncer, message ? `Action selected: ${message}` : '');
         }
       };
 
@@ -2679,17 +2689,18 @@
         const rows = [];
         const makeRow = (variant, label, opt) => {
           if(!opt) return;
-          const ev = typeof opt.ev === 'number' ? formatBb(opt.ev) : '—';
-          const why = opt.why ? `<div class="drawer-sub">${opt.why}</div>` : '';
+          const evDisplay = typeof opt.ev === 'number' ? formatBb(opt.ev) : '—';
+          const choiceLabel = opt.key || opt.label || '—';
+          const whyText = opt.why ? `<div class="drawer-sub">${escapeHtml(withCardEmoji(opt.why))}</div>` : '';
           rows.push(`
             <div class="drawer-row drawer-row--${variant}">
               <div class="drawer-col">
-                <div class="drawer-chip drawer-chip--${variant}">${label}</div>
-                <div class="drawer-value">${opt.key || opt.label || '—'}</div>
+                <div class="drawer-chip drawer-chip--${variant}">${escapeHtml(label)}</div>
+                <div class="drawer-value">${escapeHtml(withCardEmoji(choiceLabel))}</div>
               </div>
-              <div class="drawer-ev">${ev}</div>
+              <div class="drawer-ev">${escapeHtml(withCardEmoji(evDisplay))}</div>
             </div>
-            ${why}
+            ${whyText}
           `);
         };
         makeRow('best', 'GTO recommendation', lastFeedback.best);
@@ -2731,16 +2742,16 @@
         };
         const secondaryLine = summarizeResolution(resolutionNote);
         feedbackBanner.dataset.state = correct ? 'correct' : 'incorrect';
-        feedbackRecommendation.textContent = summaryLine;
-        feedbackChoice.textContent = '';
+        setTextWithCards(feedbackRecommendation, summaryLine);
+        setTextWithCards(feedbackChoice, '');
         feedbackChoice.classList.add('hidden');
         if(feedbackResolution){
           const detailText = secondaryLine;
           if(detailText){
-            feedbackResolution.textContent = detailText;
+            setTextWithCards(feedbackResolution, detailText);
             feedbackResolution.classList.remove('hidden');
           } else {
-            feedbackResolution.textContent = '';
+            setTextWithCards(feedbackResolution, '');
             feedbackResolution.classList.add('hidden');
           }
         }
@@ -2752,13 +2763,13 @@
         if(feedbackBanner){
           feedbackBanner.classList.add('hidden');
           feedbackBanner.removeAttribute('data-state');
-          if(feedbackRecommendation) feedbackRecommendation.textContent = '';
+          if(feedbackRecommendation) setTextWithCards(feedbackRecommendation, '');
           if(feedbackChoice){
-            feedbackChoice.textContent = '';
+            setTextWithCards(feedbackChoice, '');
             feedbackChoice.classList.add('hidden');
           }
           if(feedbackResolution){
-            feedbackResolution.textContent = '';
+            setTextWithCards(feedbackResolution, '');
             feedbackResolution.classList.add('hidden');
           }
         }
@@ -2842,16 +2853,48 @@
         }
       }
 
-      function suit(sym){ return {S:'s',H:'h',D:'d',C:'c'}[sym]||'s'; }
-      function suitIcon(sym){ return {S:'\u2660', H:'\u2665', D:'\u2666', C:'\u2663'}[sym]||'\u2660'; }
+      const SUIT_CLASS = { S: 's', H: 'h', D: 'd', C: 'c' };
+      const SUIT_EMOJI = { S: '♠️', H: '♥️', D: '♦️', C: '♣️' };
+      const CARD_CODE_PATTERN = /\b(10|[2-9TJQKA])\s*([scdh])\b/gi;
+      const SUIT_SYMBOL_PATTERN = /([♠♣♥♦])(?!️)/g;
+
+      function suit(sym){
+        const upper = (sym || '').toString().toUpperCase();
+        return SUIT_CLASS[upper] || 's';
+      }
+      function suitIcon(sym){
+        const upper = (sym || '').toString().toUpperCase();
+        return SUIT_EMOJI[upper] || '♠️';
+      }
+      function withCardEmoji(text){
+        if(text == null) return '';
+        if(typeof text !== 'string') text = String(text);
+        let transformed = text.replace(CARD_CODE_PATTERN, (match, rank, suitCode) => {
+          const face = rank.length === 1 ? rank.toUpperCase() : rank;
+          return `${face}${suitIcon(suitCode)}`;
+        });
+        transformed = transformed.replace(SUIT_SYMBOL_PATTERN, '$1️');
+        return transformed;
+      }
+      function setTextWithCards(el, value){
+        if(!el) return;
+        const output = value == null ? '' : withCardEmoji(value);
+        el.textContent = output;
+      }
       function renderCards(cards){
         if(!cards || !cards.length) return '';
-        return cards.map((c)=>{
-          const rank = c[0];
-          const suitCode = c[1];
-          const css = suit(suitCode);
-          return `<span class="card poker-card ${css}">${rank}${suitIcon(suitCode)}</span>`;
-        }).join(' ');
+        return cards
+          .map((raw) => {
+            const token = (raw || '').toString().trim();
+            if(!token) return '';
+            const match = token.match(/^(10|[2-9TJQKA])([scdh])$/i);
+            const rank = match ? match[1].toUpperCase() : token.slice(0, -1).toUpperCase();
+            const suitCode = match ? match[2] : token.slice(-1);
+            const css = suit(suitCode);
+            return `<span class="card poker-card ${css}">${rank}${suitIcon(suitCode)}</span>`;
+          })
+          .filter(Boolean)
+          .join(' ');
       }
 
       const placeholderCard = (state = 'loading', wide = false) =>
