@@ -880,6 +880,33 @@
         font-weight: 500;
         margin: 0 4px;
       }
+      .inline-card {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.12em;
+        line-height: 1;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        vertical-align: baseline;
+      }
+      .inline-card__rank {
+        display: inline-block;
+        line-height: 1;
+      }
+      .inline-card__suit {
+        display: inline-block;
+        margin-left: 0.05em;
+        font-size: 0.9em;
+        line-height: 1;
+        transform: translateY(-0.05em);
+      }
+      .inline-card + .inline-card {
+        margin-left: 0.18em;
+      }
+      .inline-card--s .inline-card__suit { color: var(--suit-spade); }
+      .inline-card--h .inline-card__suit { color: var(--suit-heart); }
+      .inline-card--d .inline-card__suit { color: var(--suit-diamond); }
+      .inline-card--c .inline-card__suit { color: var(--suit-club); }
       .status-line {
         margin-top: calc(var(--space-1) * 0.6);
         margin-bottom: calc(var(--space-1) * 0.85);
@@ -2067,12 +2094,12 @@
           ? items
               .filter((item) => item && item.label && item.value)
               .map((item) => {
-                const label = escapeHtml(withCardEmoji(item.label));
-                const value = escapeHtml(withCardEmoji(item.value));
+                const labelMarkup = withCardMarkup(item.label);
+                const valueMarkup = withCardMarkup(item.value);
                 return `
                 <div class="status-item">
-                  <span class="status-label">${label}</span>
-                  <span class="status-value">${value}</span>
+                  <span class="status-label">${labelMarkup}</span>
+                  <span class="status-value">${valueMarkup}</span>
                 </div>
               `;
               })
@@ -2260,11 +2287,13 @@
           if(!raw) return '';
           const firstSpace = raw.indexOf(' ');
           if(firstSpace === -1){
-            return `<span class="status-seg">${escapeHtml(withCardEmoji(raw))}</span>`;
+            return `<span class="status-seg">${withCardMarkup(raw)}</span>`;
           }
           const label = raw.slice(0, firstSpace);
           const value = raw.slice(firstSpace + 1).trim();
-          return `<span class="status-seg"><strong>${escapeHtml(withCardEmoji(label))}</strong><span>${escapeHtml(withCardEmoji(value))}</span></span>`;
+          const labelMarkup = withCardMarkup(label);
+          const valueMarkup = withCardMarkup(value);
+          return `<span class="status-seg"><strong>${labelMarkup}</strong><span>${valueMarkup}</span></span>`;
         };
 
         const markup = segments
@@ -2691,14 +2720,14 @@
           if(!opt) return;
           const evDisplay = typeof opt.ev === 'number' ? formatBb(opt.ev) : '—';
           const choiceLabel = opt.key || opt.label || '—';
-          const whyText = opt.why ? `<div class="drawer-sub">${escapeHtml(withCardEmoji(opt.why))}</div>` : '';
+          const whyText = opt.why ? `<div class="drawer-sub">${withCardMarkup(opt.why)}</div>` : '';
           rows.push(`
             <div class="drawer-row drawer-row--${variant}">
               <div class="drawer-col">
                 <div class="drawer-chip drawer-chip--${variant}">${escapeHtml(label)}</div>
-                <div class="drawer-value">${escapeHtml(withCardEmoji(choiceLabel))}</div>
+                <div class="drawer-value">${withCardMarkup(choiceLabel)}</div>
               </div>
-              <div class="drawer-ev">${escapeHtml(withCardEmoji(evDisplay))}</div>
+              <div class="drawer-ev">${withCardMarkup(evDisplay)}</div>
             </div>
             ${whyText}
           `);
@@ -2858,11 +2887,11 @@
         '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c',
       };
       const SUIT_EMOJI = {
-        S: '♠️', H: '♥️', D: '♦️', C: '♣️',
-        '♠': '♠️', '♥': '♥️', '♦': '♦️', '♣': '♣️',
+        S: '♠', H: '♥', D: '♦', C: '♣',
+        '♠': '♠', '♥': '♥', '♦': '♦', '♣': '♣',
       };
       const CARD_CODE_PATTERN = /^(10|[2-9TJQKA])\s*([scdh])/i;
-      const SUIT_SYMBOL_PATTERN = /([♠♣♥♦])(?!️)/g;
+      const CARD_SYMBOL_PATTERN = /^(10|[2-9TJQKA])\s*([♠♣♥♦])\uFE0F?/i;
 
       function suit(sym){
         const token = (sym || '').toString().trim();
@@ -2873,17 +2902,37 @@
       }
       function suitIcon(sym){
         const token = (sym || '').toString().trim();
-        if(!token) return '♠️';
+        if(!token) return '♠';
         const upper = token.toUpperCase();
         const key = upper[0];
-        return SUIT_EMOJI[key] || '♠️';
+        return SUIT_EMOJI[key] || '♠';
+      }
+      function matchInlineCard(input){
+        if(!input) return null;
+        const codeMatch = input.match(CARD_CODE_PATTERN);
+        if(codeMatch){
+          return {
+            rank: codeMatch[1].toUpperCase(),
+            suit: codeMatch[2],
+            length: codeMatch[0].length,
+          };
+        }
+        const symbolMatch = input.match(CARD_SYMBOL_PATTERN);
+        if(symbolMatch){
+          return {
+            rank: symbolMatch[1].toUpperCase(),
+            suit: symbolMatch[2],
+            length: symbolMatch[0].length,
+          };
+        }
+        return null;
       }
       function parseCardToken(raw){
         const token = (raw || '').toString().trim();
         if(!token) return null;
-        const simple = token.match(/^(10|[2-9TJQKA])\s*([scdh♠♣♥♦])$/i);
-        if(simple){
-          return { rank: simple[1].toUpperCase(), suit: simple[2] };
+        const match = matchInlineCard(token);
+        if(match && match.length === token.length){
+          return { rank: match.rank, suit: match.suit };
         }
         const codepoints = Array.from(token);
         if(codepoints.length < 2) return null;
@@ -2905,41 +2954,54 @@
         const altRankParts = codepoints.slice(0, -2);
         return trySuit(altSuit, altRankParts);
       }
-      function withCardEmoji(text){
+      function withCardMarkup(text){
         if(text == null) return '';
         if(typeof text !== 'string') text = String(text);
         const source = text;
         let result = '';
         let index = 0;
+        let buffer = '';
         let previousWasCard = false;
+
+        const flushBuffer = () => {
+          if(buffer){
+            result += escapeHtml(buffer);
+            buffer = '';
+          }
+        };
 
         while(index < source.length){
           const slice = source.slice(index);
-          const match = slice.match(CARD_CODE_PATTERN);
+          const match = matchInlineCard(slice);
           if(match){
-            const [fullMatch, rank, suitCode] = match;
             const before = index > 0 ? source[index - 1] : '';
+            const afterIndex = index + match.length;
+            const after = afterIndex < source.length ? source[afterIndex] : '';
+            const nextCard = matchInlineCard(source.slice(afterIndex));
             const hasSafePrefix = !before || !/[0-9A-Za-z]/.test(before) || previousWasCard;
-            if(hasSafePrefix){
-              const face = rank.length === 1 ? rank.toUpperCase() : rank;
-              result += `${face}${suitIcon(suitCode)}`;
-              index += fullMatch.length;
+            const hasSafeSuffix = !after || !/[0-9A-Za-z]/.test(after) || !!nextCard;
+            if(hasSafePrefix && hasSafeSuffix){
+              flushBuffer();
+              const suitKey = suit(match.suit);
+              const suitChar = escapeHtml(suitIcon(match.suit));
+              const rankText = escapeHtml(match.rank);
+              result += `<span class="inline-card inline-card--${suitKey}"><span class="inline-card__rank">${rankText}</span><span class="inline-card__suit">${suitChar}</span></span>`;
+              index += match.length;
               previousWasCard = true;
               continue;
             }
           }
-          result += source[index];
+          buffer += source[index];
           index += 1;
           previousWasCard = false;
         }
 
-        result = result.replace(SUIT_SYMBOL_PATTERN, '$1️');
+        flushBuffer();
         return result;
       }
       function setTextWithCards(el, value){
         if(!el) return;
-        const output = value == null ? '' : withCardEmoji(value);
-        el.textContent = output;
+        el.innerHTML = value == null ? '' : withCardMarkup(value);
       }
       function renderCards(cards){
         if(!cards || !cards.length) return '';
