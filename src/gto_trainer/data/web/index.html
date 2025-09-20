@@ -2853,28 +2853,88 @@
         }
       }
 
-      const SUIT_CLASS = { S: 's', H: 'h', D: 'd', C: 'c' };
-      const SUIT_EMOJI = { S: '♠️', H: '♥️', D: '♦️', C: '♣️' };
-      const CARD_CODE_PATTERN = /\b(10|[2-9TJQKA])\s*([scdh])\b/gi;
+      const SUIT_CLASS = {
+        S: 's', H: 'h', D: 'd', C: 'c',
+        '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c',
+      };
+      const SUIT_EMOJI = {
+        S: '♠️', H: '♥️', D: '♦️', C: '♣️',
+        '♠': '♠️', '♥': '♥️', '♦': '♦️', '♣': '♣️',
+      };
+      const CARD_CODE_PATTERN = /^(10|[2-9TJQKA])\s*([scdh])/i;
       const SUIT_SYMBOL_PATTERN = /([♠♣♥♦])(?!️)/g;
 
       function suit(sym){
-        const upper = (sym || '').toString().toUpperCase();
-        return SUIT_CLASS[upper] || 's';
+        const token = (sym || '').toString().trim();
+        if(!token) return 's';
+        const upper = token.toUpperCase();
+        const key = upper[0];
+        return SUIT_CLASS[key] || 's';
       }
       function suitIcon(sym){
-        const upper = (sym || '').toString().toUpperCase();
-        return SUIT_EMOJI[upper] || '♠️';
+        const token = (sym || '').toString().trim();
+        if(!token) return '♠️';
+        const upper = token.toUpperCase();
+        const key = upper[0];
+        return SUIT_EMOJI[key] || '♠️';
+      }
+      function parseCardToken(raw){
+        const token = (raw || '').toString().trim();
+        if(!token) return null;
+        const simple = token.match(/^(10|[2-9TJQKA])\s*([scdh♠♣♥♦])$/i);
+        if(simple){
+          return { rank: simple[1].toUpperCase(), suit: simple[2] };
+        }
+        const codepoints = Array.from(token);
+        if(codepoints.length < 2) return null;
+        const trySuit = (suitChar, rankParts) => {
+          if(!suitChar) return null;
+          const key = suitChar.toString().toUpperCase()[0];
+          if(!SUIT_CLASS[key]) return null;
+          const rank = rankParts.join('').trim();
+          if(!rank) return null;
+          const normalizedRank = rank.toUpperCase();
+          if(!/^(10|[2-9TJQKA])$/i.test(normalizedRank)) return null;
+          return { rank: normalizedRank, suit: suitChar };
+        };
+        const tailSuit = codepoints[codepoints.length - 1];
+        const tailRankParts = codepoints.slice(0, -1);
+        const direct = trySuit(tailSuit, tailRankParts);
+        if(direct) return direct;
+        const altSuit = codepoints[codepoints.length - 2];
+        const altRankParts = codepoints.slice(0, -2);
+        return trySuit(altSuit, altRankParts);
       }
       function withCardEmoji(text){
         if(text == null) return '';
         if(typeof text !== 'string') text = String(text);
-        let transformed = text.replace(CARD_CODE_PATTERN, (match, rank, suitCode) => {
-          const face = rank.length === 1 ? rank.toUpperCase() : rank;
-          return `${face}${suitIcon(suitCode)}`;
-        });
-        transformed = transformed.replace(SUIT_SYMBOL_PATTERN, '$1️');
-        return transformed;
+        const source = text;
+        let result = '';
+        let index = 0;
+        let previousWasCard = false;
+
+        while(index < source.length){
+          const slice = source.slice(index);
+          const match = slice.match(CARD_CODE_PATTERN);
+          if(match){
+            const [fullMatch, rank, suitCode] = match;
+            const before = index > 0 ? source[index - 1] : '';
+            const hasSafePrefix = !before || !/[0-9A-Za-z]/.test(before) || previousWasCard;
+            if(hasSafePrefix){
+              const face = rank.length === 1 ? rank.toUpperCase() : rank;
+              result += `${face}${suitIcon(suitCode)}`;
+              index += fullMatch.length;
+              previousWasCard = true;
+              continue;
+            }
+          }
+          result += source[index];
+          index += 1;
+          previousWasCard = false;
+        }
+
+        result = result.replace(SUIT_SYMBOL_PATTERN, '$1️');
+        return result;
       }
       function setTextWithCards(el, value){
         if(!el) return;
@@ -2885,11 +2945,9 @@
         if(!cards || !cards.length) return '';
         return cards
           .map((raw) => {
-            const token = (raw || '').toString().trim();
-            if(!token) return '';
-            const match = token.match(/^(10|[2-9TJQKA])([scdh])$/i);
-            const rank = match ? match[1].toUpperCase() : token.slice(0, -1).toUpperCase();
-            const suitCode = match ? match[2] : token.slice(-1);
+            const parsed = parseCardToken(raw);
+            if(!parsed) return '';
+            const { rank, suit: suitCode } = parsed;
             const css = suit(suitCode);
             return `<span class="card poker-card ${css}">${rank}${suitIcon(suitCode)}</span>`;
           })
