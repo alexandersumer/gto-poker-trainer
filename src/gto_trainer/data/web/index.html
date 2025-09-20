@@ -2031,6 +2031,141 @@
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
 
+      const SUIT_CLASS = {
+        S: 's', H: 'h', D: 'd', C: 'c',
+        '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c',
+      };
+      const SUIT_EMOJI = {
+        S: '♠', H: '♥', D: '♦', C: '♣',
+        '♠': '♠', '♥': '♥', '♦': '♦', '♣': '♣',
+      };
+      const CARD_CODE_PATTERN = /^(10|[2-9TJQKA])\s*([scdh])/i;
+      const CARD_SYMBOL_PATTERN = /^(10|[2-9TJQKA])\s*([♠♣♥♦])\uFE0F?/i;
+
+      function suit(sym){
+        const token = (sym || '').toString().trim();
+        if(!token) return 's';
+        const upper = token.toUpperCase();
+        const key = upper[0];
+        return SUIT_CLASS[key] || 's';
+      }
+      function suitIcon(sym){
+        const token = (sym || '').toString().trim();
+        if(!token) return '♠';
+        const upper = token.toUpperCase();
+        const key = upper[0];
+        return SUIT_EMOJI[key] || '♠';
+      }
+      function matchInlineCard(input){
+        if(!input) return null;
+        const codeMatch = input.match(CARD_CODE_PATTERN);
+        if(codeMatch){
+          return {
+            rank: codeMatch[1].toUpperCase(),
+            suit: codeMatch[2],
+            length: codeMatch[0].length,
+          };
+        }
+        const symbolMatch = input.match(CARD_SYMBOL_PATTERN);
+        if(symbolMatch){
+          return {
+            rank: symbolMatch[1].toUpperCase(),
+            suit: symbolMatch[2],
+            length: symbolMatch[0].length,
+          };
+        }
+        return null;
+      }
+      function parseCardToken(raw){
+        const token = (raw || '').toString().trim();
+        if(!token) return null;
+        const match = matchInlineCard(token);
+        if(match && match.length === token.length){
+          return { rank: match.rank, suit: match.suit };
+        }
+        const codepoints = Array.from(token);
+        if(codepoints.length < 2) return null;
+        const trySuit = (suitChar, rankParts) => {
+          if(!suitChar) return null;
+          const key = suitChar.toString().toUpperCase()[0];
+          if(!SUIT_CLASS[key]) return null;
+          const rank = rankParts.join('').trim();
+          if(!rank) return null;
+          const normalizedRank = rank.toUpperCase();
+          if(!/^(10|[2-9TJQKA])$/i.test(normalizedRank)) return null;
+          return { rank: normalizedRank, suit: suitChar };
+        };
+        const tailSuit = codepoints[codepoints.length - 1];
+        const tailRankParts = codepoints.slice(0, -1);
+        const direct = trySuit(tailSuit, tailRankParts);
+        if(direct) return direct;
+        const altSuit = codepoints[codepoints.length - 2];
+        const altRankParts = codepoints.slice(0, -2);
+        return trySuit(altSuit, altRankParts);
+      }
+      function withCardMarkup(text){
+        if(text == null) return '';
+        if(typeof text !== 'string') text = String(text);
+        const source = text;
+        let result = '';
+        let index = 0;
+        let buffer = '';
+        let previousWasCard = false;
+
+        const flushBuffer = () => {
+          if(buffer){
+            result += escapeHtml(buffer);
+            buffer = '';
+          }
+        };
+
+        while(index < source.length){
+          const slice = source.slice(index);
+          const match = matchInlineCard(slice);
+          if(match){
+            const before = index > 0 ? source[index - 1] : '';
+            const afterIndex = index + match.length;
+            const after = afterIndex < source.length ? source[afterIndex] : '';
+            const nextCard = matchInlineCard(source.slice(afterIndex));
+            const hasSafePrefix = !before || !/[0-9A-Za-z]/.test(before) || previousWasCard;
+            const hasSafeSuffix = !after || !/[0-9A-Za-z]/.test(after) || !!nextCard;
+            if(hasSafePrefix && hasSafeSuffix){
+              flushBuffer();
+              const suitKey = suit(match.suit);
+              const suitChar = escapeHtml(suitIcon(match.suit));
+              const rankText = escapeHtml(match.rank);
+              result += `<span class="inline-card inline-card--${suitKey}"><span class="inline-card__rank">${rankText}</span><span class="inline-card__suit">${suitChar}</span></span>`;
+              index += match.length;
+              previousWasCard = true;
+              continue;
+            }
+          }
+          buffer += source[index];
+          index += 1;
+          previousWasCard = false;
+        }
+
+        flushBuffer();
+        return result;
+      }
+      function setTextWithCards(el, value){
+        if(!el) return;
+        el.innerHTML = value == null ? '' : withCardMarkup(value);
+      }
+      function renderCards(cards){
+        if(!cards || !cards.length) return '';
+        return cards
+          .map((raw) => {
+            const parsed = parseCardToken(raw);
+            if(!parsed) return '';
+            const { rank, suit: suitCode } = parsed;
+            const css = suit(suitCode);
+            return `<span class="card poker-card ${css}">${rank}${suitIcon(suitCode)}</span>`;
+          })
+          .filter(Boolean)
+          .join(' ');
+      }
+
       const clearNextHandQueue = () => {
         pendingNextPayload = null;
         if(nextHandButton){
@@ -2880,141 +3015,6 @@
         } finally {
           endRequest();
         }
-      }
-
-      const SUIT_CLASS = {
-        S: 's', H: 'h', D: 'd', C: 'c',
-        '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c',
-      };
-      const SUIT_EMOJI = {
-        S: '♠', H: '♥', D: '♦', C: '♣',
-        '♠': '♠', '♥': '♥', '♦': '♦', '♣': '♣',
-      };
-      const CARD_CODE_PATTERN = /^(10|[2-9TJQKA])\s*([scdh])/i;
-      const CARD_SYMBOL_PATTERN = /^(10|[2-9TJQKA])\s*([♠♣♥♦])\uFE0F?/i;
-
-      function suit(sym){
-        const token = (sym || '').toString().trim();
-        if(!token) return 's';
-        const upper = token.toUpperCase();
-        const key = upper[0];
-        return SUIT_CLASS[key] || 's';
-      }
-      function suitIcon(sym){
-        const token = (sym || '').toString().trim();
-        if(!token) return '♠';
-        const upper = token.toUpperCase();
-        const key = upper[0];
-        return SUIT_EMOJI[key] || '♠';
-      }
-      function matchInlineCard(input){
-        if(!input) return null;
-        const codeMatch = input.match(CARD_CODE_PATTERN);
-        if(codeMatch){
-          return {
-            rank: codeMatch[1].toUpperCase(),
-            suit: codeMatch[2],
-            length: codeMatch[0].length,
-          };
-        }
-        const symbolMatch = input.match(CARD_SYMBOL_PATTERN);
-        if(symbolMatch){
-          return {
-            rank: symbolMatch[1].toUpperCase(),
-            suit: symbolMatch[2],
-            length: symbolMatch[0].length,
-          };
-        }
-        return null;
-      }
-      function parseCardToken(raw){
-        const token = (raw || '').toString().trim();
-        if(!token) return null;
-        const match = matchInlineCard(token);
-        if(match && match.length === token.length){
-          return { rank: match.rank, suit: match.suit };
-        }
-        const codepoints = Array.from(token);
-        if(codepoints.length < 2) return null;
-        const trySuit = (suitChar, rankParts) => {
-          if(!suitChar) return null;
-          const key = suitChar.toString().toUpperCase()[0];
-          if(!SUIT_CLASS[key]) return null;
-          const rank = rankParts.join('').trim();
-          if(!rank) return null;
-          const normalizedRank = rank.toUpperCase();
-          if(!/^(10|[2-9TJQKA])$/i.test(normalizedRank)) return null;
-          return { rank: normalizedRank, suit: suitChar };
-        };
-        const tailSuit = codepoints[codepoints.length - 1];
-        const tailRankParts = codepoints.slice(0, -1);
-        const direct = trySuit(tailSuit, tailRankParts);
-        if(direct) return direct;
-        const altSuit = codepoints[codepoints.length - 2];
-        const altRankParts = codepoints.slice(0, -2);
-        return trySuit(altSuit, altRankParts);
-      }
-      function withCardMarkup(text){
-        if(text == null) return '';
-        if(typeof text !== 'string') text = String(text);
-        const source = text;
-        let result = '';
-        let index = 0;
-        let buffer = '';
-        let previousWasCard = false;
-
-        const flushBuffer = () => {
-          if(buffer){
-            result += escapeHtml(buffer);
-            buffer = '';
-          }
-        };
-
-        while(index < source.length){
-          const slice = source.slice(index);
-          const match = matchInlineCard(slice);
-          if(match){
-            const before = index > 0 ? source[index - 1] : '';
-            const afterIndex = index + match.length;
-            const after = afterIndex < source.length ? source[afterIndex] : '';
-            const nextCard = matchInlineCard(source.slice(afterIndex));
-            const hasSafePrefix = !before || !/[0-9A-Za-z]/.test(before) || previousWasCard;
-            const hasSafeSuffix = !after || !/[0-9A-Za-z]/.test(after) || !!nextCard;
-            if(hasSafePrefix && hasSafeSuffix){
-              flushBuffer();
-              const suitKey = suit(match.suit);
-              const suitChar = escapeHtml(suitIcon(match.suit));
-              const rankText = escapeHtml(match.rank);
-              result += `<span class="inline-card inline-card--${suitKey}"><span class="inline-card__rank">${rankText}</span><span class="inline-card__suit">${suitChar}</span></span>`;
-              index += match.length;
-              previousWasCard = true;
-              continue;
-            }
-          }
-          buffer += source[index];
-          index += 1;
-          previousWasCard = false;
-        }
-
-        flushBuffer();
-        return result;
-      }
-      function setTextWithCards(el, value){
-        if(!el) return;
-        el.innerHTML = value == null ? '' : withCardMarkup(value);
-      }
-      function renderCards(cards){
-        if(!cards || !cards.length) return '';
-        return cards
-          .map((raw) => {
-            const parsed = parseCardToken(raw);
-            if(!parsed) return '';
-            const { rank, suit: suitCode } = parsed;
-            const css = suit(suitCode);
-            return `<span class="card poker-card ${css}">${rank}${suitIcon(suitCode)}</span>`;
-          })
-          .filter(Boolean)
-          .join(' ');
       }
 
       const placeholderCard = (state = 'loading', wide = false) =>
