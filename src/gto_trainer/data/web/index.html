@@ -174,11 +174,11 @@
         --action-caution-border: #B86774;
         --action-caution-selected-bg: #5A2F38;
         --action-caution-selected-border: #DE8C98;
-        --action-negative-text: #FFDAD1;
-        --action-negative-bg: #4A2B27;
-        --action-negative-border: #B97E73;
-        --action-negative-selected-bg: #5E3A34;
-        --action-negative-selected-border: #E09A8B;
+        --action-negative-text: #FFFFFF;
+        --action-negative-bg: #C42635;
+        --action-negative-border: #F27B89;
+        --action-negative-selected-bg: #D32F3D;
+        --action-negative-selected-border: #F8A4AE;
         --chipbar-bg: #1F2937;
         --chipbar-text: #EAEFF7;
         --chipbar-border: color-mix(in srgb, #94A3B8 45%, transparent);
@@ -1133,6 +1133,15 @@
         background: color-mix(in srgb, var(--action-neutral-selected-bg) 70%, var(--action-neutral-bg) 30%);
         border-color: color-mix(in srgb, var(--action-neutral-selected-border) 80%, transparent);
       }
+      .action-button.action-negative {
+        background: var(--action-negative-bg);
+        border-color: var(--action-negative-border);
+        color: var(--action-negative-text);
+      }
+      .action-button.action-negative:hover {
+        background: var(--action-negative-selected-bg);
+        border-color: var(--action-negative-selected-border);
+      }
       .action-button[disabled] {
         opacity: 0.55;
         cursor: not-allowed;
@@ -1171,11 +1180,29 @@
         color: var(--action-negative-text);
       }
       :root[data-theme="dark"] .action-button.action-negative {
-        color: color-mix(in srgb, var(--action-negative-text) 80%, var(--text-primary) 20%);
-        border-color: color-mix(in srgb, var(--action-negative-border) 45%, var(--field-border) 55%);
+        background: var(--action-negative-bg);
+        border-color: color-mix(in srgb, var(--action-negative-border) 70%, rgba(255, 255, 255, 0.4) 30%);
+        color: var(--action-negative-text);
+        box-shadow: 0 12px 26px rgba(12, 18, 28, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
       }
       :root[data-theme="dark"] .action-button.action-negative .action-meta {
-        color: color-mix(in srgb, var(--action-negative-text) 60%, var(--text-secondary) 40%);
+        color: color-mix(in srgb, var(--action-negative-text) 65%, rgba(255, 255, 255, 0.75) 35%);
+      }
+      :root[data-theme="dark"] .action-button.action-negative:hover {
+        background: color-mix(in srgb, var(--action-negative-selected-bg) 80%, var(--action-negative-bg) 20%);
+        border-color: color-mix(in srgb, var(--action-negative-selected-border) 80%, rgba(255, 255, 255, 0.45) 20%);
+        box-shadow: 0 16px 30px rgba(12, 18, 28, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+      :root[data-theme="dark"] .action-button.action-negative:active {
+        background: color-mix(in srgb, var(--action-negative-bg) 75%, #8C1D33 25%);
+        border-color: color-mix(in srgb, var(--action-negative-border) 80%, rgba(255, 255, 255, 0.3) 20%);
+        box-shadow: 0 8px 18px rgba(12, 18, 28, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      }
+      :root[data-theme="dark"] .action-button.is-armed.action-negative {
+        background: var(--action-negative-selected-bg);
+        border-color: var(--action-negative-selected-border);
+        color: var(--action-negative-text);
+        box-shadow: 0 20px 36px rgba(12, 18, 28, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1);
       }
       .next-hand-btn {
         margin-top: var(--space-2);
