@@ -11,7 +11,7 @@ from ..core.formatting import format_option_label
 from ..core.models import Option
 from ..core.scoring import SummaryStats, summarize_records
 from ..dynamic.cards import format_card_ascii
-from ..dynamic.generator import Episode, Node
+from ..dynamic.generator import Episode, Node, available_villain_styles
 from ..dynamic.policy import options_for, resolve_for
 from ..dynamic.seating import SeatRotation
 from .session_engine import SessionEngine
@@ -28,6 +28,7 @@ class SessionConfig:
     hands: int
     mc_trials: int
     seed: int | None = None
+    villain_style: str = "balanced"
 
 
 @dataclass(frozen=True)
@@ -191,11 +192,20 @@ class SessionManager:
         seed = config.seed or secrets.SystemRandom().getrandbits(32)
         rng = random.Random(seed)
         rotation = SeatRotation()
-        engine = SessionEngine(rng=rng, rotation=rotation)
+        style = (config.villain_style or "balanced").strip().lower()
+        if style not in available_villain_styles():
+            style = "balanced"
+        engine = SessionEngine(rng=rng, rotation=rotation, villain_style=style)
         first_episode = engine.build_episode(0)
         session_id = _sid()
+        normalized_config = SessionConfig(
+            hands=max(1, config.hands),
+            mc_trials=max(10, config.mc_trials),
+            seed=seed,
+            villain_style=style,
+        )
         state = SessionState(
-            config=SessionConfig(hands=max(1, config.hands), mc_trials=max(10, config.mc_trials), seed=seed),
+            config=normalized_config,
             episodes=[first_episode],
             engine=engine,
         )

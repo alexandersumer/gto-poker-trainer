@@ -10,6 +10,18 @@ GTO Trainer is a heads-up no-limit hold’em practice environment with both a Te
 
 - Python 3.12.11 exactly (`pyenv` or another version manager is recommended to match CI).
 
+## Quick start (uv)
+
+1. Install [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
+2. Sync dependencies: `uv sync --all-extras` (installs runtime + `dev` extras).
+3. Run everything in one go: `uv run scripts/run_ci_tests.sh`.
+
+Common commands:
+
+- `uv run python -m pytest -q`
+- `uv run ruff check .`
+- `uv run ruff format .`
+
 ## Install & run (CLI)
 
 ```bash
@@ -62,7 +74,7 @@ Environment overrides: `HANDS` and `MC` mirror the CLI flags when exported befor
 
 ## Local development
 
-Common helper targets:
+If you prefer Make targets / pip:
 
 ```bash
 make install-dev   # editable install with dev extras
@@ -73,7 +85,7 @@ make format        # Ruff formatter
 make render-smoke  # build Docker image & hit /healthz (Render parity)
 ```
 
-CI runs the same trio as `make check` (`ruff format --check`, `ruff check`, `pytest -q`).
+CI runs the same trio as `uv run ci` / `make check` (`ruff check`, `pytest -q`).
 
 ## Solver architecture (quick tour)
 

@@ -7,11 +7,13 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, model_validator
 
 from ..application import SessionConfig, SessionManager
+from ..dynamic.generator import available_villain_styles
 
 
 class CreateSessionRequest(BaseModel):
     hands: int | None = None
     mc: int | None = None
+    villain_style: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -39,8 +41,13 @@ class CreateSessionRequest(BaseModel):
         mc = self.mc if self.mc is not None else 120
         if mc < 40:
             mc = 40
+        styles = available_villain_styles()
+        style = (self.villain_style or "balanced").strip().lower()
+        if style not in styles:
+            style = "balanced"
         self.hands = hands
         self.mc = mc
+        self.villain_style = style
         return self
 
 
@@ -71,7 +78,13 @@ def index() -> str:
 
 @app.post("/api/session")
 def create_session(body: CreateSessionRequest) -> JSONResponse:
-    session_id = _manager.create_session(SessionConfig(hands=body.hands, mc_trials=body.mc))
+    session_id = _manager.create_session(
+        SessionConfig(
+            hands=body.hands,
+            mc_trials=body.mc,
+            villain_style=body.villain_style,
+        )
+    )
     return JSONResponse({"session": session_id})
 
 

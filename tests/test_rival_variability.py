@@ -9,9 +9,9 @@ from gto_trainer.dynamic.policy import resolve_for, river_options, turn_options
 from gto_trainer.dynamic.seating import BB, SB, SeatAssignment
 
 
-def _build_episode(seed: int) -> tuple[EpisodeBuilder, object]:
+def _build_episode(seed: int, style: str = "balanced") -> tuple[EpisodeBuilder, object]:
     rng = random.Random(seed)
-    builder = EpisodeBuilder(rng, seats=SeatAssignment(hero=BB, villain=SB))
+    builder = EpisodeBuilder(rng, seats=SeatAssignment(hero=BB, villain=SB), villain_style=style)
     return builder, builder.build()
 
 
@@ -92,3 +92,33 @@ def test_resolve_river_fold_finishes_hand():
         break
     else:
         pytest.fail("unable to find river lead scenario within 80 seeds")
+
+
+def test_style_aggressive_checks_less_than_passive():
+    aggressive_bets = 0
+    passive_bets = 0
+    for seed in range(120):
+        _, aggressive_episode = _build_episode(seed, "aggressive")
+        _, passive_episode = _build_episode(seed, "passive")
+        agg_turn = next(node for node in aggressive_episode.nodes if node.street == "turn")
+        pas_turn = next(node for node in passive_episode.nodes if node.street == "turn")
+        if str(agg_turn.context.get("facing")) == "bet":
+            aggressive_bets += 1
+        if str(pas_turn.context.get("facing")) == "bet":
+            passive_bets += 1
+    assert aggressive_bets > passive_bets
+
+
+def test_style_aggressive_river_leads_superset_passive():
+    aggressive_leads = 0
+    passive_leads = 0
+    for seed in range(120):
+        _, aggressive_episode = _build_episode(seed, "aggressive")
+        _, passive_episode = _build_episode(seed, "passive")
+        agg_river = next(node for node in aggressive_episode.nodes if node.street == "river")
+        pas_river = next(node for node in passive_episode.nodes if node.street == "river")
+        if str(agg_river.context.get("facing")) == "bet":
+            aggressive_leads += 1
+        if str(pas_river.context.get("facing")) == "bet":
+            passive_leads += 1
+    assert aggressive_leads > passive_leads

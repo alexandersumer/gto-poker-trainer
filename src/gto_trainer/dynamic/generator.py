@@ -359,6 +359,7 @@ def generate_episode(
     hero_seat: str | None = None,
     *,
     seat_assignment: SeatAssignment | None = None,
+    villain_style: str = "balanced",
 ) -> Episode:
     """Generate a fresh episode for the provided seat assignment.
 
@@ -367,7 +368,14 @@ def generate_episode(
     """
 
     seats = _resolve_seat_assignment(hero_seat=hero_seat, seat_assignment=seat_assignment)
-    builder = EpisodeBuilder(rng, seats=seats, stacks_bb=stacks_bb, sb=sb, bb=bb)
+    builder = EpisodeBuilder(
+        rng,
+        seats=seats,
+        stacks_bb=stacks_bb,
+        sb=sb,
+        bb=bb,
+        villain_style=villain_style,
+    )
     return builder.build()
 
 

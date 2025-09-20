@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from .dynamic.generator import available_villain_styles
 from .engine_play import run_play
 
 
@@ -19,6 +20,13 @@ def _add_play_args(p: argparse.ArgumentParser) -> None:
     )
     p.add_argument("--no-color", action="store_true", help="Disable colored output (default is colored)")
     p.add_argument("--solver-csv", type=str, default=None, help="Use preflop solver CSV before heuristics")
+    p.add_argument(
+        "--villain-style",
+        type=str,
+        default="balanced",
+        choices=available_villain_styles(),
+        help="Villain profile preset (default: balanced)",
+    )
 
 
 def main() -> None:
@@ -44,6 +52,7 @@ def main() -> None:
         mc_trials=args.mc,
         no_color=args.no_color,
         solver_csv=args.solver_csv,
+        villain_style=args.villain_style,
     )
 
 

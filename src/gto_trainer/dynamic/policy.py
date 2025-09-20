@@ -534,11 +534,12 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
 def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
     hero = node.hero_cards
     board = node.board
-    hand_state = _hand_state(node)
+    hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
     base_range = _villain_base_range(node, blocked)
-    probe_range = tighten_range(base_range, 0.7)
+    probe_tighten = float(hand_state.get("style_turn_probe_tighten", 0.7))
+    probe_range = tighten_range(base_range, probe_tighten)
     sampled_range = _sample_range(probe_range, _sample_cap_postflop(mc_trials)) or probe_range
     precision = _precision_for_street(mc_trials, "turn")
     equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
@@ -553,7 +554,8 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
         )
     ]
 
-    for pct in (0.5, 0.8):
+    probe_sizes = tuple(hand_state.get("style_turn_probe_sizes", (0.5, 0.8)))
+    for pct in probe_sizes or (0.5, 0.8):
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
@@ -628,7 +630,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     del rng
     hero = node.hero_cards
     board = node.board
-    hand_state = _hand_state(node)
+    hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
     open_range = _villain_base_range(node, blocked)
@@ -723,14 +725,15 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
 def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     hero = node.hero_cards
     board = node.board
-    hand_state = _hand_state(node)
+    hand_state = _hand_state(node) or {}
     pot_start = _set_node_pot_from_state(node, hand_state)
     villain_bet = float(node.context.get("bet") or round(0.75 * pot_start, 2))
     node.context["bet"] = villain_bet
     pot_after_bet = pot_start + villain_bet
     blocked = _blocked_cards(hero, board)
     base_range = _villain_base_range(node, blocked)
-    lead_range = tighten_range(base_range, 0.5)
+    lead_tighten = float(hand_state.get("style_river_lead_tighten", 0.5))
+    lead_range = tighten_range(base_range, lead_tighten)
     sampled_range = _sample_range(lead_range, _sample_cap_postflop(mc_trials)) or lead_range
     precision = _precision_for_street(mc_trials, "river")
     equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
@@ -847,14 +850,15 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
 
     hero = node.hero_cards
     board = node.board
-    hand_state = _hand_state(node)
+    hand_state = _hand_state(node) or {}
     pot_start = _set_node_pot_from_state(node, hand_state)
     villain_bet = float(node.context.get("bet") or round(0.5 * pot_start, 2))
     node.context["bet"] = villain_bet
     pot_before_action = pot_start + villain_bet
     blocked = _blocked_cards(hero, board)
     base_range = _villain_base_range(node, blocked)
-    bet_range = tighten_range(base_range, 0.55)
+    tighten = float(hand_state.get("style_turn_bet_tighten", 0.55))
+    bet_range = tighten_range(base_range, tighten)
     sampled_range = _sample_range(bet_range, _sample_cap_postflop(mc_trials)) or bet_range
     precision = _precision_for_street(mc_trials, "turn")
     equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
@@ -936,11 +940,12 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
 
     hero = node.hero_cards
     board = node.board
-    hand_state = _hand_state(node)
+    hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
     base_range = _villain_base_range(node, blocked)
-    check_range = tighten_range(base_range, 0.65)
+    check_tighten = float(hand_state.get("style_river_check_tighten", 0.65))
+    check_range = tighten_range(base_range, check_tighten)
     sampled_range = _sample_range(check_range, _sample_cap_postflop(mc_trials)) or check_range
     precision = _precision_for_street(mc_trials, "river")
     equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
