@@ -890,23 +890,24 @@
         vertical-align: baseline;
       }
       .inline-card__rank {
-        display: inline-block;
+        display: inline-flex;
+        align-items: baseline;
         line-height: 1;
       }
       .inline-card__suit {
         display: inline-block;
-        margin-left: 0.05em;
-        font-size: 0.9em;
+        margin-left: 0.04em;
         line-height: 1;
-        transform: translateY(-0.05em);
+        transform: translateY(-0.04em);
+        font-size: 0.92em;
       }
       .inline-card + .inline-card {
-        margin-left: 0.18em;
+        margin-left: 0.12em;
       }
-      .inline-card--s .inline-card__suit { color: var(--suit-spade); }
-      .inline-card--h .inline-card__suit { color: var(--suit-heart); }
-      .inline-card--d .inline-card__suit { color: var(--suit-diamond); }
-      .inline-card--c .inline-card__suit { color: var(--suit-club); }
+      .inline-card--s { color: var(--suit-spade); }
+      .inline-card--h { color: var(--suit-heart); }
+      .inline-card--d { color: var(--suit-diamond); }
+      .inline-card--c { color: var(--suit-club); }
       .status-line {
         margin-top: calc(var(--space-1) * 0.6);
         margin-bottom: calc(var(--space-1) * 0.85);
@@ -2134,7 +2135,7 @@
               const suitKey = suit(match.suit);
               const suitChar = escapeHtml(suitIcon(match.suit));
               const rankText = escapeHtml(match.rank);
-              result += `<span class="inline-card inline-card--${suitKey}"><span class="inline-card__rank">${rankText}</span><span class="inline-card__suit">${suitChar}</span></span>`;
+              result += `<span class="inline-card inline-card--${suitKey}"><span class="inline-card__rank">${rankText}<span class="inline-card__suit">${suitChar}</span></span></span>`;
               index += match.length;
               previousWasCard = true;
               continue;
