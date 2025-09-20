@@ -85,7 +85,7 @@ make format        # Ruff formatter
 make render-smoke  # build Docker image & hit /healthz (Render parity)
 ```
 
-CI runs the same trio as `uv run ci` / `make check` (`ruff check`, `pytest -q`).
+CI runs the same trio as `uv run scripts/run_ci_tests.sh` / `make check` (`ruff check`, `pytest -q`).
 
 ## Solver architecture (quick tour)
 
