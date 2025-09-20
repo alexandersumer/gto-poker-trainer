@@ -140,9 +140,15 @@ def test_start_button_state_transitions() -> None:
         page.goto(base_url, wait_until="domcontentloaded")
         page.click("#btn-start")
 
-        page.wait_for_function("() => document.querySelector('#btn-start').disabled === true", timeout=10_000)
+        page.wait_for_function(
+            "() => document.querySelector('#btn-start').textContent.toLowerCase().includes('starting')",
+            timeout=10_000,
+        )
         page.wait_for_selector("#hand .card:not(.placeholder)", timeout=15_000)
-        page.wait_for_function("() => document.querySelector('#btn-start').disabled === false", timeout=15_000)
+        page.wait_for_function(
+            "() => !document.querySelector('#btn-start').textContent.toLowerCase().includes('starting')",
+            timeout=15_000,
+        )
 
         label = page.eval_on_selector("#btn-start", "el => (el.textContent || '').trim().toLowerCase()")
         assert label == "start"
@@ -186,6 +192,76 @@ def test_feedback_drawer_after_action() -> None:
         drawer_html = page.inner_html("#feedback-drawer-body").lower()
         assert "gto recommendation" in drawer_html
         assert "drawer-row" in drawer_html
+
+        assert not console_errors, f"Console errors captured: {console_errors}"
+        assert not page_errors, f"Page errors captured: {page_errors}"
+
+        browser.close()
+
+
+def test_end_session_shows_summary() -> None:
+    console_errors: list[str] = []
+    page_errors: list[str] = []
+
+    with _run_server() as base_url, sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+
+        page.on(
+            "console",
+            lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
+        )
+        page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+
+        page.goto(base_url, wait_until="domcontentloaded")
+        page.click("#btn-start")
+        page.wait_for_selector("#hand .card:not(.placeholder)", timeout=15_000)
+
+        page.click("#btn-end")
+        page.wait_for_function(
+            "() => !document.querySelector('#panel-summary').classList.contains('hidden')",
+            timeout=15_000,
+        )
+
+        summary_html = page.inner_html("#panel-summary").lower()
+        assert "session summary" in summary_html
+        assert "data-summary-score" in summary_html
+
+        assert not console_errors, f"Console errors captured: {console_errors}"
+        assert not page_errors, f"Page errors captured: {page_errors}"
+
+        browser.close()
+
+
+def test_theme_toggle_cycles_dark_mode() -> None:
+    console_errors: list[str] = []
+    page_errors: list[str] = []
+
+    with _run_server() as base_url, sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+
+        page.on(
+            "console",
+            lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
+        )
+        page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+
+        page.goto(base_url, wait_until="domcontentloaded")
+
+        page.click("#theme-toggle")
+        page.wait_for_function(
+            "() => document.querySelector('#theme-menu') && document.querySelector('#theme-menu').hidden === false",
+            timeout=5_000,
+        )
+        page.click(".theme-menu__item[data-theme-choice='dark']")
+
+        page.wait_for_function(
+            "() => document.documentElement.dataset.theme === 'dark'",
+            timeout=10_000,
+        )
+
+        assert page.evaluate("() => document.documentElement.dataset.theme") == "dark"
 
         assert not console_errors, f"Console errors captured: {console_errors}"
         assert not page_errors, f"Page errors captured: {page_errors}"
