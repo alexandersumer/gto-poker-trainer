@@ -752,102 +752,43 @@
       .status-bar {
         display: flex;
         align-items: center;
-        min-height: 42px;
-        font-size: 0.85rem;
+        min-height: 40px;
+        font-size: 0.82rem;
         color: var(--text-secondary);
       }
-      .status-bar__text {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .status-chips {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        width: 100%;
-        padding: 4px 0;
-      }
-      .status-chip {
+      .status-compact {
         display: flex;
         align-items: center;
         gap: 8px;
-        border-radius: 10px;
-        padding: 5px 12px;
-        font-size: 0.72rem;
-        font-weight: 600;
-        color: var(--chipbar-text);
-        background: color-mix(in srgb, var(--chipbar-bg) 88%, transparent);
-        border: 1px solid color-mix(in srgb, var(--chipbar-border) 80%, transparent);
         width: 100%;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
-      }
-      #status-chip-dynamic {
-        width: 100%;
-      }
-      .status-chip .chip-label {
-        color: color-mix(in srgb, var(--chipbar-text) 58%, transparent);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        font-size: 0.6rem;
-        opacity: 0.8;
-        min-width: 68px;
         white-space: nowrap;
+        overflow-x: auto;
+        padding: 4px 0;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
       }
-      .status-chip .chip-value {
-        color: var(--chipbar-text);
-        font-weight: 600;
-        width: 100%;
-        white-space: normal;
-        line-height: 1.2;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .status-chip .chip-value .metric-seg {
+      .status-compact::-webkit-scrollbar { display: none; }
+      .status-compact__text {
         display: inline-flex;
         align-items: baseline;
-        gap: 5px;
+        gap: 10px;
         white-space: nowrap;
+        font-variant-numeric: tabular-nums;
       }
-      .status-chip .chip-value .metric-seg strong {
-        font-size: 0.66rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: color-mix(in srgb, var(--chipbar-text) 62%, transparent);
-      }
-      .status-chip .chip-value .metric-value {
-        font-size: 0.88rem;
-        font-weight: 650;
-        color: var(--chipbar-text);
-      }
-      .status-chip .chip-value .chip-sep {
-        opacity: 0.35;
-      }
-      #header-status {
+      .status-seg {
         display: inline-flex;
         align-items: baseline;
-        flex-wrap: wrap;
-        gap: 8px;
+        gap: 4px;
+        color: var(--text-secondary);
       }
-      #header-status .chip-sep {
+      .status-seg strong {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .status-dot {
         opacity: 0.35;
-      }
-      .status-chip .chip-value .metric-seg strong,
-      .status-chip .chip-value strong {
-        font-weight: 700;
-        color: color-mix(in srgb, var(--chipbar-text) 95%, transparent);
-      }
-      @media (max-width: 640px) {
-        .status-chip {
-          font-size: 0.74rem;
-          padding: 7px 12px;
-        }
-        .status-chip .chip-label {
-          font-size: 0.66rem;
-        }
+        font-weight: 500;
+        margin: 0 6px;
       }
       .status-line {
         margin-top: calc(var(--space-1) * 0.6);
@@ -1565,12 +1506,8 @@
           </div>
         </div>
         <div id="status-bar" class="status-bar" aria-live="polite">
-          <div id="status-chips" class="status-chips" role="list">
-            <span class="status-chip" role="listitem">
-              <span class="chip-label">State</span>
-              <span id="header-status" class="chip-value">Ready</span>
-            </span>
-            <span id="status-chip-dynamic"></span>
+          <div id="status-compact" class="status-compact" role="text">
+            <span id="header-status" class="status-compact__text">Ready</span>
           </div>
         </div>
       </div>
@@ -1812,8 +1749,6 @@
       let pendingSummary = null;
       const screen = document.querySelector('main.screen');
       const headerStatus = $('#header-status');
-      const statusChips = $('#status-chips');
-      const statusChipDynamic = $('#status-chip-dynamic');
       const themeToggle = $('#theme-toggle');
       const feedbackBanner = $('#feedback-banner');
       const feedbackRecommendation = $('#feedback-recommendation');
@@ -1926,28 +1861,8 @@
         if(statusLineEl && (!statusLineEl.dataset.active || statusLineEl.dataset.active !== 'node')){
           renderStatusLine(message ? [{ label: 'Status', value: message }] : []);
           updateHeaderStatus(activeNode, { state: message || 'Ready' });
-        } else if(!activeNode && headerStatus){
-          headerStatus.textContent = message;
-        }
-      };
-
-      const renderStatusChips = (items) => {
-        const list = Array.isArray(items)
-          ? items.filter((item) => item && item.label && item.value)
-          : [];
-        if(headerStatus){
-          headerStatus.textContent = list.length ? list[0].value : 'Ready';
-        }
-        if(statusChipDynamic){
-          statusChipDynamic.innerHTML = list
-            .slice(1)
-            .map((item) => `
-              <span class="status-chip" role="listitem">
-                <span class="chip-label">${item.label}</span>
-                <span class="chip-value">${item.value}</span>
-              </span>
-            `)
-            .join('');
+        } else if(!activeNode){
+          updateHeaderStatus(null, { state: message || 'Ready' });
         }
       };
 
@@ -1986,58 +1901,53 @@
       };
 
       const updateHeaderStatus = (node, opts = {}) => {
-        if(!statusChips) return;
+        if(!headerStatus) return;
         const { state } = opts;
-        const stateParts = [];
-        const metricParts = [];
+        const segments = [];
+
         if(node){
           const street = streetLabel(node.street);
-          if(street) stateParts.push(`Street ${street}`);
+          if(street) segments.push(street);
           if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
-            stateParts.push(`Hand ${node.hand_no}/${node.total_hands}`);
+            segments.push(`Hand ${node.hand_no}/${node.total_hands}`);
             sessionHands = node.total_hands;
           }
           if(typeof node.effective_bb === 'number' && Number.isFinite(node.effective_bb) && node.effective_bb > 0){
-            stateParts.push(`Stack ${formatBb(node.effective_bb)}`);
+            segments.push(`Stack ${formatBb(node.effective_bb)}`);
           }
         } else if(state){
-          stateParts.push(state);
+          segments.push(state);
         } else {
-          stateParts.push('Ready');
+          segments.push('Ready');
         }
 
         const evMagnitude = Math.abs(totalEvLost);
         const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : `+${formatBb(evMagnitude)}`;
-        metricParts.push(`ΔEV ${evDisplay}`);
+        segments.push(`ΔEV ${evDisplay}`);
+
         const accPct = answered > 0
           ? Math.round((correctDecisions / Math.max(1, answered)) * 100)
           : null;
-        metricParts.push(`Accuracy ${accPct !== null ? `${accPct}%` : '--'}`);
+        segments.push(`Acc ${accPct !== null ? `${accPct}%` : '--'}`);
 
-        const formatSegments = (parts) => parts
-          .map((part) => {
-            const [rawLabel = '', ...rest] = part.split(' ');
-            const label = escapeHtml(rawLabel);
-            const value = escapeHtml(rest.join(' ') || '—');
-            return `<span class="metric-seg"><strong>${label}</strong><span class="metric-value">${value}</span></span>`;
-          })
-          .join('<span class="chip-sep">·</span>');
+        const formatSegment = (segment) => {
+          const trimmed = (segment || '').trim();
+          if(!trimmed) return '';
+          const firstSpace = trimmed.indexOf(' ');
+          if(firstSpace === -1){
+            return `<span class="status-seg">${escapeHtml(trimmed)}</span>`;
+          }
+          const label = trimmed.slice(0, firstSpace);
+          const value = trimmed.slice(firstSpace + 1).trim();
+          return `<span class="status-seg"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></span>`;
+        };
 
-        const stateMarkup = formatSegments(stateParts);
-        if(headerStatus) headerStatus.innerHTML = stateMarkup;
+        const markup = segments
+          .map(formatSegment)
+          .filter(Boolean)
+          .join('<span class="status-dot">·</span>');
 
-        if(statusChipDynamic){
-          const metricsMarkup = formatSegments(metricParts);
-          statusChipDynamic.innerHTML = `<span class="status-chip" role="listitem"><span class="chip-label">Metrics</span><span class="chip-value">${metricsMarkup}</span></span>`;
-        }
-
-        const primaryChip = statusChips.querySelector('.status-chip');
-        if(primaryChip){
-          const label = primaryChip.querySelector('.chip-label');
-          const value = primaryChip.querySelector('.chip-value');
-          if(label) label.textContent = 'State';
-          if(value) value.innerHTML = stateMarkup;
-        }
+        headerStatus.innerHTML = markup || '<span class="status-seg">Ready</span>';
       };
 
       const formatStatusLine = (node, descriptor) => {
@@ -3017,8 +2927,7 @@
         answered = s.decisions ?? answered;
         setSummaryAvailability(false);
         show('#panel-summary');
-        updateHeaderStatus(null);
-        renderStatusChips([{ label: 'State', value: 'Summary' }]);
+        updateHeaderStatus(null, { state: 'Summary' });
       }
 
       const endSession = async () => {
