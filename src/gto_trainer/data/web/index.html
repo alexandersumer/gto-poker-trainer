@@ -693,19 +693,24 @@
         display: flex;
         align-items: center;
       }
+      .theme-control {
+        position: relative;
+        display: flex;
+      }
       .theme-toggle {
         position: relative;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
+        gap: 6px;
+        min-width: 44px;
+        height: 44px;
+        padding: 0 12px;
+        border-radius: 999px;
         border: 1px solid var(--border);
         background: var(--surface-2);
         color: var(--text-primary);
         transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-        overflow: hidden;
       }
       .theme-toggle:hover {
         background: var(--ghost-hover);
@@ -715,18 +720,11 @@
         outline: var(--focus-ring) solid var(--focus-color);
         outline-offset: 2px;
       }
-      :root[data-theme="light"] .theme-toggle {
-        color: #f59f0b;
-        border-color: color-mix(in srgb, #f59f0b 25%, var(--border) 75%);
-      }
-      :root[data-theme="dark"] .theme-toggle {
-        color: #f8fafc;
-        border-color: color-mix(in srgb, #94a3b8 40%, transparent);
-        background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+      .theme-toggle[data-open="true"] {
+        border-color: color-mix(in srgb, var(--brand) 52%, var(--border) 48%);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 12%, transparent);
       }
       .theme-icon {
-        position: absolute;
-        inset: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -740,14 +738,82 @@
         stroke-linecap: round;
         stroke-linejoin: round;
       }
-      :root[data-theme="dark"] .theme-icon--moon,
-      :root:not([data-theme]) .theme-icon--moon {
+      .theme-toggle[data-mode="light"] .theme-icon--sun,
+      .theme-toggle[data-mode="dark"] .theme-icon--moon,
+      .theme-toggle[data-mode="system"] .theme-icon--system {
         opacity: 1;
         transform: scale(1);
       }
-      :root[data-theme="light"] .theme-icon--sun {
+      .theme-toggle__chevron {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+        margin-top: 1px;
+      }
+      .theme-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 6px;
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+        background: color-mix(in srgb, var(--surface-1) 96%, transparent);
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.18);
+        min-width: 184px;
+        z-index: 20;
+      }
+      .theme-menu[hidden] {
+        display: none;
+      }
+      .theme-menu__item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 7px 10px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-align: left;
+        transition: background 0.2s ease, color 0.2s ease;
+        cursor: pointer;
+      }
+      .theme-menu__item:hover,
+      .theme-menu__item:focus-visible {
+        background: var(--ghost-hover);
+        color: var(--text-primary);
+        outline: none;
+      }
+      .theme-menu__icon svg {
+        width: 18px;
+        height: 18px;
+      }
+      .theme-menu__label {
+        flex: 1;
+      }
+      .theme-menu__check {
+        width: 16px;
+        height: 16px;
+        color: var(--brand);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .theme-menu__check svg {
+        width: 100%;
+        height: 100%;
+      }
+      .theme-menu__item[aria-checked="true"] {
+        background: color-mix(in srgb, var(--ghost-hover) 70%, transparent);
+        color: var(--text-primary);
+      }
+      .theme-menu__item[aria-checked="true"] .theme-menu__check {
         opacity: 1;
-        transform: scale(1);
       }
       .status-bar {
         display: flex;
@@ -1491,20 +1557,73 @@
             <h1 class="wordmark"><span class="lead">GTO</span> <span class="trail">Trainer</span></h1>
           </div>
           <div class="header-actions">
-            <button id="theme-toggle" class="theme-toggle" aria-label="Switch to light mode" aria-pressed="true" title="Switch to light mode">
-              <span class="theme-icon theme-icon--sun" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="presentation">
-                  <circle cx="12" cy="12" r="4.25" fill="none" stroke="currentColor" stroke-width="1.6" />
-                  <path d="M12 2.6v2.8M12 18.6v2.8M4.8 4.8l2 2M17.2 17.2l2 2M2.6 12h2.8M18.6 12h2.8M4.8 19.2l2-2M17.2 6.8l2-2" fill="none" stroke="currentColor" stroke-width="1.6" />
-                </svg>
-              </span>
-              <span class="theme-icon theme-icon--moon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="presentation">
-                  <path d="M16.6 3.4a7.2 7.2 0 1 0 5.2 11.5 5.8 5.8 0 0 1-5.2-11.5z" fill="currentColor" />
-                  <path d="M14 4.3a6.2 6.2 0 1 0 6 10.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5" />
-                </svg>
-              </span>
-            </button>
+            <div class="theme-control">
+              <button id="theme-toggle" class="theme-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="theme-menu" aria-label="Change appearance" title="Change appearance" data-mode="system" data-open="false">
+                <span class="theme-icon theme-icon--sun" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="presentation">
+                    <circle cx="12" cy="12" r="4.25" fill="none" stroke="currentColor" stroke-width="1.6" />
+                    <path d="M12 2.6v2.8M12 18.6v2.8M4.8 4.8l2 2M17.2 17.2l2 2M2.6 12h2.8M18.6 12h2.8M4.8 19.2l2-2M17.2 6.8l2-2" fill="none" stroke="currentColor" stroke-width="1.6" />
+                  </svg>
+                </span>
+                <span class="theme-icon theme-icon--moon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="presentation">
+                    <path d="M16.6 3.4a7.2 7.2 0 1 0 5.2 11.5 5.8 5.8 0 0 1-5.2-11.5z" fill="currentColor" />
+                    <path d="M14 4.3a6.2 6.2 0 1 0 6 10.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5" />
+                  </svg>
+                </span>
+                <span class="theme-icon theme-icon--system" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="presentation">
+                    <path d="M12 19.25a7.25 7.25 0 1 1 0-14.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M12 4.75a7.25 7.25 0 0 1 0 14.5" fill="currentColor" opacity="0.18" />
+                  </svg>
+                </span>
+                <span class="theme-toggle__chevron" aria-hidden="true">▾</span>
+              </button>
+              <div id="theme-menu" class="theme-menu" role="menu" aria-label="Appearance" hidden>
+                <button type="button" class="theme-menu__item" data-theme-choice="system" role="menuitemradio" aria-checked="false">
+                  <span class="theme-menu__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="presentation">
+                      <path d="M12 19.25a7.25 7.25 0 1 1 0-14.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="M12 4.75a7.25 7.25 0 0 1 0 14.5" fill="currentColor" opacity="0.2" />
+                    </svg>
+                  </span>
+                  <span class="theme-menu__label">Follow System</span>
+                  <span class="theme-menu__check" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" role="presentation">
+                      <path d="M3.2 8.2l2.6 2.9 6-6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                </button>
+                <button type="button" class="theme-menu__item" data-theme-choice="light" role="menuitemradio" aria-checked="false">
+                  <span class="theme-menu__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="presentation">
+                      <circle cx="12" cy="12" r="5" fill="currentColor" />
+                      <path d="M12 2.5v3M12 18.5v3M4.5 12h-3M22.5 12h-3M5.8 5.8l-2-2M20.2 20.2l-2-2M5.8 18.2l-2 2M20.2 3.8l-2 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                  <span class="theme-menu__label">Light</span>
+                  <span class="theme-menu__check" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" role="presentation">
+                      <path d="M3.2 8.2l2.6 2.9 6-6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                </button>
+                <button type="button" class="theme-menu__item" data-theme-choice="dark" role="menuitemradio" aria-checked="false">
+                  <span class="theme-menu__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="presentation">
+                      <path d="M16.6 3.4a7.2 7.2 0 1 0 5.2 11.5 5.8 5.8 0 0 1-5.2-11.5z" fill="currentColor" />
+                      <path d="M14 4.3a6.2 6.2 0 1 0 6 10.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5" />
+                    </svg>
+                  </span>
+                  <span class="theme-menu__label">Dark</span>
+                  <span class="theme-menu__check" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" role="presentation">
+                      <path d="M3.2 8.2l2.6 2.9 6-6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div id="status-bar" class="status-bar" aria-live="polite">
@@ -1642,11 +1761,13 @@
 
       const ThemeController = (() => {
         const STORAGE_KEY = 'gto-trainer.theme';
-        const DEFAULT = 'light';
-        const SUPPORTED = new Set(['light', 'dark']);
+        const DEFAULT = 'system';
+        const SUPPORTED = new Set(['light', 'dark', 'system']);
         const listeners = new Set();
         const root = document.documentElement;
         const themeMeta = document.querySelector('meta[name="theme-color"]');
+        const systemMedia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+        let active = DEFAULT;
 
         const readStored = () => {
           try {
@@ -1659,11 +1780,11 @@
 
         const writeStored = (value) => {
           try {
-            if (!value || value === DEFAULT) {
+            if (!value) {
               localStorage.removeItem(STORAGE_KEY);
-            } else {
-              localStorage.setItem(STORAGE_KEY, value);
+              return;
             }
+            localStorage.setItem(STORAGE_KEY, value);
           } catch (error) {
             /* ignore storage errors */
           }
@@ -1679,29 +1800,41 @@
           }
         };
 
-        const apply = (value, { persist = false } = {}) => {
-          const next = SUPPORTED.has(value) ? value : DEFAULT;
-          if (next === DEFAULT) {
+        const resolveSystemTheme = () => {
+          if (!systemMedia) return 'light';
+          return systemMedia.matches ? 'dark' : 'light';
+        };
+
+        const applyDataTheme = (theme) => {
+          if (theme === 'light') {
             delete root.dataset.theme;
           } else {
-            root.dataset.theme = next;
+            root.dataset.theme = theme;
           }
+
           if (themeMeta) {
             const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
             if (bg) {
               themeMeta.setAttribute('content', bg);
             }
           }
+        };
+
+        const apply = (value, { persist = false } = {}) => {
+          const nextMode = SUPPORTED.has(value) ? value : DEFAULT;
+          active = nextMode;
+          const concrete = nextMode === 'system' ? resolveSystemTheme() : nextMode;
+          applyDataTheme(concrete);
           if (persist) {
-            writeStored(next);
+            writeStored(nextMode);
           }
-          notify(next);
-          return next;
+          notify(nextMode);
+          return nextMode;
         };
 
         const set = (value, options) => apply(value, { persist: true, ...(options || {}) });
         const preview = (value, options) => apply(value, { persist: false, ...(options || {}) });
-        const get = () => root.dataset.theme || DEFAULT;
+        const get = () => active;
         const onChange = (fn) => {
           if (typeof fn !== 'function') {
             return () => undefined;
@@ -1713,11 +1846,23 @@
         const init = () => {
           const preset = root.dataset.theme;
           const stored = readStored();
-          const initial = SUPPORTED.has(preset)
-            ? preset
-            : stored || DEFAULT;
+          const initial = SUPPORTED.has(stored)
+            ? stored
+            : SUPPORTED.has(preset) ? preset : DEFAULT;
           apply(initial, { persist: false });
         };
+
+        const handleSystemChange = () => {
+          if (active === 'system') {
+            apply(active, { persist: false });
+          }
+        };
+
+        if (systemMedia && typeof systemMedia.addEventListener === 'function') {
+          systemMedia.addEventListener('change', handleSystemChange);
+        } else if (systemMedia && typeof systemMedia.addListener === 'function') {
+          systemMedia.addListener(handleSystemChange);
+        }
 
         init();
 
@@ -1752,6 +1897,7 @@
       const screen = document.querySelector('main.screen');
       const headerStatus = $('#header-status');
       const themeToggle = $('#theme-toggle');
+      const themeMenu = $('#theme-menu');
       const feedbackBanner = $('#feedback-banner');
       const feedbackRecommendation = $('#feedback-recommendation');
       const feedbackChoice = $('#feedback-choice');
@@ -1868,32 +2014,128 @@
         }
       };
 
+      const THEME_LABELS = {
+        system: 'Follow System',
+        light: 'Light',
+        dark: 'Dark'
+      };
+
+      const themeMenuButtons = themeMenu ? Array.from(themeMenu.querySelectorAll('.theme-menu__item')) : [];
+      let themeMenuOpen = false;
+
+      const setThemeMenuVisibility = (open, { focusTarget = undefined } = {}) => {
+        if(!themeToggle || !themeMenu) return;
+        themeMenuOpen = open;
+        themeMenu.hidden = !open;
+        themeToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        themeToggle.setAttribute('data-open', open ? 'true' : 'false');
+        if(open){
+          const current = ThemeController.get();
+          const targetButton = focusTarget
+            || themeMenuButtons.find((btn) => btn.dataset.themeChoice === current)
+            || themeMenuButtons[0];
+          if(targetButton){
+            window.requestAnimationFrame(() => targetButton.focus({ preventScroll: true }));
+          }
+        } else if(focusTarget !== false){
+          window.requestAnimationFrame(() => themeToggle.focus({ preventScroll: true }));
+        }
+      };
+
       const syncThemeToggle = (value) => {
         if(!themeToggle) return;
-        const isDark = value === 'dark';
-        themeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-        const title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
-        themeToggle.setAttribute('title', title);
-        themeToggle.setAttribute('aria-label', title);
+        const mode = value && THEME_LABELS[value] ? value : ThemeController.get();
+        const label = THEME_LABELS[mode] || 'Follow System';
+        themeToggle.dataset.mode = mode;
+        themeToggle.setAttribute('data-mode', mode);
+        themeToggle.setAttribute('title', `Appearance: ${label}`);
+        themeToggle.setAttribute('aria-label', `Appearance: ${label}`);
+        if(themeMenuButtons.length){
+          themeMenuButtons.forEach((btn) => {
+            const isActive = btn.dataset.themeChoice === mode;
+            btn.setAttribute('aria-checked', isActive ? 'true' : 'false');
+          });
+        }
+      };
+
+      const closeThemeMenu = ({ focus = false } = {}) => {
+        if(!themeMenuOpen) return;
+        setThemeMenuVisibility(false, { focusTarget: focus ? undefined : false });
       };
 
       if(themeToggle){
         syncThemeToggle(ThemeController.get());
         ThemeController.onChange(syncThemeToggle);
-        const handleToggle = () => {
-          const next = ThemeController.get() === 'dark' ? 'light' : 'dark';
-          ThemeController.set(next);
+
+        const handleOutsideClick = (event) => {
+          if(!themeMenuOpen) return;
+          if(event.target === themeToggle || themeToggle.contains(event.target)) return;
+          if(themeMenu && themeMenu.contains(event.target)) return;
+          closeThemeMenu();
         };
+
+        document.addEventListener('pointerdown', handleOutsideClick);
+
         themeToggle.addEventListener('click', (event)=>{
           event.preventDefault();
-          handleToggle();
+          if(!themeMenu){
+            const next = ThemeController.get() === 'dark' ? 'light' : 'dark';
+            ThemeController.set(next);
+            return;
+          }
+          setThemeMenuVisibility(!themeMenuOpen);
         });
+
         themeToggle.addEventListener('keydown', (event)=>{
-          if(event.key === 'Enter' || event.key === ' '){
+          if(!themeMenu) return;
+          if(event.key === 'ArrowDown' || event.key === 'ArrowUp'){
             event.preventDefault();
-            handleToggle();
+            if(!themeMenuOpen){
+              setThemeMenuVisibility(true);
+            } else {
+              const direction = event.key === 'ArrowDown' ? 1 : -1;
+              const currentIndex = themeMenuButtons.findIndex((btn) => btn === document.activeElement);
+              const nextIndex = (currentIndex + direction + themeMenuButtons.length) % themeMenuButtons.length;
+              const target = themeMenuButtons[nextIndex] || themeMenuButtons[0];
+              target?.focus({ preventScroll: true });
+            }
+          } else if(event.key === 'Enter' || event.key === ' '){
+            event.preventDefault();
+            setThemeMenuVisibility(!themeMenuOpen);
+          } else if(event.key === 'Escape' && themeMenuOpen){
+            event.preventDefault();
+            closeThemeMenu({ focus: true });
           }
         });
+
+        if(themeMenu){
+          themeMenuButtons.forEach((btn) => {
+            btn.addEventListener('click', (event)=>{
+              event.preventDefault();
+              const choice = btn.dataset.themeChoice;
+              if(choice && THEME_LABELS[choice]){
+                ThemeController.set(choice);
+                closeThemeMenu({ focus: true });
+              }
+            });
+
+            btn.addEventListener('keydown', (event)=>{
+              if(event.key === 'Escape'){
+                event.preventDefault();
+                closeThemeMenu({ focus: true });
+              } else if(event.key === 'ArrowDown' || event.key === 'ArrowUp'){
+                event.preventDefault();
+                const direction = event.key === 'ArrowDown' ? 1 : -1;
+                const index = themeMenuButtons.indexOf(btn);
+                const nextIndex = (index + direction + themeMenuButtons.length) % themeMenuButtons.length;
+                const target = themeMenuButtons[nextIndex];
+                target?.focus({ preventScroll: true });
+              } else if(event.key === 'Tab'){
+                closeThemeMenu({ focus: false });
+              }
+            });
+          });
+        }
       }
 
       const streetLabel = (street) => {
