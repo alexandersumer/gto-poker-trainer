@@ -759,11 +759,11 @@
       .status-compact {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
         width: 100%;
         white-space: nowrap;
         overflow-x: auto;
-        padding: 4px 0;
+        padding: 2px 0;
         scrollbar-width: none;
         -webkit-overflow-scrolling: touch;
       }
@@ -771,24 +771,26 @@
       .status-compact__text {
         display: inline-flex;
         align-items: baseline;
-        gap: 10px;
+        gap: 6px;
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
+        font-size: clamp(0.7rem, 0.68rem + 0.6vw, 0.8rem);
       }
       .status-seg {
         display: inline-flex;
         align-items: baseline;
-        gap: 4px;
+        gap: 3px;
         color: var(--text-secondary);
       }
       .status-seg strong {
         font-weight: 600;
         color: var(--text-primary);
+        font-size: 0.96em;
       }
       .status-dot {
         opacity: 0.35;
         font-weight: 500;
-        margin: 0 6px;
+        margin: 0 4px;
       }
       .status-line {
         margin-top: calc(var(--space-1) * 0.6);
@@ -1913,7 +1915,7 @@
             sessionHands = node.total_hands;
           }
           if(typeof node.effective_bb === 'number' && Number.isFinite(node.effective_bb) && node.effective_bb > 0){
-            segments.push(`Stack ${formatBb(node.effective_bb)}`);
+            segments.push(`Stk ${formatBb(node.effective_bb)}`);
           }
         } else if(state){
           segments.push(state);
