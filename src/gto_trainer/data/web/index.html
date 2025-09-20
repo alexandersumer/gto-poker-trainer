@@ -1081,6 +1081,11 @@
         text-transform: uppercase;
         color: color-mix(in srgb, var(--action-accent-text) 85%, var(--text-primary) 15%);
       }
+      .bet-group__jam {
+        margin-top: 10px;
+        display: flex;
+        width: 100%;
+      }
       .action-sizes {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1266,6 +1271,24 @@
       .size-chip:hover {
         background: var(--muted-hover);
         border-color: color-mix(in srgb, var(--muted-border) 65%, var(--brand) 35%);
+      }
+      .size-chip--jam {
+        width: 100%;
+        justify-content: center;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        background: color-mix(in srgb, var(--brand) 88%, var(--surface-1) 12%);
+        color: var(--on-brand);
+        border-color: color-mix(in srgb, var(--brand) 78%, transparent);
+      }
+      .size-chip--jam:hover {
+        background: color-mix(in srgb, var(--brand) 92%, white 8%);
+        border-color: color-mix(in srgb, var(--brand) 85%, transparent);
+      }
+      .size-chip--jam:active {
+        background: var(--brand-pressed);
+        border-color: color-mix(in srgb, var(--brand-pressed) 80%, transparent);
       }
       .size-chip:focus-visible {
         outline: var(--focus-ring) solid var(--focus-color);
@@ -2680,6 +2703,7 @@
         const sizeRow = document.createElement('div');
         sizeRow.className = 'action-sizes';
         let sizeSlot = null;
+        let betGroup = null;
 
         const mainButtons = {};
 
@@ -2757,10 +2781,10 @@
           });
         }
 
-        if(raiseOpts.length){
+        if(raiseOpts.length || jamOpt){
           sizeRow.setAttribute('role', 'group');
           sizeRow.setAttribute('aria-label', isFacingBet ? 'Raise sizes' : 'Bet sizes');
-          const betGroup = document.createElement('div');
+          betGroup = document.createElement('div');
           betGroup.className = 'bet-group';
           betGroup.setAttribute('role', 'group');
           const betLabel = document.createElement('div');
@@ -2770,12 +2794,14 @@
           betLabel.id = labelId;
           betGroup.setAttribute('aria-labelledby', labelId);
           betGroup.appendChild(betLabel);
-          betGroup.appendChild(sizeRow);
           sizeSlot = document.createElement('div');
           sizeSlot.className = 'action-slot';
           sizeSlot.appendChild(betGroup);
           mainRow.appendChild(sizeSlot);
+        }
 
+        if(raiseOpts.length && betGroup){
+          betGroup.appendChild(sizeRow);
           const ensured = ensureRaiseSelection();
           raiseOpts.forEach((descriptor) => {
             const chip = document.createElement('button');
@@ -2807,14 +2833,31 @@
           });
         }
 
-        const jamButton = appendMainButton('jam', jamOpt, 'action-destructive');
-        if(jamButton && jamOpt){
+        if(jamOpt && betGroup){
+          const jamRow = document.createElement('div');
+          jamRow.className = 'bet-group__jam';
+          const jamButton = document.createElement('button');
+          jamButton.type = 'button';
+          jamButton.className = 'size-chip size-chip--jam';
+          const jamLabelMeta = formatBetLabel(jamOpt, { isFacingBet, includeSize: true });
+          const jamLabelText = jamLabelMeta.label || 'All-in';
+          jamButton.textContent = jamLabelText;
+          jamButton.dataset.optionIndex = String(jamOpt.index);
+          jamButton.dataset.optionLabel = jamLabelMeta.meta
+            ? `${jamLabelText} (${jamLabelMeta.meta})`
+            : jamLabelText;
+          if(jamOpt.disabled){
+            jamButton.disabled = true;
+          }
           jamButton.addEventListener('click', (event) => {
             event.preventDefault();
+            if(jamButton.disabled || pending) return;
             selectedMainAction = null;
             refreshMainArming();
             choose(jamOpt.index);
           });
+          jamRow.appendChild(jamButton);
+          betGroup.appendChild(jamRow);
         }
 
         const foldButton = appendMainButton('fold', foldOpt, 'action-negative');
