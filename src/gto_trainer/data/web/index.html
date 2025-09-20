@@ -724,7 +724,17 @@
         border-color: color-mix(in srgb, var(--brand) 52%, var(--border) 48%);
         box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 12%, transparent);
       }
+      .theme-toggle__icon-shell {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+      }
       .theme-icon {
+        position: absolute;
+        inset: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -1122,6 +1132,18 @@
       .action-button.action-destructive:hover {
         background: color-mix(in srgb, var(--action-neutral-selected-bg) 70%, var(--action-neutral-bg) 30%);
         border-color: color-mix(in srgb, var(--action-neutral-selected-border) 80%, transparent);
+      }
+      .action-button.action-negative {
+        background: var(--action-negative-bg);
+        border-color: var(--action-negative-border);
+        color: var(--action-negative-text);
+      }
+      .action-button.action-negative:hover {
+        background: color-mix(in srgb, var(--action-negative-selected-bg) 35%, var(--action-negative-bg) 65%);
+        border-color: var(--action-negative-selected-border);
+      }
+      .action-button.action-negative .action-meta {
+        color: color-mix(in srgb, var(--action-negative-text) 78%, transparent);
       }
       .action-button[disabled] {
         opacity: 0.55;
@@ -1572,17 +1594,19 @@
           <div class="header-actions">
             <div class="theme-control">
               <button id="theme-toggle" class="theme-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="theme-menu" aria-label="Change appearance" title="Change appearance" data-mode="light" data-open="false">
-                <span class="theme-icon theme-icon--sun" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" role="presentation">
-                    <circle cx="12" cy="12" r="4.25" fill="none" stroke="currentColor" stroke-width="1.6" />
-                    <path d="M12 2.6v2.8M12 18.6v2.8M4.8 4.8l2 2M17.2 17.2l2 2M2.6 12h2.8M18.6 12h2.8M4.8 19.2l2-2M17.2 6.8l2-2" fill="none" stroke="currentColor" stroke-width="1.6" />
-                  </svg>
-                </span>
-                <span class="theme-icon theme-icon--moon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" role="presentation">
-                    <path d="M16.6 3.4a7.2 7.2 0 1 0 5.2 11.5 5.8 5.8 0 0 1-5.2-11.5z" fill="currentColor" />
-                    <path d="M14 4.3a6.2 6.2 0 1 0 6 10.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5" />
-                  </svg>
+                <span class="theme-toggle__icon-shell" aria-hidden="true">
+                  <span class="theme-icon theme-icon--sun">
+                    <svg viewBox="0 0 24 24" role="presentation">
+                      <circle cx="12" cy="12" r="4.25" fill="none" stroke="currentColor" stroke-width="1.6" />
+                      <path d="M12 2.6v2.8M12 18.6v2.8M4.8 4.8l2 2M17.2 17.2l2 2M2.6 12h2.8M18.6 12h2.8M4.8 19.2l2-2M17.2 6.8l2-2" fill="none" stroke="currentColor" stroke-width="1.6" />
+                    </svg>
+                  </span>
+                  <span class="theme-icon theme-icon--moon">
+                    <svg viewBox="0 0 24 24" role="presentation">
+                      <path d="M16.6 3.4a7.2 7.2 0 1 0 5.2 11.5 5.8 5.8 0 0 1-5.2-11.5z" fill="currentColor" />
+                      <path d="M14 4.3a6.2 6.2 0 1 0 6 10.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5" />
+                    </svg>
+                  </span>
                 </span>
                 <span class="theme-toggle__chevron" aria-hidden="true">
                   <svg viewBox="0 0 12 8" role="presentation">
