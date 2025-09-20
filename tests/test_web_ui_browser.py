@@ -121,3 +121,73 @@ def test_card_markup_helpers_render() -> None:
         assert not page_errors, f"Page errors captured: {page_errors}"
 
         browser.close()
+
+
+def test_start_button_state_transitions() -> None:
+    console_errors: list[str] = []
+    page_errors: list[str] = []
+
+    with _run_server() as base_url, sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+
+        page.on(
+            "console",
+            lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
+        )
+        page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+
+        page.goto(base_url, wait_until="domcontentloaded")
+        page.click("#btn-start")
+
+        page.wait_for_function("() => document.querySelector('#btn-start').disabled === true", timeout=10_000)
+        page.wait_for_selector("#hand .card:not(.placeholder)", timeout=15_000)
+        page.wait_for_function("() => document.querySelector('#btn-start').disabled === false", timeout=15_000)
+
+        label = page.eval_on_selector("#btn-start", "el => (el.textContent || '').trim().toLowerCase()")
+        assert label == "start"
+        assert not console_errors, f"Console errors captured: {console_errors}"
+        assert not page_errors, f"Page errors captured: {page_errors}"
+
+        browser.close()
+
+
+def test_feedback_drawer_after_action() -> None:
+    console_errors: list[str] = []
+    page_errors: list[str] = []
+
+    with _run_server() as base_url, sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+
+        page.on(
+            "console",
+            lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
+        )
+        page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+
+        page.goto(base_url, wait_until="domcontentloaded")
+        page.click("#btn-start")
+        page.wait_for_selector("#hand .card:not(.placeholder)", timeout=15_000)
+        page.wait_for_selector("#action-area .action-button", timeout=15_000)
+        page.click("#action-area .action-button")
+
+        page.wait_for_function(
+            "() => !document.querySelector('#feedback-banner').classList.contains('hidden')",
+            timeout=15_000,
+        )
+
+        page.click("#feedback-detail")
+        page.wait_for_function(
+            "() => !document.querySelector('#feedback-drawer').classList.contains('hidden')",
+            timeout=10_000,
+        )
+
+        drawer_html = page.inner_html("#feedback-drawer-body").lower()
+        assert "gto recommendation" in drawer_html
+        assert "drawer-row" in drawer_html
+
+        assert not console_errors, f"Console errors captured: {console_errors}"
+        assert not page_errors, f"Page errors captured: {page_errors}"
+
+        browser.close()
