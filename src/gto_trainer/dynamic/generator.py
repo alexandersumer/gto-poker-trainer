@@ -23,8 +23,71 @@ _DEFAULT_STACKS = 100.0
 _DEFAULT_SB = 0.5
 _DEFAULT_BB = 1.0
 _OPEN_SIZES = (2.0, 2.5, 3.0)
-_TURN_BET_SIZES = (0.33, 0.5, 0.75, 1.0)
-_RIVER_LEAD_SIZES = (0.5, 1.0, 1.25)
+
+
+@dataclass(frozen=True)
+class _VillainStyleConfig:
+    name: str
+    turn_bet_probability: float
+    turn_bet_sizes: tuple[float, ...]
+    turn_probe_sizes: tuple[float, ...]
+    river_lead_probability: float
+    river_lead_sizes: tuple[float, ...]
+    turn_bet_tighten: float
+    turn_probe_tighten: float
+    river_check_tighten: float
+    river_lead_tighten: float
+
+
+_STYLE_LIBRARY: dict[str, _VillainStyleConfig] = {
+    "balanced": _VillainStyleConfig(
+        name="balanced",
+        turn_bet_probability=0.65,
+        turn_bet_sizes=(0.33, 0.5, 0.75, 1.0),
+        turn_probe_sizes=(0.5, 0.8),
+        river_lead_probability=0.35,
+        river_lead_sizes=(0.5, 1.0, 1.25),
+        turn_bet_tighten=0.55,
+        turn_probe_tighten=0.6,
+        river_check_tighten=0.65,
+        river_lead_tighten=0.5,
+    ),
+    "aggressive": _VillainStyleConfig(
+        name="aggressive",
+        turn_bet_probability=0.8,
+        turn_bet_sizes=(0.5, 0.75, 1.0),
+        turn_probe_sizes=(0.66, 1.0),
+        river_lead_probability=0.55,
+        river_lead_sizes=(0.66, 1.0, 1.5),
+        turn_bet_tighten=0.5,
+        turn_probe_tighten=0.55,
+        river_check_tighten=0.6,
+        river_lead_tighten=0.45,
+    ),
+    "passive": _VillainStyleConfig(
+        name="passive",
+        turn_bet_probability=0.45,
+        turn_bet_sizes=(0.33, 0.5),
+        turn_probe_sizes=(0.4, 0.6),
+        river_lead_probability=0.18,
+        river_lead_sizes=(0.4, 0.75),
+        turn_bet_tighten=0.6,
+        turn_probe_tighten=0.68,
+        river_check_tighten=0.7,
+        river_lead_tighten=0.55,
+    ),
+}
+
+
+def available_villain_styles() -> tuple[str, ...]:
+    return tuple(_STYLE_LIBRARY.keys())
+
+
+def _resolve_villain_style(style: str | None) -> _VillainStyleConfig:
+    key = (style or "balanced").strip().lower()
+    if key not in _STYLE_LIBRARY:
+        raise ValueError(f"Unknown villain_style '{style}'. Options: {', '.join(available_villain_styles())}")
+    return _STYLE_LIBRARY[key]
 
 
 @dataclass
@@ -46,6 +109,7 @@ class EpisodeBuilder:
         stacks_bb: float = _DEFAULT_STACKS,
         sb: float = _DEFAULT_SB,
         bb: float = _DEFAULT_BB,
+        villain_style: str = "balanced",
     ) -> None:
         self._rng = rng
         self._stacks = stacks_bb
@@ -54,6 +118,7 @@ class EpisodeBuilder:
         self._display_seats = seats
         self._tree_seats = seats if seats.hero == BB else SeatAssignment(hero=BB, villain=SB)
         self._rival_label = f"Rival ({self._display_seats.villain})"
+        self._style = _resolve_villain_style(villain_style)
 
     def build(self) -> Episode:
         return self._build_classic_tree()
@@ -141,6 +206,12 @@ class EpisodeBuilder:
             "hero_seat": self._display_seats.hero,
             "villain_seat": self._display_seats.villain,
             "villain_range": ctx.villain_range,
+            "villain_style": self._style.name,
+            "style_turn_bet_tighten": self._style.turn_bet_tighten,
+            "style_turn_probe_tighten": self._style.turn_probe_tighten,
+            "style_turn_probe_sizes": self._style.turn_probe_sizes,
+            "style_river_check_tighten": self._style.river_check_tighten,
+            "style_river_lead_tighten": self._style.river_lead_tighten,
             "hero_contrib": hero_contrib,
             "villain_contrib": villain_contrib,
             "hero_stack": hero_stack,
@@ -189,16 +260,22 @@ class EpisodeBuilder:
 
         turn_board = ctx.board[:4]
         turn_desc = " ".join(format_card_ascii(card, upper=True) for card in turn_board)
-        turn_mode = "bet" if self._rng.random() < 0.65 else "check"
+        turn_mode = "bet" if self._rng.random() < self._style.turn_bet_probability else "check"
         hand_state["turn_mode"] = turn_mode
         if turn_mode == "bet":
-            bet_multiplier = self._rng.choice(_TURN_BET_SIZES)
+            bet_multiplier = self._rng.choice(self._style.turn_bet_sizes)
             bet_turn = round(max(0.25, hand_state["pot"] * bet_multiplier), 2)
+            hand_state["turn_bet_size"] = bet_turn
             turn_description = f"{turn_desc}; {self._rival_label} bets {bet_turn:.2f}bb into {hand_state['pot']:.2f}bb."
             turn_context = self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "bet", "bet": bet_turn, "villain_range": ctx.villain_range},
+                extra={
+                    "facing": "bet",
+                    "bet": bet_turn,
+                    "villain_range": ctx.villain_range,
+                    "villain_style": self._style.name,
+                },
             )
         else:
             bet_turn = 0.0
@@ -206,7 +283,7 @@ class EpisodeBuilder:
             turn_context = self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "check", "villain_range": ctx.villain_range},
+                extra={"facing": "check", "villain_range": ctx.villain_range, "villain_style": self._style.name},
             )
 
         turn_node = Node(
@@ -221,24 +298,30 @@ class EpisodeBuilder:
         )
 
         river_desc = " ".join(format_card_ascii(card, upper=True) for card in ctx.board)
-        river_mode = "lead" if self._rng.random() < 0.35 else "check"
+        river_mode = "lead" if self._rng.random() < self._style.river_lead_probability else "check"
         hand_state["river_mode"] = river_mode
         if river_mode == "lead":
-            lead_size = round(max(0.25, hand_state["pot"] * self._rng.choice(_RIVER_LEAD_SIZES)), 2)
+            lead_size = round(max(0.25, hand_state["pot"] * self._rng.choice(self._style.river_lead_sizes)), 2)
+            hand_state["river_lead_size"] = lead_size
             river_description = (
                 f"{river_desc}; {self._rival_label} leads {lead_size:.2f}bb into {hand_state['pot']:.2f}bb."
             )
             river_context = self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "bet", "bet": lead_size, "villain_range": ctx.villain_range},
+                extra={
+                    "facing": "bet",
+                    "bet": lead_size,
+                    "villain_range": ctx.villain_range,
+                    "villain_style": self._style.name,
+                },
             )
         else:
             river_description = f"{river_desc}; choose your bet."
             river_context = self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "oop-check", "villain_range": ctx.villain_range},
+                extra={"facing": "oop-check", "villain_range": ctx.villain_range, "villain_style": self._style.name},
             )
 
         river_node = Node(

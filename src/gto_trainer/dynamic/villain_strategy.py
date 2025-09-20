@@ -118,6 +118,37 @@ def _percentile_for_combo(profile: Mapping[str, object], combo: Sequence[int]) -
     return 1.0 - (idx / max(1, total - 1)) if total > 1 else 1.0
 
 
+def _sample_profile_combo(profile: Mapping[str, object], rng: random.Random) -> tuple[int, int] | None:
+    ranked = profile.get("ranked")
+    if not isinstance(ranked, list) or not ranked:
+        return None
+    combos: list[tuple[int, int]] = []
+    for combo in ranked:
+        try:
+            a, b = int(combo[0]), int(combo[1])  # type: ignore[index]
+        except (TypeError, ValueError, IndexError):
+            continue
+        combos.append((a, b))
+    if not combos:
+        return None
+
+    continue_ratio = float(profile.get("continue_ratio", 0.0))
+    continue_count = int(profile.get("continue_count", 0))
+    total = len(combos)
+
+    if continue_count <= 0 or continue_count >= total:
+        idx = int(rng.random() * total)
+        return combos[idx]
+
+    if rng.random() < continue_ratio:
+        idx = int(rng.random() * continue_count)
+        return combos[idx]
+
+    tail_size = total - continue_count
+    idx = continue_count + int(rng.random() * tail_size)
+    return combos[idx]
+
+
 def decide_action(
     meta: Mapping[str, object] | None,
     villain_cards: Sequence[int] | None,
@@ -139,8 +170,12 @@ def decide_action(
     percentile = 0.5
     if villain_cards is not None:
         percentile = _percentile_for_combo(profile, villain_cards)
-        # Bias the fold probability: strong hands (percentile > 0.5) fold less.
-        bias_scale = min(0.6, max(0.2, fold_prob + 0.2))
-        fold_prob = max(0.0, min(1.0, fold_prob + (0.5 - percentile) * bias_scale))
+    else:
+        sampled = _sample_profile_combo(profile, rng)
+        if sampled is not None:
+            percentile = _percentile_for_combo(profile, sampled)
+
+    bias_scale = min(0.6, max(0.2, fold_prob + 0.2))
+    fold_prob = max(0.0, min(1.0, fold_prob + (0.5 - percentile) * bias_scale))
     draw = rng.random()
     return VillainDecision(folds=draw < fold_prob)
