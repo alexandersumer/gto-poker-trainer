@@ -1243,29 +1243,36 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        padding: 4px 12px;
+        width: calc(var(--min-tap) - 8px);
+        height: calc(var(--min-tap) - 8px);
+        padding: 0;
         border-radius: 999px;
         border: 1px solid color-mix(in srgb, var(--outline) 55%, transparent);
         background: color-mix(in srgb, var(--surface-1) 94%, transparent);
         color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
-        font-size: 0.78rem;
-        font-weight: 600;
-        letter-spacing: 0.01em;
         transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
         align-self: center;
         margin-left: auto;
+        line-height: 0;
       }
       .feedback-detail__icon {
-        font-size: 0.85em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
         transition: transform 0.2s ease;
+      }
+      .feedback-detail__icon svg {
+        width: 100%;
+        height: 100%;
       }
       .feedback-detail:hover {
         background: var(--ghost-hover);
         color: var(--text-primary);
         border-color: color-mix(in srgb, var(--outline) 40%, transparent);
       }
-      .feedback-detail:hover .feedback-detail__icon { transform: translateX(2px); }
+      .feedback-detail:hover .feedback-detail__icon { transform: scale(1.05); }
       .feedback-detail:focus-visible { outline: var(--focus-ring) solid var(--focus-color); outline-offset: 2px; }
       #panel-play .panel-soft {
         display: flex;
@@ -1690,8 +1697,13 @@
             <span id="feedback-resolution" class="feedback-line feedback-resolution hidden"></span>
           </div>
           <button type="button" id="feedback-detail" class="feedback-detail" aria-label="View detailed reasoning">
-            <span class="feedback-detail__label">See reasoning</span>
-            <span class="feedback-detail__icon" aria-hidden="true">→</span>
+            <span class="feedback-detail__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <line x1="12" y1="11" x2="12" y2="16" />
+                <circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+              </svg>
+            </span>
           </button>
         </div>
 
