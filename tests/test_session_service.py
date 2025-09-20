@@ -236,13 +236,13 @@ def test_optimal_play_produces_zero_ev_loss():
     assert summary.score == pytest.approx(100.0)
 
 
-def test_session_manager_normalises_villain_style():
+def test_session_manager_normalises_rival_style():
     manager = SessionManager()
-    sid = manager.create_session(SessionConfig(hands=1, mc_trials=60, seed=11, villain_style="Aggressive"))
-    assert manager._sessions[sid].engine.villain_style == "aggressive"
+    sid = manager.create_session(SessionConfig(hands=1, mc_trials=60, seed=11, rival_style="Aggressive"))
+    assert manager._sessions[sid].engine.rival_style == "aggressive"
 
-    sid2 = manager.create_session(SessionConfig(hands=1, mc_trials=60, seed=12, villain_style="unknown"))
-    assert manager._sessions[sid2].engine.villain_style == "balanced"
+    sid2 = manager.create_session(SessionConfig(hands=1, mc_trials=60, seed=12, rival_style="unknown"))
+    assert manager._sessions[sid2].engine.rival_style == "balanced"
 
 
 def test_poor_choices_accumulate_ev_loss():

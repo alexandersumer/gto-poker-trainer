@@ -11,7 +11,7 @@ from gto_trainer.dynamic.seating import BB, SB, SeatAssignment
 
 def _build_episode(seed: int, style: str = "balanced") -> tuple[EpisodeBuilder, object]:
     rng = random.Random(seed)
-    builder = EpisodeBuilder(rng, seats=SeatAssignment(hero=BB, villain=SB), villain_style=style)
+    builder = EpisodeBuilder(rng, seats=SeatAssignment(hero=BB, rival=SB), rival_style=style)
     return builder, builder.build()
 
 

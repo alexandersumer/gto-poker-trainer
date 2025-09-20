@@ -1990,8 +1990,8 @@
         const facing = (context?.facing || '').toString().toLowerCase();
         const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
         const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
-        const villainSeat = (context?.villain_seat || context?.villainSeat || '').toString().toUpperCase();
-        const seatToken = villainSeat ? `(${villainSeat})` : '';
+        const rivalSeat = (context?.rival_seat || context?.rivalSeat || '').toString().toUpperCase();
+        const seatToken = rivalSeat ? `(${rivalSeat})` : '';
         let actionText = '';
         if(facing === 'check'){
           actionText = 'checks';

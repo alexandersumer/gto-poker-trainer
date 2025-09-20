@@ -12,9 +12,9 @@ def test_session_engine_alternates_seats():
     second = engine.build_episode(1)
 
     assert first.hero_seat == "BB"
-    assert first.villain_seat == "SB"
+    assert first.rival_seat == "SB"
     assert second.hero_seat == "SB"
-    assert second.villain_seat == "BB"
+    assert second.rival_seat == "BB"
 
 
 def test_session_engine_current_seats_matches_build():
@@ -25,7 +25,7 @@ def test_session_engine_current_seats_matches_build():
         seats = engine.current_seats(index)
         episode = engine.build_episode(index)
         assert episode.hero_seat == seats.hero
-        assert episode.villain_seat == seats.villain
+        assert episode.rival_seat == seats.rival
 
 
 def test_session_engine_cycle_repeats_bbsb_sequence():

@@ -61,16 +61,16 @@ def fresh_deck() -> list[int]:
 @dataclass
 class Dealt:
     hero: list[int]
-    villain: list[int]
+    rival: list[int]
     board: list[int]  # full 5-card board to keep a coherent storyline
 
 
 def deal_hand_and_board(rng: random.Random) -> Dealt:
     deck = fresh_deck()
     hero = deal_unique(rng, deck, 2)
-    villain = deal_unique(rng, deck, 2)
+    rival = deal_unique(rng, deck, 2)
     board = deal_unique(rng, deck, 5)
-    return Dealt(hero=hero, villain=villain, board=board)
+    return Dealt(hero=hero, rival=rival, board=board)
 
 
 def canonical_hand_abbrev(cards: list[int]) -> str:

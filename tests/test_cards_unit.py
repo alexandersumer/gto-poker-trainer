@@ -57,9 +57,9 @@ def test_deal_unique_and_deal_hand_and_board_no_collisions():
     # Deck should shrink accordingly
     assert len(deck) == 52 - 5
 
-    # deal_hand_and_board coherence: hero+villain+board all distinct
+    # deal_hand_and_board coherence: hero+rival+board all distinct
     rng2 = random.Random(456)
     d = deal_hand_and_board(rng2)
-    all_cards = d.hero + d.villain + d.board
+    all_cards = d.hero + d.rival + d.board
     assert len(all_cards) == 2 + 2 + 5
     assert len(set(all_cards)) == len(all_cards)

@@ -12,11 +12,11 @@ from .ui.presenters import RichPresenter
 
 
 class _DynamicGenerator(EpisodeGenerator):
-    def __init__(self, villain_style: str = "balanced") -> None:
-        self._villain_style = villain_style
+    def __init__(self, rival_style: str = "balanced") -> None:
+        self._rival_style = rival_style
 
     def generate(self, rng):  # type: ignore[override]
-        return generate_episode(rng, villain_style=self._villain_style)
+        return generate_episode(rng, rival_style=self._rival_style)
 
 
 class _DynamicOptions(OptionProvider):
@@ -33,12 +33,12 @@ def run_play(
     mc_trials: int = 200,
     no_color: bool = False,
     solver_csv: str | None = None,
-    villain_style: str = "balanced",
+    rival_style: str = "balanced",
     _input_fn=input,
 ) -> None:
     presenter = RichPresenter(no_color=no_color)
     base_provider = _DynamicOptions()
-    base_generator = _DynamicGenerator(villain_style=villain_style)
+    base_generator = _DynamicGenerator(rival_style=rival_style)
     option_provider: OptionProvider
     if solver_csv:
         solver = CSVStrategyOracle(solver_csv)

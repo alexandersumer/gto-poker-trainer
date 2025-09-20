@@ -23,7 +23,7 @@ def test_generate_episode_structure_and_contexts_bb_defense():
     streets = [n.street for n in ep.nodes]
     assert streets == ["preflop", "flop", "turn", "river"]
     assert ep.hero_seat == "BB"
-    assert ep.villain_seat == "SB"
+    assert ep.rival_seat == "SB"
     hand_states = []
     for node in ep.nodes:
         assert "hand_state" in node.context
@@ -31,7 +31,7 @@ def test_generate_episode_structure_and_contexts_bb_defense():
         assert isinstance(hs, dict)
         hand_states.append(hs)
         assert node.actor == ep.hero_seat
-        assert node.context.get("villain_range") == "sb_open"
+        assert node.context.get("rival_range") == "sb_open"
     # Basic sanity of contexts
     assert "open_size" in ep.nodes[0].context
     assert ep.nodes[1].context.get("facing") == "check"
@@ -79,12 +79,12 @@ def test_generate_episode_structure_and_contexts_bb_defense():
         assert n_river.pot_bb == pytest.approx(n_turn.pot_bb)
 
     # Rival hole cards are unique and never duplicated on board or hero hand.
-    villain_cards = hand_states[0]["villain_cards"]
-    assert isinstance(villain_cards, tuple) and len(villain_cards) == 2
+    rival_cards = hand_states[0]["rival_cards"]
+    assert isinstance(rival_cards, tuple) and len(rival_cards) == 2
     hero_cards = ep.nodes[0].hero_cards
     board_cards = ep.nodes[-1].board
-    all_cards = set(hero_cards) | set(villain_cards) | set(board_cards)
-    assert len(all_cards) == len(hero_cards) + len(villain_cards) + len(board_cards)
+    all_cards = set(hero_cards) | set(rival_cards) | set(board_cards)
+    assert len(all_cards) == len(hero_cards) + len(rival_cards) + len(board_cards)
 
 
 def test_generate_episode_structure_and_contexts_sb_ip():
@@ -93,7 +93,7 @@ def test_generate_episode_structure_and_contexts_sb_ip():
     streets = [n.street for n in ep.nodes]
     assert streets == ["preflop", "flop", "turn", "river"]
     assert ep.hero_seat == "SB"
-    assert ep.villain_seat == "BB"
+    assert ep.rival_seat == "BB"
 
     hand_states = []
     for node in ep.nodes:
@@ -102,7 +102,7 @@ def test_generate_episode_structure_and_contexts_sb_ip():
         assert isinstance(hs, dict)
         hand_states.append(hs)
         assert node.actor == ep.hero_seat
-        assert node.context.get("villain_range") == "sb_open"
+        assert node.context.get("rival_range") == "sb_open"
 
     n_pf, n_flop, n_turn, n_river = ep.nodes
     import re
@@ -141,12 +141,12 @@ def test_generate_episode_structure_and_contexts_sb_ip():
         assert n_river.pot_bb == pytest.approx(n_turn.pot_bb)
 
     hand_state = hand_states[0]
-    villain_cards = hand_state["villain_cards"]
-    assert isinstance(villain_cards, tuple)
+    rival_cards = hand_state["rival_cards"]
+    assert isinstance(rival_cards, tuple)
     hero_cards = ep.nodes[0].hero_cards
     board_cards = ep.nodes[-1].board
-    all_cards = set(hero_cards) | set(villain_cards) | set(board_cards)
-    assert len(all_cards) == len(hero_cards) + len(villain_cards) + len(board_cards)
+    all_cards = set(hero_cards) | set(rival_cards) | set(board_cards)
+    assert len(all_cards) == len(hero_cards) + len(rival_cards) + len(board_cards)
 
 
 def test_generate_episode_always_starts_preflop():
@@ -259,22 +259,22 @@ def test_options_for_dispatches_all_streets():
         assert isinstance(opts, list) and opts
 
 
-def test_flop_resolution_folds_weak_villain_combo():
+def test_flop_resolution_folds_weak_rival_combo():
     rng = random.Random(21)
     hero = [str_to_int("As"), str_to_int("Ad")]
-    villain = (str_to_int("7c"), str_to_int("2d"))
+    rival = (str_to_int("7c"), str_to_int("2d"))
     full_board = [str_to_int(c) for c in ["Ks", "Qc", "Th", "3s", "8d"]]
     hand_state = {
         "pot": 6.0,
         "hero_cards": tuple(hero),
-        "villain_cards": villain,
+        "rival_cards": rival,
         "full_board": tuple(full_board),
         "street": "flop",
         "nodes": {},
         "hero_contrib": 3.0,
-        "villain_contrib": 3.0,
+        "rival_contrib": 3.0,
         "hero_stack": 97.0,
-        "villain_stack": 97.0,
+        "rival_stack": 97.0,
         "effective_stack": 97.0,
     }
     flop_board = full_board[:3]
@@ -300,22 +300,22 @@ def test_flop_resolution_folds_weak_villain_combo():
     assert hand_state.get("hand_over", False)
 
 
-def test_flop_resolution_continues_when_villain_strong():
+def test_flop_resolution_continues_when_rival_strong():
     rng = random.Random(22)
     hero = [str_to_int("Jh"), str_to_int("Td")]
-    villain = (str_to_int("Qh"), str_to_int("9h"))
+    rival = (str_to_int("Qh"), str_to_int("9h"))
     full_board = [str_to_int(c) for c in ["Kh", "8h", "7c", "2s", "4d"]]
     hand_state = {
         "pot": 5.0,
         "hero_cards": tuple(hero),
-        "villain_cards": villain,
+        "rival_cards": rival,
         "full_board": tuple(full_board),
         "street": "flop",
         "nodes": {},
         "hero_contrib": 2.5,
-        "villain_contrib": 2.5,
+        "rival_contrib": 2.5,
         "hero_stack": 97.5,
-        "villain_stack": 97.5,
+        "rival_stack": 97.5,
         "effective_stack": 97.5,
     }
     flop_board = full_board[:3]

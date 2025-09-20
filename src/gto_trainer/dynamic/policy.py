@@ -9,11 +9,11 @@ from functools import lru_cache
 from typing import Any
 
 from ..core.models import Option, OptionResolution
-from . import villain_strategy
+from . import rival_strategy
 from .cards import format_card_ascii, format_cards_spaced
 from .episode import Node
 from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_vs_range
-from .range_model import tighten_range, villain_bb_defend_range, villain_sb_open_range
+from .range_model import rival_bb_defend_range, rival_sb_open_range, tighten_range
 
 
 def _fmt_pct(x: float, decimals: int = 0) -> str:
@@ -35,8 +35,8 @@ def _state_value(hand_state: dict[str, Any] | None, key: str, default: float = 0
 
 
 def _recalc_pot(hand_state: dict[str, Any]) -> float:
-    if "hero_contrib" in hand_state and "villain_contrib" in hand_state:
-        pot = _state_value(hand_state, "hero_contrib") + _state_value(hand_state, "villain_contrib")
+    if "hero_contrib" in hand_state and "rival_contrib" in hand_state:
+        pot = _state_value(hand_state, "hero_contrib") + _state_value(hand_state, "rival_contrib")
     else:
         pot = _state_value(hand_state, "pot")
     hand_state["pot"] = pot
@@ -45,8 +45,8 @@ def _recalc_pot(hand_state: dict[str, Any]) -> float:
 
 def _update_effective_stack(hand_state: dict[str, Any]) -> float:
     hero_stack = _state_value(hand_state, "hero_stack")
-    villain_stack = _state_value(hand_state, "villain_stack")
-    effective = min(hero_stack, villain_stack)
+    rival_stack = _state_value(hand_state, "rival_stack")
+    effective = min(hero_stack, rival_stack)
     hand_state["effective_stack"] = effective
     nodes = hand_state.get("nodes")
     if isinstance(nodes, dict):
@@ -74,14 +74,14 @@ def _apply_contribution(hand_state: dict[str, Any], role: str, amount: float) ->
     return applied
 
 
-def _fold_continue_stats(hero_equities: Iterable[float], villain_threshold: float) -> tuple[float, float, float]:
+def _fold_continue_stats(hero_equities: Iterable[float], rival_threshold: float) -> tuple[float, float, float]:
     hero_list = list(hero_equities)
     if not hero_list:
         return 0.0, 0.0, 0.0
     folds = 0
     continue_eq = 0.0
     for eq in hero_list:
-        if 1.0 - eq < villain_threshold:
+        if 1.0 - eq < rival_threshold:
             folds += 1
         else:
             continue_eq += eq
@@ -180,7 +180,7 @@ def _cached_profile(
     continue_ratio: float,
 ) -> dict | None:
     try:
-        return villain_strategy.build_profile(
+        return rival_strategy.build_profile(
             list(combos_key),
             fold_probability=fold_probability,
             continue_ratio=continue_ratio,
@@ -189,7 +189,7 @@ def _cached_profile(
         return None
 
 
-def _villain_profile(
+def _rival_profile(
     combos: Iterable[tuple[int, int]],
     *,
     tag: str,
@@ -224,27 +224,27 @@ def _apply_profile_meta(
     continue_range: tuple[tuple[int, int], ...] | None,
 ) -> None:
     if profile:
-        meta["villain_profile"] = profile
+        meta["rival_profile"] = profile
     if continue_range:
-        meta["villain_continue_range"] = continue_range
+        meta["rival_continue_range"] = continue_range
 
 
-def _update_villain_range(hand_state: dict[str, Any], meta: dict[str, Any] | None, villain_folds: bool) -> None:
+def _update_rival_range(hand_state: dict[str, Any], meta: dict[str, Any] | None, rival_folds: bool) -> None:
     if not hand_state:
         return
-    if villain_folds:
-        hand_state.pop("villain_continue_range", None)
+    if rival_folds:
+        hand_state.pop("rival_continue_range", None)
         return
     if not isinstance(meta, dict):
         return
-    cont_range = meta.get("villain_continue_range")
+    cont_range = meta.get("rival_continue_range")
     if not isinstance(cont_range, (list, tuple)):
         return
     normalized = [
         tuple(int(c) for c in combo) for combo in cont_range if isinstance(combo, (list, tuple)) and len(combo) == 2
     ]
     if normalized:
-        hand_state["villain_continue_range"] = normalized
+        hand_state["rival_continue_range"] = normalized
 
 
 def _combo_equity(
@@ -275,33 +275,33 @@ def _hand_state(node: Node) -> dict[str, Any] | None:
     return None
 
 
-def _villain_range_tag(node: Node, default: str = "sb_open") -> str:
-    ctx_val = node.context.get("villain_range")
+def _rival_range_tag(node: Node, default: str = "sb_open") -> str:
+    ctx_val = node.context.get("rival_range")
     if isinstance(ctx_val, str) and ctx_val:
         return ctx_val
     hand_state = _hand_state(node)
     if hand_state:
-        hs_val = hand_state.get("villain_range")
+        hs_val = hand_state.get("rival_range")
         if isinstance(hs_val, str) and hs_val:
             return hs_val
     return default
 
 
-def _villain_base_range(node: Node, blocked: Iterable[int]) -> list[tuple[int, int]]:
+def _rival_base_range(node: Node, blocked: Iterable[int]) -> list[tuple[int, int]]:
     hand_state = _hand_state(node)
     if hand_state:
-        stored = hand_state.get("villain_continue_range")
+        stored = hand_state.get("rival_continue_range")
         if isinstance(stored, (list, tuple)):
             stored_combos = [tuple(int(c) for c in combo) for combo in stored if len(combo) == 2]
             filtered = [combo for combo in stored_combos if combo[0] not in blocked and combo[1] not in blocked]
             if filtered:
                 return filtered
 
-    tag = _villain_range_tag(node)
+    tag = _rival_range_tag(node)
     open_size = _default_open_size(node)
     if tag == "bb_defend":
-        return villain_bb_defend_range(open_size, blocked)
-    return villain_sb_open_range(open_size, blocked)
+        return rival_bb_defend_range(open_size, blocked)
+    return rival_sb_open_range(open_size, blocked)
 
 
 def _set_node_pot_from_state(node: Node, hand_state: dict[str, Any] | None) -> float:
@@ -313,10 +313,10 @@ def _set_node_pot_from_state(node: Node, hand_state: dict[str, Any] | None) -> f
     return pot
 
 
-def _villain_cards(hand_state: dict[str, Any] | None) -> tuple[int, int] | None:
+def _rival_cards(hand_state: dict[str, Any] | None) -> tuple[int, int] | None:
     if not hand_state:
         return None
-    cards = hand_state.get("villain_cards")
+    cards = hand_state.get("rival_cards")
     if isinstance(cards, tuple) and len(cards) == 2:
         return cards  # type: ignore[return-value]
     if isinstance(cards, list) and len(cards) == 2:
@@ -324,8 +324,8 @@ def _villain_cards(hand_state: dict[str, Any] | None) -> tuple[int, int] | None:
     return None
 
 
-def _villain_str(hand_state: dict[str, Any] | None, reveal: bool) -> str:
-    cards = _villain_cards(hand_state)
+def _rival_str(hand_state: dict[str, Any] | None, reveal: bool) -> str:
+    cards = _rival_cards(hand_state)
     if reveal and cards:
         return format_cards_spaced(list(cards))
     return "(hidden)"
@@ -354,8 +354,8 @@ def _rebuild_turn_node(hand_state: dict[str, Any], pot: float) -> None:
     turn_node.context["bet"] = bet_turn
     board_turn = turn_node.board
     board_str = " ".join(format_card_ascii(c, upper=True) for c in board_turn)
-    villain_seat = str(hand_state.get("villain_seat", "SB"))
-    turn_node.description = f"{board_str}; Rival ({villain_seat}) bets {bet_turn:.2f}bb into {pot:.2f}bb."
+    rival_seat = str(hand_state.get("rival_seat", "SB"))
+    turn_node.description = f"{board_str}; Rival ({rival_seat}) bets {bet_turn:.2f}bb into {pot:.2f}bb."
 
 
 def _rebuild_river_node(hand_state: dict[str, Any], pot: float) -> None:
@@ -372,8 +372,8 @@ def _rebuild_river_node(hand_state: dict[str, Any], pot: float) -> None:
     river_node.description = f"{board_str}; choose your bet."
 
 
-def _showdown_outcome(hero: list[int], board: list[int], villain: tuple[int, int]) -> float:
-    eq = hero_equity_vs_combo(hero, board, villain, 1)
+def _showdown_outcome(hero: list[int], board: list[int], rival: tuple[int, int]) -> float:
+    eq = hero_equity_vs_combo(hero, board, rival, 1)
     if eq >= 0.999:
         return 1.0
     if eq <= 0.001:
@@ -388,16 +388,16 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     hand_state = _hand_state(node)
     pot = _set_node_pot_from_state(node, hand_state)
     hero_contrib = _state_value(hand_state, "hero_contrib", 1.0)
-    villain_contrib = _state_value(hand_state, "villain_contrib", open_size)
+    rival_contrib = _state_value(hand_state, "rival_contrib", open_size)
     hero_stack = _state_value(hand_state, "hero_stack", node.effective_bb)
-    villain_stack = _state_value(hand_state, "villain_stack", node.effective_bb)
+    rival_stack = _state_value(hand_state, "rival_stack", node.effective_bb)
     hero_total = hero_contrib + hero_stack
-    villain_total = villain_contrib + villain_stack
+    rival_total = rival_contrib + rival_stack
 
-    call_cost = max(0.0, min(hero_stack, villain_contrib - hero_contrib))
+    call_cost = max(0.0, min(hero_stack, rival_contrib - hero_contrib))
 
     blocked = _blocked_cards(hero, [])
-    open_range = _villain_base_range(node, blocked)
+    open_range = _rival_base_range(node, blocked)
     sampled_range = _sample_range(open_range, _sample_cap_preflop(mc_trials)) or open_range
     precision = _precision_for_street(mc_trials, "preflop")
     equities = {combo: _combo_equity(hero, [], combo, precision) for combo in sampled_range}
@@ -436,7 +436,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     raise_targets: set[float] = set()
     for mult in (2.8, 3.5, 5.0):
         target = round(open_size * mult, 2)
-        if target <= villain_contrib + 0.25:
+        if target <= rival_contrib + 0.25:
             continue
         target = min(target, max_raise)
         if target >= max_raise - 0.05:
@@ -449,12 +449,12 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         hero_add = raise_to - hero_contrib
         if hero_add <= 0 or hero_add > hero_stack + 1e-6:
             continue
-        villain_call_to = max(0.0, raise_to - villain_contrib)
-        villain_call = min(villain_call_to, villain_stack)
-        final_pot = pot + hero_add + villain_call
+        rival_call_to = max(0.0, raise_to - rival_contrib)
+        rival_call = min(rival_call_to, rival_stack)
+        final_pot = pot + hero_add + rival_call
         if final_pot <= 0:
             continue
-        be_threshold = villain_call / final_pot if final_pot > 0 else 1.0
+        be_threshold = rival_call / final_pot if final_pot > 0 else 1.0
         fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
@@ -463,9 +463,9 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             f"When called (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(avg_eq_when_called, 1)} equity "
             f"→ EV {ev_called:.2f} bb."
         )
-        profile, continue_range = _villain_profile(
+        profile, continue_range = _rival_profile(
             sampled_range,
-            tag=_villain_range_tag(node),
+            tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
         )
@@ -473,12 +473,12 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "street": "preflop",
             "action": "3bet",
             "raise_to": raise_to,
-            "villain_threshold": be_threshold,
+            "rival_threshold": be_threshold,
             "pot_before": pot,
             "hero_add": hero_add,
-            "villain_call": villain_call,
-            "villain_fe": fe,
-            "villain_continue_ratio": continue_ratio,
+            "rival_call": rival_call,
+            "rival_fe": fe,
+            "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -487,10 +487,10 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     hero_add = hero_stack
     if hero_add > 0.0:
         jam_to = hero_contrib + hero_add
-        villain_call_to = max(0.0, min(jam_to, villain_total) - villain_contrib)
-        villain_call = min(villain_call_to, villain_stack)
-        final_pot = pot + hero_add + villain_call
-        be_threshold = villain_call / final_pot if final_pot > 0 else 1.0
+        rival_call_to = max(0.0, min(jam_to, rival_total) - rival_contrib)
+        rival_call = min(rival_call_to, rival_stack)
+        final_pot = pot + hero_add + rival_call
+        be_threshold = rival_call / final_pot if final_pot > 0 else 1.0
         fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
@@ -499,9 +499,9 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             f"When called (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(avg_eq_when_called, 1)} equity "
             f"→ EV {ev_called:.2f} bb."
         )
-        profile, continue_range = _villain_profile(
+        profile, continue_range = _rival_profile(
             sampled_range,
-            tag=_villain_range_tag(node),
+            tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
         )
@@ -510,11 +510,11 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "action": "jam",
             "raise_to": jam_to,
             "risk": hero_add,
-            "villain_threshold": be_threshold,
+            "rival_threshold": be_threshold,
             "pot_before": pot,
-            "villain_call_cost": villain_call_to,
-            "villain_fe": fe,
-            "villain_continue_ratio": continue_ratio,
+            "rival_call_cost": rival_call_to,
+            "rival_fe": fe,
+            "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -537,7 +537,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
     hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
-    base_range = _villain_base_range(node, blocked)
+    base_range = _rival_base_range(node, blocked)
     probe_tighten = float(hand_state.get("style_turn_probe_tighten", 0.7))
     probe_range = tighten_range(base_range, probe_tighten)
     sampled_range = _sample_range(probe_range, _sample_cap_postflop(mc_trials)) or probe_range
@@ -568,9 +568,9 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             f"Bet {int(pct * 100)}%: rival folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
             f"Calls (~{_fmt_pct(continue_ratio)}) give {_fmt_pct(eq_call, 1)} equity → EV {ev_called:.2f} bb."
         )
-        profile, continue_range = _villain_profile(
+        profile, continue_range = _rival_profile(
             sampled_range,
-            tag=_villain_range_tag(node),
+            tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
         )
@@ -578,9 +578,9 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             "street": "turn",
             "action": "bet",
             "bet": bet,
-            "villain_threshold": be_threshold,
-            "villain_fe": fe,
-            "villain_continue_ratio": continue_ratio,
+            "rival_threshold": be_threshold,
+            "rival_fe": fe,
+            "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -593,9 +593,9 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
         fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
         ev_called = eq_call * final_pot - risk if continue_ratio else -risk
         ev = fe * pot + (1 - fe) * ev_called
-        profile, continue_range = _villain_profile(
+        profile, continue_range = _rival_profile(
             sampled_range,
-            tag=_villain_range_tag(node),
+            tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
         )
@@ -603,10 +603,10 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             "street": "turn",
             "action": "jam",
             "risk": risk,
-            "villain_threshold": be_threshold,
+            "rival_threshold": be_threshold,
             "pot_before": pot,
-            "villain_fe": fe,
-            "villain_continue_ratio": continue_ratio,
+            "rival_fe": fe,
+            "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -633,7 +633,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
-    open_range = _villain_base_range(node, blocked)
+    open_range = _rival_base_range(node, blocked)
     sampled_range = _sample_range(open_range, _sample_cap_postflop(mc_trials)) or open_range
     precision = _precision_for_street(mc_trials, "flop")
     equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
@@ -663,9 +663,9 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             f"→ EV {ev_called:.2f} bb."
         )
         why += f" Additional sizing detail: {bet:.2f} bb (equals {int(pct * 100)}% pot)."
-        profile, continue_range = _villain_profile(
+        profile, continue_range = _rival_profile(
             sampled_range,
-            tag=_villain_range_tag(node),
+            tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
         )
@@ -673,9 +673,9 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "street": "flop",
             "action": "bet",
             "bet": bet,
-            "villain_threshold": be_threshold,
-            "villain_fe": fe,
-            "villain_continue_ratio": continue_ratio,
+            "rival_threshold": be_threshold,
+            "rival_fe": fe,
+            "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -689,9 +689,9 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
         ev_called = eq_call * final_pot - risk if continue_ratio else -risk
         ev = fe * pot + (1 - fe) * ev_called
-        profile, continue_range = _villain_profile(
+        profile, continue_range = _rival_profile(
             sampled_range,
-            tag=_villain_range_tag(node),
+            tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
         )
@@ -699,10 +699,10 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "street": "flop",
             "action": "jam",
             "risk": risk,
-            "villain_threshold": be_threshold,
+            "rival_threshold": be_threshold,
             "pot_before": pot,
-            "villain_fe": fe,
-            "villain_continue_ratio": continue_ratio,
+            "rival_fe": fe,
+            "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -727,11 +727,11 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     board = node.board
     hand_state = _hand_state(node) or {}
     pot_start = _set_node_pot_from_state(node, hand_state)
-    villain_bet = float(node.context.get("bet") or round(0.75 * pot_start, 2))
-    node.context["bet"] = villain_bet
-    pot_after_bet = pot_start + villain_bet
+    rival_bet = float(node.context.get("bet") or round(0.75 * pot_start, 2))
+    node.context["bet"] = rival_bet
+    pot_after_bet = pot_start + rival_bet
     blocked = _blocked_cards(hero, board)
-    base_range = _villain_base_range(node, blocked)
+    base_range = _rival_base_range(node, blocked)
     lead_tighten = float(hand_state.get("style_river_lead_tighten", 0.5))
     lead_range = tighten_range(base_range, lead_tighten)
     sampled_range = _sample_range(lead_range, _sample_cap_postflop(mc_trials)) or lead_range
@@ -745,38 +745,38 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
             0.0,
             "Cut losses and fold river.",
             ends_hand=True,
-            meta={"street": "river", "action": "fold", "villain_bet": villain_bet},
+            meta={"street": "river", "action": "fold", "rival_bet": rival_bet},
         )
     ]
 
     call_meta = {
         "street": "river",
         "action": "call",
-        "villain_bet": villain_bet,
+        "rival_bet": rival_bet,
         **precision.to_meta(),
     }
-    call_ev = avg_eq * pot_after_bet - (1 - avg_eq) * villain_bet
+    call_ev = avg_eq * pot_after_bet - (1 - avg_eq) * rival_bet
     options.append(
         Option(
             "Call",
             call_ev,
-            f"Calling invests {villain_bet:.2f}bb with {_fmt_pct(avg_eq, 1)} showdown equity.",
+            f"Calling invests {rival_bet:.2f}bb with {_fmt_pct(avg_eq, 1)} showdown equity.",
             meta=call_meta,
         )
     )
 
-    raise_to = round(max(villain_bet * 2.5, villain_bet + pot_start), 2)
+    raise_to = round(max(rival_bet * 2.5, rival_bet + pot_start), 2)
     risk = raise_to - _state_value(hand_state, "hero_contrib")
-    risk = max(risk, villain_bet + 0.5)
-    villain_call_cost = max(0.0, raise_to - _state_value(hand_state, "villain_contrib") - villain_bet)
+    risk = max(risk, rival_bet + 0.5)
+    rival_call_cost = max(0.0, raise_to - _state_value(hand_state, "rival_contrib") - rival_bet)
     final_pot = pot_after_bet + raise_to
-    be_threshold = villain_call_cost / final_pot if final_pot > 0 else 1.0
+    be_threshold = rival_call_cost / final_pot if final_pot > 0 else 1.0
     fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
     ev_called = eq_call * final_pot - risk if continue_ratio else -risk
     ev = fe * pot_after_bet + (1 - fe) * ev_called
-    raise_profile, continue_range = _villain_profile(
+    raise_profile, continue_range = _rival_profile(
         sampled_range,
-        tag=_villain_range_tag(node),
+        tag=_rival_range_tag(node),
         fold_probability=fe,
         continue_ratio=continue_ratio,
     )
@@ -784,11 +784,11 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         "street": "river",
         "action": "raise",
         "raise_to": raise_to,
-        "villain_threshold": be_threshold,
-        "villain_bet": villain_bet,
+        "rival_threshold": be_threshold,
+        "rival_bet": rival_bet,
         "pot_before": pot_after_bet,
-        "villain_fe": fe,
-        "villain_continue_ratio": continue_ratio,
+        "rival_fe": fe,
+        "rival_continue_ratio": continue_ratio,
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, raise_profile, continue_range)
@@ -808,9 +808,9 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         fe_ai, eq_call_ai, continue_ratio_ai = _fold_continue_stats(equities.values(), be_threshold_allin)
         ev_called_ai = eq_call_ai * final_pot_allin - risk_allin if continue_ratio_ai else -risk_allin
         ev_ai = fe_ai * pot_after_bet + (1 - fe_ai) * ev_called_ai
-        profile_ai, continue_range_ai = _villain_profile(
+        profile_ai, continue_range_ai = _rival_profile(
             sampled_range,
-            tag=_villain_range_tag(node),
+            tag=_rival_range_tag(node),
             fold_probability=fe_ai,
             continue_ratio=continue_ratio_ai,
         )
@@ -818,10 +818,10 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
             "street": "river",
             "action": "jam",
             "risk": risk_allin,
-            "villain_threshold": be_threshold_allin,
+            "rival_threshold": be_threshold_allin,
             "pot_before": pot_after_bet,
-            "villain_fe": fe_ai,
-            "villain_continue_ratio": continue_ratio_ai,
+            "rival_fe": fe_ai,
+            "rival_continue_ratio": continue_ratio_ai,
         }
         jam_meta.update(precision.to_meta())
         _apply_profile_meta(jam_meta, profile_ai, continue_range_ai)
@@ -852,11 +852,11 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     board = node.board
     hand_state = _hand_state(node) or {}
     pot_start = _set_node_pot_from_state(node, hand_state)
-    villain_bet = float(node.context.get("bet") or round(0.5 * pot_start, 2))
-    node.context["bet"] = villain_bet
-    pot_before_action = pot_start + villain_bet
+    rival_bet = float(node.context.get("bet") or round(0.5 * pot_start, 2))
+    node.context["bet"] = rival_bet
+    pot_before_action = pot_start + rival_bet
     blocked = _blocked_cards(hero, board)
-    base_range = _villain_base_range(node, blocked)
+    base_range = _rival_base_range(node, blocked)
     tighten = float(hand_state.get("style_turn_bet_tighten", 0.55))
     bet_range = tighten_range(base_range, tighten)
     sampled_range = _sample_range(bet_range, _sample_cap_postflop(mc_trials)) or bet_range
@@ -870,35 +870,35 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             0.0,
             "Fold and wait for a better spot.",
             ends_hand=True,
-            meta={"street": "turn", "action": "fold", "villain_bet": villain_bet},
+            meta={"street": "turn", "action": "fold", "rival_bet": rival_bet},
         )
     ]
 
-    final_pot_call = pot_start + 2 * villain_bet
-    be_call_eq = villain_bet / final_pot_call if final_pot_call > 0 else 1.0
+    final_pot_call = pot_start + 2 * rival_bet
+    be_call_eq = rival_bet / final_pot_call if final_pot_call > 0 else 1.0
     call_meta = {
         "street": "turn",
         "action": "call",
-        "villain_bet": villain_bet,
+        "rival_bet": rival_bet,
     }
     call_meta.update(precision.to_meta())
     options.append(
         Option(
             "Call",
-            avg_eq * final_pot_call - villain_bet,
+            avg_eq * final_pot_call - rival_bet,
             (
-                f"Pot odds: call {villain_bet:.2f} bb to win {final_pot_call:.2f} bb. "
+                f"Pot odds: call {rival_bet:.2f} bb to win {final_pot_call:.2f} bb. "
                 f"Need {_fmt_pct(be_call_eq, 1)} equity, hand has {_fmt_pct(avg_eq, 1)}."
             ),
             meta=call_meta,
         )
     )
 
-    raise_to = round(max(villain_bet * 2.5, villain_bet + 0.5), 2)
+    raise_to = round(max(rival_bet * 2.5, rival_bet + 0.5), 2)
     risk = raise_to
     final_pot = pot_start + 2 * raise_to
-    villain_call_cost = raise_to - villain_bet
-    be_threshold = villain_call_cost / final_pot if final_pot > 0 else 1.0
+    rival_call_cost = raise_to - rival_bet
+    be_threshold = rival_call_cost / final_pot if final_pot > 0 else 1.0
     fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
     ev_called = eq_call * final_pot - risk if continue_ratio else -risk
     ev = fe * pot_before_action + (1 - fe) * ev_called
@@ -909,9 +909,9 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         f"Continuing (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(eq_call, 1)} equity → "
         f"EV {ev_called:.2f} bb."
     )
-    profile, continue_range = _villain_profile(
+    profile, continue_range = _rival_profile(
         sampled_range,
-        tag=_villain_range_tag(node),
+        tag=_rival_range_tag(node),
         fold_probability=fe,
         continue_ratio=continue_ratio,
     )
@@ -919,11 +919,11 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         "street": "turn",
         "action": "raise",
         "raise_to": raise_to,
-        "villain_threshold": be_threshold,
-        "villain_bet": villain_bet,
+        "rival_threshold": be_threshold,
+        "rival_bet": rival_bet,
         "pot_before": pot_start,
-        "villain_fe": fe,
-        "villain_continue_ratio": continue_ratio,
+        "rival_fe": fe,
+        "rival_continue_ratio": continue_ratio,
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, profile, continue_range)
@@ -943,7 +943,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
-    base_range = _villain_base_range(node, blocked)
+    base_range = _rival_base_range(node, blocked)
     check_tighten = float(hand_state.get("style_river_check_tighten", 0.65))
     check_range = tighten_range(base_range, check_tighten)
     sampled_range = _sample_range(check_range, _sample_cap_postflop(mc_trials)) or check_range
@@ -975,9 +975,9 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             f"Calls (~{_fmt_pct(continue_ratio)}) give you {_fmt_pct(eq_call, 1)} equity → EV {ev_called:.2f} bb."
         )
         why += f" Additional sizing detail: {bet:.2f} bb (equals {int(pct * 100)}% pot)."
-        profile, continue_range = _villain_profile(
+        profile, continue_range = _rival_profile(
             sampled_range,
-            tag=_villain_range_tag(node),
+            tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
         )
@@ -985,9 +985,9 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "street": "river",
             "action": "bet",
             "bet": bet,
-            "villain_threshold": be_threshold,
-            "villain_fe": fe,
-            "villain_continue_ratio": continue_ratio,
+            "rival_threshold": be_threshold,
+            "rival_fe": fe,
+            "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1000,9 +1000,9 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
         ev_called = eq_call * final_pot - risk if continue_ratio else -risk
         ev = fe * pot + (1 - fe) * ev_called
-        profile, continue_range = _villain_profile(
+        profile, continue_range = _rival_profile(
             sampled_range,
-            tag=_villain_range_tag(node),
+            tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
         )
@@ -1010,10 +1010,10 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "street": "river",
             "action": "jam",
             "risk": risk,
-            "villain_threshold": be_threshold,
+            "rival_threshold": be_threshold,
             "pot_before": pot,
-            "villain_fe": fe,
-            "villain_continue_ratio": continue_ratio,
+            "rival_fe": fe,
+            "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1072,19 +1072,19 @@ def _resolve_preflop(
     action = option.meta.get("action") if option.meta else None
     pot = _state_value(hand_state, "pot", node.pot_bb)
     open_size = float(node.context.get("open_size", 2.5))
-    villain_cards = _villain_cards(hand_state)
+    rival_cards = _rival_cards(hand_state)
     hero_cards = node.hero_cards
     hero_contrib = _state_value(hand_state, "hero_contrib")
-    villain_contrib = _state_value(hand_state, "villain_contrib", open_size)
+    rival_contrib = _state_value(hand_state, "rival_contrib", open_size)
 
     if action == "fold":
         hand_state["hand_over"] = True
-        villain_seat = str(hand_state.get("villain_seat", "SB"))
-        _update_villain_range(hand_state, option.meta, True)
-        return OptionResolution(hand_ended=True, note=f"You fold. {villain_seat} keeps {pot:.2f}bb.")
+        rival_seat = str(hand_state.get("rival_seat", "SB"))
+        _update_rival_range(hand_state, option.meta, True)
+        return OptionResolution(hand_ended=True, note=f"You fold. {rival_seat} keeps {pot:.2f}bb.")
 
     if action == "call":
-        call_cost = float(option.meta.get("call_cost", max(0.0, villain_contrib - hero_contrib)))
+        call_cost = float(option.meta.get("call_cost", max(0.0, rival_contrib - hero_contrib)))
         invested = _apply_contribution(hand_state, "hero", call_cost)
         hand_state["street"] = "flop"
         hand_state["board_index"] = 3
@@ -1096,26 +1096,26 @@ def _resolve_preflop(
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
         precision = _precision_from_meta(option.meta, "preflop")
-        decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
+        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
         if decision.folds:
-            _update_villain_range(hand_state, option.meta, True)
+            _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
             total_pot = _state_value(hand_state, "pot")
             net_gain = total_pot - hero_add
-            if villain_cards is None:
-                note = f"Rival folds to your 3-bet. Pot {total_pot:.2f}bb (villain hand hidden)."
+            if rival_cards is None:
+                note = f"Rival folds to your 3-bet. Pot {total_pot:.2f}bb (rival hand hidden)."
             else:
                 note = f"Rival folds to your 3-bet. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(hand_ended=True, note=note)
-        call_amount = max(0.0, raise_to - villain_contrib)
-        _apply_contribution(hand_state, "villain", call_amount)
+        call_amount = max(0.0, raise_to - rival_contrib)
+        _apply_contribution(hand_state, "rival", call_amount)
         hand_state["street"] = "flop"
         hand_state["board_index"] = 3
         _set_street_pot(hand_state, "flop", _state_value(hand_state, "pot"))
-        _update_villain_range(hand_state, option.meta, False)
-        if villain_cards is None:
+        _update_rival_range(hand_state, option.meta, False)
+        if rival_cards is None:
             return OptionResolution(note=f"3-bet to {raise_to:.1f}bb. Pot now {hand_state['pot']:.2f}bb.")
-        hero_eq = _combo_equity(hero_cards, [], villain_cards, precision)
+        hero_eq = _combo_equity(hero_cards, [], rival_cards, precision)
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(note=f"Rival calls the 3-bet. Your equity {equity_note}.")
 
@@ -1125,30 +1125,28 @@ def _resolve_preflop(
         _apply_contribution(hand_state, "hero", hero_add)
         precision = _precision_from_meta(option.meta, "preflop")
         hand_state["hand_over"] = True
-        decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
+        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
         if decision.folds:
-            _update_villain_range(hand_state, option.meta, True)
+            _update_rival_range(hand_state, option.meta, True)
             scoop = _state_value(hand_state, "pot")
             net_gain = scoop - hero_add
-            if villain_cards is None:
+            if rival_cards is None:
                 note = f"You jam to {jam_to:.2f}bb. Rival folds (hand hidden)."
                 return OptionResolution(hand_ended=True, note=note)
             note = f"Rival folds to your jam. Pot {scoop:.2f}bb awarded (net +{net_gain:.2f}bb)."
-            return OptionResolution(hand_ended=True, note=note, reveal_villain=True)
-        call_amount = max(
-            0.0, min(jam_to, villain_contrib + _state_value(hand_state, "villain_stack")) - villain_contrib
-        )
-        _apply_contribution(hand_state, "villain", call_amount)
-        _update_villain_range(hand_state, option.meta, False)
-        if villain_cards is None:
+            return OptionResolution(hand_ended=True, note=note, reveal_rival=True)
+        call_amount = max(0.0, min(jam_to, rival_contrib + _state_value(hand_state, "rival_stack")) - rival_contrib)
+        _apply_contribution(hand_state, "rival", call_amount)
+        _update_rival_range(hand_state, option.meta, False)
+        if rival_cards is None:
             return OptionResolution(hand_ended=True, note=f"You jam to {jam_to:.2f}bb. Rival action hidden.")
-        hero_eq = _combo_equity(hero_cards, [], villain_cards, precision)
-        villain_text = format_cards_spaced(list(villain_cards))
+        hero_eq = _combo_equity(hero_cards, [], rival_cards, precision)
+        rival_text = format_cards_spaced(list(rival_cards))
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(
             hand_ended=True,
-            note=f"Rival calls jam with {villain_text}. Your equity {equity_note}.",
-            reveal_villain=True,
+            note=f"Rival calls jam with {rival_text}. Your equity {equity_note}.",
+            reveal_rival=True,
         )
 
     return OptionResolution(hand_ended=getattr(option, "ends_hand", False))
@@ -1163,7 +1161,7 @@ def _resolve_flop(
     action = option.meta.get("action") if option.meta else None
     pot = _state_value(hand_state, "pot", node.pot_bb)
     hand_state["street"] = "flop"
-    villain_cards = _villain_cards(hand_state)
+    rival_cards = _rival_cards(hand_state)
     hero_cards = node.hero_cards
     board = node.board
 
@@ -1177,26 +1175,26 @@ def _resolve_flop(
         bet_size = float(option.meta.get("bet", 0.0))
         precision = _precision_from_meta(option.meta, "flop")
         _apply_contribution(hand_state, "hero", bet_size)
-        decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
+        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
         if decision.folds:
-            _update_villain_range(hand_state, option.meta, True)
+            _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
             total_pot = _state_value(hand_state, "pot")
             net_gain = total_pot - bet_size
-            if villain_cards is None:
+            if rival_cards is None:
                 note = f"You bet {bet_size:.2f}bb. Rival folds (hand hidden)."
             else:
                 note = f"Rival folds flop. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(hand_ended=True, note=note)
-        call_amount = min(bet_size, _state_value(hand_state, "villain_stack"))
-        _apply_contribution(hand_state, "villain", call_amount)
+        call_amount = min(bet_size, _state_value(hand_state, "rival_stack"))
+        _apply_contribution(hand_state, "rival", call_amount)
         hand_state["board_index"] = 4
         _set_street_pot(hand_state, "turn", _state_value(hand_state, "pot"))
         _rebuild_turn_node(hand_state, _state_value(hand_state, "pot"))
-        _update_villain_range(hand_state, option.meta, False)
-        if villain_cards is None:
+        _update_rival_range(hand_state, option.meta, False)
+        if rival_cards is None:
             return OptionResolution(note=f"You bet {bet_size:.2f}bb. (Rival response hidden)")
-        hero_eq = _combo_equity(hero_cards, board, villain_cards, precision)
+        hero_eq = _combo_equity(hero_cards, board, rival_cards, precision)
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(
             note=f"Rival calls. Pot {_state_value(hand_state, 'pot'):.2f}bb. Your equity {equity_note}."
@@ -1207,28 +1205,28 @@ def _resolve_flop(
         precision = _precision_from_meta(option.meta, "flop")
         _apply_contribution(hand_state, "hero", risk)
         hand_state["hand_over"] = True
-        decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
+        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
         if decision.folds:
-            _update_villain_range(hand_state, option.meta, True)
+            _update_rival_range(hand_state, option.meta, True)
             total_pot = _state_value(hand_state, "pot")
             net_gain = total_pot - risk
-            if villain_cards is None:
+            if rival_cards is None:
                 note = f"You jam for {risk:.2f}bb. Rival folds (hand hidden)."
                 return OptionResolution(hand_ended=True, note=note)
             note = f"Rival folds to your jam. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(hand_ended=True, note=note)
-        call_amount = min(risk, _state_value(hand_state, "villain_stack"))
-        _apply_contribution(hand_state, "villain", call_amount)
-        _update_villain_range(hand_state, option.meta, False)
-        if villain_cards is None:
+        call_amount = min(risk, _state_value(hand_state, "rival_stack"))
+        _apply_contribution(hand_state, "rival", call_amount)
+        _update_rival_range(hand_state, option.meta, False)
+        if rival_cards is None:
             return OptionResolution(hand_ended=True, note=f"You jam for {risk:.2f}bb. Rival action hidden.")
-        hero_eq = _combo_equity(hero_cards, board, villain_cards, precision)
-        villain_text = format_cards_spaced(list(villain_cards))
+        hero_eq = _combo_equity(hero_cards, board, rival_cards, precision)
+        rival_text = format_cards_spaced(list(rival_cards))
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(
             hand_ended=True,
-            note=f"Rival calls jam with {villain_text}. Your equity {equity_note}.",
-            reveal_villain=True,
+            note=f"Rival calls jam with {rival_text}. Your equity {equity_note}.",
+            reveal_rival=True,
         )
 
     return OptionResolution(hand_ended=getattr(option, "ends_hand", False))
@@ -1241,12 +1239,12 @@ def _resolve_turn(
     rng: random.Random,
 ) -> OptionResolution:
     action = option.meta.get("action") if option.meta else None
-    villain_bet = float(option.meta.get("villain_bet", node.context.get("bet", 0.0)))
-    if villain_bet > 0:
-        _apply_contribution(hand_state, "villain", villain_bet)
+    rival_bet = float(option.meta.get("rival_bet", node.context.get("bet", 0.0)))
+    if rival_bet > 0:
+        _apply_contribution(hand_state, "rival", rival_bet)
         _set_street_pot(hand_state, "turn", _state_value(hand_state, "pot"))
     pot_after_bet = _state_value(hand_state, "pot", node.pot_bb)
-    villain_cards = _villain_cards(hand_state)
+    rival_cards = _rival_cards(hand_state)
     hero_cards = node.hero_cards
     board = node.board
     precision = _precision_from_meta(option.meta, "turn")
@@ -1254,17 +1252,17 @@ def _resolve_turn(
     if action == "fold":
         hand_state["hand_over"] = True
         note = f"You fold turn. Rival collects {pot_after_bet:.2f}bb."
-        _update_villain_range(hand_state, option.meta, True)
+        _update_rival_range(hand_state, option.meta, True)
         return OptionResolution(hand_ended=True, note=note)
 
     if action == "call":
-        call_amount = min(villain_bet, _state_value(hand_state, "hero_stack"))
+        call_amount = min(rival_bet, _state_value(hand_state, "hero_stack"))
         _apply_contribution(hand_state, "hero", call_amount)
         hand_state["street"] = "river"
         hand_state["board_index"] = 5
         _set_street_pot(hand_state, "river", _state_value(hand_state, "pot"))
         _rebuild_river_node(hand_state, _state_value(hand_state, "pot"))
-        _update_villain_range(hand_state, option.meta, False)
+        _update_rival_range(hand_state, option.meta, False)
         return OptionResolution(
             note=f"You call {call_amount:.2f}bb. Pot {_state_value(hand_state, 'pot'):.2f}bb on river."
         )
@@ -1279,61 +1277,61 @@ def _resolve_turn(
     if action == "bet":
         bet_size = float(option.meta.get("bet", 0.0))
         _apply_contribution(hand_state, "hero", bet_size)
-        decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
+        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
         if decision.folds:
-            _update_villain_range(hand_state, option.meta, True)
+            _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
             total_pot = _state_value(hand_state, "pot")
             net_gain = total_pot - bet_size
-            if villain_cards is None:
+            if rival_cards is None:
                 note = f"You bet {bet_size:.2f}bb. Rival folds (hand hidden)."
             else:
                 note = f"Rival folds turn. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(hand_ended=True, note=note)
 
-        call_amount = min(bet_size, _state_value(hand_state, "villain_stack"))
-        _apply_contribution(hand_state, "villain", call_amount)
+        call_amount = min(bet_size, _state_value(hand_state, "rival_stack"))
+        _apply_contribution(hand_state, "rival", call_amount)
         hand_state["street"] = "river"
         hand_state["board_index"] = 5
         _set_street_pot(hand_state, "river", _state_value(hand_state, "pot"))
         _rebuild_river_node(hand_state, _state_value(hand_state, "pot"))
-        _update_villain_range(hand_state, option.meta, False)
-        if villain_cards is None:
+        _update_rival_range(hand_state, option.meta, False)
+        if rival_cards is None:
             return OptionResolution(note=f"You bet {bet_size:.2f}bb. Rival action hidden.")
-        hero_eq = _combo_equity(hero_cards, board, villain_cards, precision)
+        hero_eq = _combo_equity(hero_cards, board, rival_cards, precision)
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(
             note=f"Rival calls. Pot {_state_value(hand_state, 'pot'):.2f}bb. Your equity {equity_note}."
         )
 
     if action == "raise":
-        raise_to = float(option.meta.get("raise_to", villain_bet * 2.5))
+        raise_to = float(option.meta.get("raise_to", rival_bet * 2.5))
         hero_contrib = _state_value(hand_state, "hero_contrib")
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
-        decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
+        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
         if decision.folds:
-            _update_villain_range(hand_state, option.meta, True)
+            _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
             total_pot = _state_value(hand_state, "pot")
             net_gain = total_pot - hero_add
-            if villain_cards is None:
+            if rival_cards is None:
                 note = f"You raise to {raise_to:.2f}bb. Rival folds (hand hidden)."
             else:
                 note = f"Rival folds turn. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(hand_ended=True, note=note)
-        call_amount = max(0.0, raise_to - _state_value(hand_state, "villain_contrib"))
-        _apply_contribution(hand_state, "villain", call_amount)
+        call_amount = max(0.0, raise_to - _state_value(hand_state, "rival_contrib"))
+        _apply_contribution(hand_state, "rival", call_amount)
         hand_state["street"] = "river"
         hand_state["board_index"] = 5
         _set_street_pot(hand_state, "river", _state_value(hand_state, "pot"))
         _rebuild_river_node(hand_state, _state_value(hand_state, "pot"))
-        _update_villain_range(hand_state, option.meta, False)
-        if villain_cards is None:
+        _update_rival_range(hand_state, option.meta, False)
+        if rival_cards is None:
             return OptionResolution(
                 note=f"You raise to {raise_to:.2f}bb. Pot now {_state_value(hand_state, 'pot'):.2f}bb."
             )
-        hero_eq = _combo_equity(hero_cards, board, villain_cards, precision)
+        hero_eq = _combo_equity(hero_cards, board, rival_cards, precision)
         equity_note = _fmt_pct(hero_eq, 1)
         return OptionResolution(
             note=f"Rival calls raise. Pot {_state_value(hand_state, 'pot'):.2f}bb. Your equity {equity_note}."
@@ -1351,176 +1349,176 @@ def _resolve_river(
     action = option.meta.get("action") if option.meta else None
     pot = _state_value(hand_state, "pot", node.pot_bb)
     hero_cards = node.hero_cards
-    villain_cards = _villain_cards(hand_state)
+    rival_cards = _rival_cards(hand_state)
     board = node.board
-    villain_bet = float(option.meta.get("villain_bet", node.context.get("bet", 0.0)))
-    if action in {"fold", "call", "raise"} and villain_bet > 0:
-        _apply_contribution(hand_state, "villain", villain_bet)
+    rival_bet = float(option.meta.get("rival_bet", node.context.get("bet", 0.0)))
+    if action in {"fold", "call", "raise"} and rival_bet > 0:
+        _apply_contribution(hand_state, "rival", rival_bet)
         _set_street_pot(hand_state, "river", _state_value(hand_state, "pot"))
 
     if action == "fold":
         hand_state["hand_over"] = True
-        _update_villain_range(hand_state, option.meta, True)
+        _update_rival_range(hand_state, option.meta, True)
         total = _state_value(hand_state, "pot")
         return OptionResolution(hand_ended=True, note=f"You fold river. Rival collects {total:.2f}bb.")
 
     if action == "check":
         hand_state["hand_over"] = True
-        hand_state.pop("villain_continue_range", None)
-        if villain_cards is None:
+        hand_state.pop("rival_continue_range", None)
+        if rival_cards is None:
             return OptionResolution(hand_ended=True, note=f"Hand checks down. Pot {pot:.2f}bb.")
-        outcome = _showdown_outcome(hero_cards, board, villain_cards)
-        villain_text = format_cards_spaced(list(villain_cards))
-        win_note = f"Showdown win vs {villain_text}. You take {pot:.2f}bb."
-        lose_note = f"Showdown loss vs {villain_text}."
-        chop_note = f"Showdown chop vs {villain_text}. Pot split."
+        outcome = _showdown_outcome(hero_cards, board, rival_cards)
+        rival_text = format_cards_spaced(list(rival_cards))
+        win_note = f"Showdown win vs {rival_text}. You take {pot:.2f}bb."
+        lose_note = f"Showdown loss vs {rival_text}."
+        chop_note = f"Showdown chop vs {rival_text}. Pot split."
         if outcome > 0.5:
-            return OptionResolution(hand_ended=True, note=win_note, reveal_villain=True)
+            return OptionResolution(hand_ended=True, note=win_note, reveal_rival=True)
         if outcome < 0.5:
-            return OptionResolution(hand_ended=True, note=lose_note, reveal_villain=True)
-        return OptionResolution(hand_ended=True, note=chop_note, reveal_villain=True)
+            return OptionResolution(hand_ended=True, note=lose_note, reveal_rival=True)
+        return OptionResolution(hand_ended=True, note=chop_note, reveal_rival=True)
 
     if action == "call":
-        call_amount = min(villain_bet, _state_value(hand_state, "hero_stack"))
+        call_amount = min(rival_bet, _state_value(hand_state, "hero_stack"))
         _apply_contribution(hand_state, "hero", call_amount)
         hand_state["hand_over"] = True
-        hand_state.pop("villain_continue_range", None)
-        if villain_cards is None:
+        hand_state.pop("rival_continue_range", None)
+        if rival_cards is None:
             return OptionResolution(hand_ended=True, note=f"You call {call_amount:.2f}bb. Rival hand hidden.")
-        outcome = _showdown_outcome(hero_cards, board, villain_cards)
-        villain_text = format_cards_spaced(list(villain_cards))
+        outcome = _showdown_outcome(hero_cards, board, rival_cards)
+        rival_text = format_cards_spaced(list(rival_cards))
         total_pot = _state_value(hand_state, "pot")
         if outcome > 0.5:
             return OptionResolution(
                 hand_ended=True,
-                note=f"You call. Win vs {villain_text} for {total_pot:.2f}bb.",
-                reveal_villain=True,
+                note=f"You call. Win vs {rival_text} for {total_pot:.2f}bb.",
+                reveal_rival=True,
             )
         if outcome < 0.5:
             return OptionResolution(
                 hand_ended=True,
-                note=f"You call. Lose vs {villain_text}.",
-                reveal_villain=True,
+                note=f"You call. Lose vs {rival_text}.",
+                reveal_rival=True,
             )
         return OptionResolution(
             hand_ended=True,
-            note=f"You call. Chop with {villain_text}.",
-            reveal_villain=True,
+            note=f"You call. Chop with {rival_text}.",
+            reveal_rival=True,
         )
 
     if action == "raise":
-        raise_to = float(option.meta.get("raise_to", villain_bet * 2.5))
+        raise_to = float(option.meta.get("raise_to", rival_bet * 2.5))
         hero_contrib = _state_value(hand_state, "hero_contrib")
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
-        decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
+        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
         if decision.folds:
-            _update_villain_range(hand_state, option.meta, True)
+            _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
             total_pot = _state_value(hand_state, "pot")
             net_gain = total_pot - hero_add
-            if villain_cards is None:
+            if rival_cards is None:
                 note = f"You raise to {raise_to:.2f}bb. Rival folds (hand hidden)."
             else:
                 note = f"Rival folds river raise. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(hand_ended=True, note=note)
-        call_amount = max(0.0, raise_to - _state_value(hand_state, "villain_contrib"))
-        _apply_contribution(hand_state, "villain", call_amount)
+        call_amount = max(0.0, raise_to - _state_value(hand_state, "rival_contrib"))
+        _apply_contribution(hand_state, "rival", call_amount)
         hand_state["hand_over"] = True
-        hand_state.pop("villain_continue_range", None)
-        if villain_cards is None:
+        hand_state.pop("rival_continue_range", None)
+        if rival_cards is None:
             return OptionResolution(hand_ended=True, note=f"You raise to {raise_to:.2f}bb. Rival action hidden.")
-        villain_text = format_cards_spaced(list(villain_cards))
+        rival_text = format_cards_spaced(list(rival_cards))
         total_pot = _state_value(hand_state, "pot")
-        outcome = _showdown_outcome(hero_cards, board, villain_cards)
+        outcome = _showdown_outcome(hero_cards, board, rival_cards)
         if outcome > 0.5:
             return OptionResolution(
                 hand_ended=True,
-                note=f"Rival calls raise with {villain_text}. You win {total_pot:.2f}bb.",
-                reveal_villain=True,
+                note=f"Rival calls raise with {rival_text}. You win {total_pot:.2f}bb.",
+                reveal_rival=True,
             )
         if outcome < 0.5:
             return OptionResolution(
                 hand_ended=True,
-                note=f"Rival calls raise with {villain_text}. You lose.",
-                reveal_villain=True,
+                note=f"Rival calls raise with {rival_text}. You lose.",
+                reveal_rival=True,
             )
         return OptionResolution(
             hand_ended=True,
-            note=f"Rival calls raise with {villain_text}. Pot split.",
-            reveal_villain=True,
+            note=f"Rival calls raise with {rival_text}. Pot split.",
+            reveal_rival=True,
         )
 
     if action == "bet":
         bet_size = float(option.meta.get("bet", 0.0))
         _apply_contribution(hand_state, "hero", bet_size)
-        decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
+        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
         if decision.folds:
-            _update_villain_range(hand_state, option.meta, True)
+            _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
             total_pot = _state_value(hand_state, "pot")
             net_gain = total_pot - bet_size
-            if villain_cards is None:
+            if rival_cards is None:
                 note = f"You bet {bet_size:.2f}bb. Rival folds (hand hidden)."
             else:
                 note = f"Rival folds river. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
             return OptionResolution(hand_ended=True, note=note)
-        call_amount = min(bet_size, _state_value(hand_state, "villain_stack"))
-        _apply_contribution(hand_state, "villain", call_amount)
+        call_amount = min(bet_size, _state_value(hand_state, "rival_stack"))
+        _apply_contribution(hand_state, "rival", call_amount)
         hand_state["hand_over"] = True
-        hand_state.pop("villain_continue_range", None)
-        if villain_cards is None:
+        hand_state.pop("rival_continue_range", None)
+        if rival_cards is None:
             return OptionResolution(hand_ended=True, note=f"You bet {bet_size:.2f}bb. Rival action hidden.")
-        outcome = _showdown_outcome(hero_cards, board, villain_cards)
-        villain_text = format_cards_spaced(list(villain_cards))
+        outcome = _showdown_outcome(hero_cards, board, rival_cards)
+        rival_text = format_cards_spaced(list(rival_cards))
         total_pot = _state_value(hand_state, "pot")
-        win_note = f"Rival calls with {villain_text}. You win {total_pot:.2f}bb."
-        lose_note = f"Rival calls with {villain_text}. You lose."
-        chop_note = f"Rival calls with {villain_text}. Pot split."
+        win_note = f"Rival calls with {rival_text}. You win {total_pot:.2f}bb."
+        lose_note = f"Rival calls with {rival_text}. You lose."
+        chop_note = f"Rival calls with {rival_text}. Pot split."
         if outcome > 0.5:
-            return OptionResolution(hand_ended=True, note=win_note, reveal_villain=True)
+            return OptionResolution(hand_ended=True, note=win_note, reveal_rival=True)
         if outcome < 0.5:
-            return OptionResolution(hand_ended=True, note=lose_note, reveal_villain=True)
-        return OptionResolution(hand_ended=True, note=chop_note, reveal_villain=True)
+            return OptionResolution(hand_ended=True, note=lose_note, reveal_rival=True)
+        return OptionResolution(hand_ended=True, note=chop_note, reveal_rival=True)
 
     if action in {"jam", "allin", "all-in"}:
         risk = float(option.meta.get("risk", _state_value(hand_state, "hero_stack", node.effective_bb)))
         _apply_contribution(hand_state, "hero", risk)
         hand_state["hand_over"] = True
-        decision = villain_strategy.decide_action(option.meta, villain_cards, rng)
+        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
         if decision.folds:
-            _update_villain_range(hand_state, option.meta, True)
+            _update_rival_range(hand_state, option.meta, True)
             total_pot = _state_value(hand_state, "pot")
             net_gain = total_pot - risk
-            if villain_cards is None:
+            if rival_cards is None:
                 note = f"You jam river for {risk:.2f}bb. Rival folds (hand hidden)."
                 return OptionResolution(hand_ended=True, note=note)
             note = f"Rival folds river jam. Pot {total_pot:.2f}bb awarded (net +{net_gain:.2f}bb)."
-            return OptionResolution(hand_ended=True, note=note, reveal_villain=True)
-        call_amount = min(risk, _state_value(hand_state, "villain_stack"))
-        _apply_contribution(hand_state, "villain", call_amount)
-        hand_state.pop("villain_continue_range", None)
-        if villain_cards is None:
+            return OptionResolution(hand_ended=True, note=note, reveal_rival=True)
+        call_amount = min(risk, _state_value(hand_state, "rival_stack"))
+        _apply_contribution(hand_state, "rival", call_amount)
+        hand_state.pop("rival_continue_range", None)
+        if rival_cards is None:
             return OptionResolution(hand_ended=True, note=f"You jam river for {risk:.2f}bb. Rival action hidden.")
-        villain_text = format_cards_spaced(list(villain_cards))
-        outcome = _showdown_outcome(hero_cards, board, villain_cards)
+        rival_text = format_cards_spaced(list(rival_cards))
+        outcome = _showdown_outcome(hero_cards, board, rival_cards)
         total_pot = _state_value(hand_state, "pot")
         if outcome > 0.5:
             return OptionResolution(
                 hand_ended=True,
-                note=f"Rival calls jam with {villain_text}. You win {total_pot:.2f}bb.",
-                reveal_villain=True,
+                note=f"Rival calls jam with {rival_text}. You win {total_pot:.2f}bb.",
+                reveal_rival=True,
             )
         if outcome < 0.5:
             return OptionResolution(
                 hand_ended=True,
-                note=f"Rival calls jam with {villain_text}. You lose.",
-                reveal_villain=True,
+                note=f"Rival calls jam with {rival_text}. You lose.",
+                reveal_rival=True,
             )
         return OptionResolution(
             hand_ended=True,
-            note=f"Rival calls jam with {villain_text}. Pot split.",
-            reveal_villain=True,
+            note=f"Rival calls jam with {rival_text}. Pot split.",
+            reveal_rival=True,
         )
 
     return OptionResolution(hand_ended=getattr(option, "ends_hand", False))

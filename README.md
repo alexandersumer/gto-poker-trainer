@@ -70,7 +70,7 @@ Environment overrides: `HANDS` and `MC` mirror the CLI flags when exported befor
 - **Simulation loop** – Each hand is generated from sampled preflop ranges, then walked street by street with Monte Carlo rollouts (`--mc`) to stabilise EV estimates.
 - **Solver logic** – Post-flop options blend heuristics with lookup data; when a CSV is supplied, the trainer wraps it in a composite provider that falls back to dynamic sizing rules.
 - **EV math** – For every action we store `best_ev`, `chosen_ev`, and compute `ev_loss = best_ev - chosen_ev`, rolling those numbers into session-level accuracy and EV summaries.
-- **Rival model** – Villain decisions come from range tightening plus fold / continue sampling, so the opponent profile updates as stacks and pot sizes change.
+- **Rival model** – Rival decisions come from range tightening plus fold / continue sampling, so the opponent profile updates as stacks and pot sizes change.
 
 ## Local development
 
@@ -91,8 +91,8 @@ CI runs the same trio as `uv run ci` / `make check` (`ruff check`, `pytest -q`).
 
 - **Episode generator** – `src/gto_trainer/dynamic/generator.py` creates preflop→river node trees, alternating blinds via `SeatRotation` so training covers both positions.
 - **Trainer loop** – `SessionManager` (and CLI/web adapters) request actions from `dynamic.policy`, cache option lists defensively, and record outcomes for scoring.
-- **Solver logic** – `dynamic.policy` samples villain ranges, runs equity Monte Carlo with adaptive precision, and emits `Option` objects carrying EVs, justifications, and metadata for resolution.
-- **Rival model** – `dynamic.villain_strategy` consumes cached range profiles to decide folds/calls/raises so postflop play mirrors solver frequencies instead of perfect clairvoyance.
+- **Solver logic** – `dynamic.policy` samples rival ranges, runs equity Monte Carlo with adaptive precision, and emits `Option` objects carrying EVs, justifications, and metadata for resolution.
+- **Rival model** – `dynamic.rival_strategy` consumes cached range profiles to decide folds/calls/raises so postflop play mirrors solver frequencies instead of perfect clairvoyance.
 - **Resolution & scoring** – `dynamic.policy.resolve_for` applies actions, updates stacks/pot state, and `core.scoring` aggregates EV loss into session summaries.
 
 ## License

@@ -28,9 +28,9 @@ def test_equity_royal_flush_on_board_is_always_tie():
 def test_equity_exact_enumeration_flop_matches_manual_probability():
     hero = [str_to_int("Ah"), str_to_int("Kh")]
     board = [str_to_int(x) for x in ["Qh", "Jh", "2c"]]
-    villain_combo = (str_to_int("9s"), str_to_int("9d"))
+    rival_combo = (str_to_int("9s"), str_to_int("9d"))
 
-    eq = hero_equity_vs_combo(hero, board, villain_combo, trials=200)
+    eq = hero_equity_vs_combo(hero, board, rival_combo, trials=200)
     # Hero has nut flush draw + straight draw vs middle pair; exact equity ≈ 0.63535.
     assert abs(eq - 0.63535) < 0.002
 
@@ -38,10 +38,10 @@ def test_equity_exact_enumeration_flop_matches_manual_probability():
 def test_equity_exact_enumeration_turn_is_deterministic():
     hero = [str_to_int("As"), str_to_int("Kd")]
     board = [str_to_int(x) for x in ["Ah", "Ac", "7d", "2s"]]
-    villain_combo = (str_to_int("Qc"), str_to_int("Qd"))
+    rival_combo = (str_to_int("Qc"), str_to_int("Qd"))
 
-    first = hero_equity_vs_combo(hero, board, villain_combo, trials=40)
-    second = hero_equity_vs_combo(hero, board, villain_combo, trials=80)
+    first = hero_equity_vs_combo(hero, board, rival_combo, trials=40)
+    second = hero_equity_vs_combo(hero, board, rival_combo, trials=80)
     assert abs(first - second) < 1e-9
 
 
@@ -53,16 +53,16 @@ def test_adaptive_monte_carlo_respects_minimum(monkeypatch):
     eq._cached_equity.cache_clear()
 
     hero = [str_to_int("Ah"), str_to_int("7d")]
-    villain = (str_to_int("Kc"), str_to_int("Qd"))
+    rival = (str_to_int("Kc"), str_to_int("Qd"))
 
-    hero_equity_vs_combo(hero, [], villain, trials=5)
+    hero_equity_vs_combo(hero, [], rival, trials=5)
     assert eq._LAST_MONTE_TRIALS >= eq._MIN_MONTE_TRIALS
 
 
 def test_adaptive_monte_carlo_is_deterministic():
     hero = [str_to_int("9h"), str_to_int("8d")]
-    villain = (str_to_int("Jc"), str_to_int("Td"))
+    rival = (str_to_int("Jc"), str_to_int("Td"))
     eq._cached_equity.cache_clear()
-    first = hero_equity_vs_combo(hero, [], villain, trials=150)
-    second = hero_equity_vs_combo(hero, [], villain, trials=150)
+    first = hero_equity_vs_combo(hero, [], rival, trials=150)
+    second = hero_equity_vs_combo(hero, [], rival, trials=150)
     assert first == second

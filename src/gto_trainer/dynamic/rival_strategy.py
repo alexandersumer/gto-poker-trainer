@@ -1,9 +1,9 @@
-"""Villain decision modelling helpers.
+"""Rival decision modelling helpers.
 
-This module centralises the logic that decides whether a simulated villain
+This module centralises the logic that decides whether a simulated rival
 continues or folds after the hero raises/bets. The previous implementation
-made the villain clairvoyant by comparing against the hero's exact hand. We now
-bias decisions using the villain's own holding strength and target fold
+made the rival clairvoyant by comparing against the hero's exact hand. We now
+bias decisions using the rival's own holding strength and target fold
 frequencies inferred from solver-style heuristics.
 """
 
@@ -18,8 +18,8 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class VillainDecision:
-    """Outcome of a villain response sample."""
+class RivalDecision:
+    """Outcome of a rival response sample."""
 
     folds: bool
 
@@ -63,9 +63,9 @@ def build_profile(
     fold_probability: float,
     continue_ratio: float,
 ) -> dict:
-    """Create a lightweight metadata profile for villain response sampling.
+    """Create a lightweight metadata profile for rival response sampling.
 
-    - ``sampled_range`` is the subset of villain combos considered when the
+    - ``sampled_range`` is the subset of rival combos considered when the
       option was evaluated (typically <= 200 entries).
     - ``fold_probability`` represents the aggregate fold frequency implied by
       the EV calculation.
@@ -151,25 +151,25 @@ def _sample_profile_combo(profile: Mapping[str, object], rng: random.Random) -> 
 
 def decide_action(
     meta: Mapping[str, object] | None,
-    villain_cards: Sequence[int] | None,
+    rival_cards: Sequence[int] | None,
     rng: random.Random,
-) -> VillainDecision:
-    """Sample whether the villain folds or continues.
+) -> RivalDecision:
+    """Sample whether the rival folds or continues.
 
     ``meta`` is the Option.meta mapping. If the stored profile is missing we
     default to always continuing to preserve backwards compatibility.
     """
 
     if not meta:
-        return VillainDecision(folds=False)
-    profile = meta.get("villain_profile") if isinstance(meta, Mapping) else None
+        return RivalDecision(folds=False)
+    profile = meta.get("rival_profile") if isinstance(meta, Mapping) else None
     if not isinstance(profile, Mapping):
-        return VillainDecision(folds=False)
+        return RivalDecision(folds=False)
 
     fold_prob = float(profile.get("fold_probability", 0.0))
     percentile = 0.5
-    if villain_cards is not None:
-        percentile = _percentile_for_combo(profile, villain_cards)
+    if rival_cards is not None:
+        percentile = _percentile_for_combo(profile, rival_cards)
     else:
         sampled = _sample_profile_combo(profile, rng)
         if sampled is not None:
@@ -178,4 +178,4 @@ def decide_action(
     bias_scale = min(0.6, max(0.2, fold_prob + 0.2))
     fold_prob = max(0.0, min(1.0, fold_prob + (0.5 - percentile) * bias_scale))
     draw = rng.random()
-    return VillainDecision(folds=draw < fold_prob)
+    return RivalDecision(folds=draw < fold_prob)

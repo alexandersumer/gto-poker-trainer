@@ -6,46 +6,46 @@ import gto_trainer.dynamic.policy as pol
 from gto_trainer.dynamic.cards import str_to_int
 from gto_trainer.dynamic.generator import Node
 from gto_trainer.dynamic.policy import preflop_options, resolve_for, river_options, turn_options
-from gto_trainer.dynamic.villain_strategy import VillainDecision
+from gto_trainer.dynamic.rival_strategy import RivalDecision
 
 
 def _make_hand_state(
     hero: list[int],
-    villain: tuple[int, int],
+    rival: tuple[int, int],
     board: list[int],
     *,
     pot: float,
     street: str,
     hero_contrib: float | None = None,
-    villain_contrib: float | None = None,
+    rival_contrib: float | None = None,
     hero_stack: float | None = None,
-    villain_stack: float | None = None,
+    rival_stack: float | None = None,
 ) -> dict:
-    if hero_contrib is None and villain_contrib is None:
+    if hero_contrib is None and rival_contrib is None:
         hero_contrib = pot / 2
-        villain_contrib = pot - hero_contrib
+        rival_contrib = pot - hero_contrib
     elif hero_contrib is None:
-        hero_contrib = pot - (villain_contrib or 0.0)
-    elif villain_contrib is None:
-        villain_contrib = pot - hero_contrib
+        hero_contrib = pot - (rival_contrib or 0.0)
+    elif rival_contrib is None:
+        rival_contrib = pot - hero_contrib
 
     hero_stack_val = hero_stack if hero_stack is not None else max(0.0, 100.0 - hero_contrib)
-    villain_stack_val = villain_stack if villain_stack is not None else max(0.0, 100.0 - villain_contrib)
-    effective_stack = min(hero_stack_val, villain_stack_val)
+    rival_stack_val = rival_stack if rival_stack is not None else max(0.0, 100.0 - rival_contrib)
+    effective_stack = min(hero_stack_val, rival_stack_val)
 
     return {
         "pot": pot,
         "hero_cards": tuple(hero),
-        "villain_cards": villain,
+        "rival_cards": rival,
         "full_board": tuple(board + [0] * (5 - len(board))),
         "street": street,
         "board_index": len(board),
         "history": [],
         "nodes": {},
         "hero_contrib": hero_contrib,
-        "villain_contrib": villain_contrib,
+        "rival_contrib": rival_contrib,
         "hero_stack": hero_stack_val,
-        "villain_stack": villain_stack_val,
+        "rival_stack": rival_stack_val,
         "effective_stack": effective_stack,
     }
 
@@ -54,22 +54,22 @@ def _str_cards(cards: list[str]) -> list[int]:
     return [str_to_int(c) for c in cards]
 
 
-def _villain_tuple(c1: str, c2: str) -> tuple[int, int]:
+def _rival_tuple(c1: str, c2: str) -> tuple[int, int]:
     return (str_to_int(c1), str_to_int(c2))
 
 
 def test_preflop_call_updates_state_and_pot():
     hero = _str_cards(["As", "Kd"])
-    villain = _villain_tuple("Qh", "Js")
+    rival = _rival_tuple("Qh", "Js")
     board = _str_cards(["2c", "7d", "Jh", "9s", "3d"])
     state = _make_hand_state(
         hero,
-        villain,
+        rival,
         board[:0],
         pot=3.5,
         street="preflop",
         hero_contrib=1.0,
-        villain_contrib=2.5,
+        rival_contrib=2.5,
     )
     node = Node(
         street="preflop",
@@ -94,19 +94,19 @@ def test_preflop_call_updates_state_and_pot():
     assert "call" in (res.note or "").lower()
 
 
-def test_preflop_three_bet_folds_weak_villain(monkeypatch):
+def test_preflop_three_bet_folds_weak_rival(monkeypatch):
     hero = _str_cards(["As", "Ad"])
-    villain = _villain_tuple("7c", "2d")
+    rival = _rival_tuple("7c", "2d")
     board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
     initial_pot = 3.5
     state = _make_hand_state(
         hero,
-        villain,
+        rival,
         board[:0],
         pot=initial_pot,
         street="preflop",
         hero_contrib=1.0,
-        villain_contrib=initial_pot - 1.0,
+        rival_contrib=initial_pot - 1.0,
     )
     node = Node(
         street="preflop",
@@ -120,9 +120,9 @@ def test_preflop_three_bet_folds_weak_villain(monkeypatch):
     )
 
     monkeypatch.setattr(
-        pol.villain_strategy,
+        pol.rival_strategy,
         "decide_action",
-        lambda _meta, _cards, _rng: VillainDecision(folds=True),
+        lambda _meta, _cards, _rng: RivalDecision(folds=True),
     )
     opts = preflop_options(node, random.Random(2), mc_trials=160)
     three_bet = next(o for o in opts if o.key.startswith("3-bet"))
@@ -134,19 +134,19 @@ def test_preflop_three_bet_folds_weak_villain(monkeypatch):
     assert "net" in (res.note or "")
 
 
-def test_preflop_three_bet_strong_villain_continues(monkeypatch):
+def test_preflop_three_bet_strong_rival_continues(monkeypatch):
     hero = _str_cards(["7c", "2d"])
-    villain = _villain_tuple("As", "Ad")
+    rival = _rival_tuple("As", "Ad")
     board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
     initial_pot = 3.5
     state = _make_hand_state(
         hero,
-        villain,
+        rival,
         board[:0],
         pot=initial_pot,
         street="preflop",
         hero_contrib=1.0,
-        villain_contrib=initial_pot - 1.0,
+        rival_contrib=initial_pot - 1.0,
     )
     node = Node(
         street="preflop",
@@ -160,9 +160,9 @@ def test_preflop_three_bet_strong_villain_continues(monkeypatch):
     )
 
     monkeypatch.setattr(
-        pol.villain_strategy,
+        pol.rival_strategy,
         "decide_action",
-        lambda _meta, _cards, _rng: VillainDecision(folds=False),
+        lambda _meta, _cards, _rng: RivalDecision(folds=False),
     )
     opts = preflop_options(node, random.Random(3), mc_trials=160)
     three_bet = next(o for o in opts if o.key.startswith("3-bet"))
@@ -175,18 +175,18 @@ def test_preflop_three_bet_strong_villain_continues(monkeypatch):
     assert "calls" in (res.note or "").lower()
 
 
-def test_preflop_jam_resolves_and_folds_weak_villain(monkeypatch):
+def test_preflop_jam_resolves_and_folds_weak_rival(monkeypatch):
     hero = _str_cards(["As", "Ah"])
-    villain = _villain_tuple("7c", "2d")
+    rival = _rival_tuple("7c", "2d")
     board = _str_cards(["2h", "9d", "Qh", "5s", "Jc"])
     state = _make_hand_state(
         hero,
-        villain,
+        rival,
         board[:0],
         pot=3.5,
         street="preflop",
         hero_contrib=1.0,
-        villain_contrib=2.5,
+        rival_contrib=2.5,
     )
     node = Node(
         street="preflop",
@@ -200,9 +200,9 @@ def test_preflop_jam_resolves_and_folds_weak_villain(monkeypatch):
     )
 
     monkeypatch.setattr(
-        pol.villain_strategy,
+        pol.rival_strategy,
         "decide_action",
-        lambda _meta, _cards, _rng: VillainDecision(folds=True),
+        lambda _meta, _cards, _rng: RivalDecision(folds=True),
     )
     opts = preflop_options(node, random.Random(7), mc_trials=200)
     jam_opt = next(o for o in opts if "All-in" in o.key)
@@ -216,16 +216,16 @@ def test_preflop_jam_resolves_and_folds_weak_villain(monkeypatch):
 
 def test_turn_raise_can_force_fold(monkeypatch):
     hero = _str_cards(["As", "Kd"])
-    villain = _villain_tuple("7c", "2d")
+    rival = _rival_tuple("7c", "2d")
     board = _str_cards(["Ad", "Kh", "Qc", "2s"])
     state = _make_hand_state(
         hero,
-        villain,
+        rival,
         board[:4],
         pot=10.0,
         street="turn",
         hero_contrib=5.0,
-        villain_contrib=5.0,
+        rival_contrib=5.0,
     )
     node = Node(
         street="turn",
@@ -239,9 +239,9 @@ def test_turn_raise_can_force_fold(monkeypatch):
     )
 
     monkeypatch.setattr(
-        pol.villain_strategy,
+        pol.rival_strategy,
         "decide_action",
-        lambda _meta, _cards, _rng: VillainDecision(folds=True),
+        lambda _meta, _cards, _rng: RivalDecision(folds=True),
     )
     opts = turn_options(node, random.Random(4), mc_trials=120)
     raise_opt = next(o for o in opts if o.key.startswith("Raise"))
@@ -253,11 +253,11 @@ def test_turn_raise_can_force_fold(monkeypatch):
     assert "net" in (res.note or "")
 
 
-def test_turn_call_moves_to_river_when_villain_strong():
+def test_turn_call_moves_to_river_when_rival_strong():
     hero = _str_cards(["7c", "2d"])
-    villain = _villain_tuple("As", "Ad")
+    rival = _rival_tuple("As", "Ad")
     board = _str_cards(["Ad", "Kh", "Qc", "2s"])
-    state = _make_hand_state(hero, villain, board[:4], pot=10.0, street="turn")
+    state = _make_hand_state(hero, rival, board[:4], pot=10.0, street="turn")
     node = Node(
         street="turn",
         description="turn",
@@ -280,11 +280,11 @@ def test_turn_call_moves_to_river_when_villain_strong():
     assert "call" in (res.note or "").lower()
 
 
-def test_river_bet_call_reveals_villain(monkeypatch):
+def test_river_bet_call_reveals_rival(monkeypatch):
     hero = _str_cards(["7c", "2d"])
-    villain = _villain_tuple("As", "Ad")
+    rival = _rival_tuple("As", "Ad")
     board = _str_cards(["Ad", "Kh", "Qc", "2s", "9d"])
-    state = _make_hand_state(hero, villain, board, pot=20.0, street="river")
+    state = _make_hand_state(hero, rival, board, pot=20.0, street="river")
     node = Node(
         street="river",
         description="river",
@@ -297,15 +297,15 @@ def test_river_bet_call_reveals_villain(monkeypatch):
     )
 
     monkeypatch.setattr(
-        pol.villain_strategy,
+        pol.rival_strategy,
         "decide_action",
-        lambda _meta, _cards, _rng: VillainDecision(folds=False),
+        lambda _meta, _cards, _rng: RivalDecision(folds=False),
     )
     opts = river_options(node, random.Random(6), mc_trials=120)
     bet_opt = next(o for o in opts if o.key.startswith("Bet 100"))
     res = resolve_for(node, bet_opt, random.Random(6))
 
     assert res.hand_ended
-    assert res.reveal_villain
+    assert res.reveal_rival
     assert "calls" in (res.note or "").lower()
     assert state.get("hand_over", False)

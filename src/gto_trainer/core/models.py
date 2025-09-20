@@ -25,4 +25,4 @@ class OptionResolution:
 
     hand_ended: bool = False
     note: str | None = None
-    reveal_villain: bool = False
+    reveal_rival: bool = False

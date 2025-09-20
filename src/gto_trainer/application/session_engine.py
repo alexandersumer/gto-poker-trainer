@@ -20,7 +20,7 @@ class SessionEngine:
 
     rng: random.Random
     rotation: SeatRotation
-    villain_style: str = "balanced"
+    rival_style: str = "balanced"
 
     def build_episode(
         self,
@@ -37,7 +37,7 @@ class SessionEngine:
             stacks_bb=stacks_bb,
             sb=sb,
             bb=bb,
-            villain_style=self.villain_style,
+            rival_style=self.rival_style,
         )
 
     def current_seats(self, index: int) -> SeatAssignment:

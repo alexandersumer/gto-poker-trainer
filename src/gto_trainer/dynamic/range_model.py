@@ -72,7 +72,7 @@ def top_percent(percent: float, blocked_cards: Iterable[int] | None = None) -> l
     return all_combos[:count]
 
 
-def villain_sb_open_range(open_size: float, blocked_cards: Iterable[int] | None = None) -> list[tuple[int, int]]:
+def rival_sb_open_range(open_size: float, blocked_cards: Iterable[int] | None = None) -> list[tuple[int, int]]:
     """Simple SB open-raise model by sizing.
 
     Smaller opens incentivise wider ranges; larger opens tighten up. The
@@ -92,7 +92,7 @@ def villain_sb_open_range(open_size: float, blocked_cards: Iterable[int] | None 
     return top_percent(percent, blocked_cards)
 
 
-def villain_bb_defend_range(open_size: float, blocked_cards: Iterable[int] | None = None) -> list[tuple[int, int]]:
+def rival_bb_defend_range(open_size: float, blocked_cards: Iterable[int] | None = None) -> list[tuple[int, int]]:
     """Approximate BB defend range versus SB open sizing.
 
     The thresholds roughly match contemporary HU recommendations where the BB

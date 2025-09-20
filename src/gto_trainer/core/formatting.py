@@ -62,7 +62,7 @@ def format_option_label(node: Node, option: Option) -> str:
         return "All-in"
 
     if action == "call":
-        amount = float(meta.get("call_cost", meta.get("villain_bet", 0.0)))
+        amount = float(meta.get("call_cost", meta.get("rival_bet", 0.0)))
         if amount > 0:
             return f"Call {amount:.2f}bb"
         return "Call"

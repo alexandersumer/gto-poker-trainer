@@ -4,7 +4,7 @@ import random
 
 import pytest
 
-from gto_trainer.dynamic import villain_strategy as vs
+from gto_trainer.dynamic import rival_strategy as vs
 
 
 def _sample_profile() -> dict:
@@ -24,9 +24,9 @@ def test_sample_profile_combo_uses_continue_and_tail_segments():
     assert first != second  # rng seeded to hit different segments
 
 
-def test_decide_action_without_villain_cards_samples_profile(monkeypatch: pytest.MonkeyPatch):
+def test_decide_action_without_rival_cards_samples_profile(monkeypatch: pytest.MonkeyPatch):
     profile = _sample_profile()
-    meta = {"villain_profile": profile}
+    meta = {"rival_profile": profile}
     captured: list[tuple[int, int]] = []
 
     def capture_percentile(_profile, combo):

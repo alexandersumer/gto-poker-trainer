@@ -17,8 +17,8 @@ from .cards import Dealt, deal_hand_and_board, format_card_ascii
 from .episode import Episode, Node
 from .seating import BB, SB, SeatAssignment
 
-_SB_VILLAIN_RANGE = "sb_open"
-_BB_VILLAIN_RANGE = "bb_defend"
+_SB_RIVAL_RANGE = "sb_open"
+_BB_RIVAL_RANGE = "bb_defend"
 _DEFAULT_STACKS = 100.0
 _DEFAULT_SB = 0.5
 _DEFAULT_BB = 1.0
@@ -26,7 +26,7 @@ _OPEN_SIZES = (2.0, 2.5, 3.0)
 
 
 @dataclass(frozen=True)
-class _VillainStyleConfig:
+class _RivalStyleConfig:
     name: str
     turn_bet_probability: float
     turn_bet_sizes: tuple[float, ...]
@@ -39,8 +39,8 @@ class _VillainStyleConfig:
     river_lead_tighten: float
 
 
-_STYLE_LIBRARY: dict[str, _VillainStyleConfig] = {
-    "balanced": _VillainStyleConfig(
+_STYLE_LIBRARY: dict[str, _RivalStyleConfig] = {
+    "balanced": _RivalStyleConfig(
         name="balanced",
         turn_bet_probability=0.65,
         turn_bet_sizes=(0.33, 0.5, 0.75, 1.0),
@@ -52,7 +52,7 @@ _STYLE_LIBRARY: dict[str, _VillainStyleConfig] = {
         river_check_tighten=0.65,
         river_lead_tighten=0.5,
     ),
-    "aggressive": _VillainStyleConfig(
+    "aggressive": _RivalStyleConfig(
         name="aggressive",
         turn_bet_probability=0.8,
         turn_bet_sizes=(0.5, 0.75, 1.0),
@@ -64,7 +64,7 @@ _STYLE_LIBRARY: dict[str, _VillainStyleConfig] = {
         river_check_tighten=0.6,
         river_lead_tighten=0.45,
     ),
-    "passive": _VillainStyleConfig(
+    "passive": _RivalStyleConfig(
         name="passive",
         turn_bet_probability=0.45,
         turn_bet_sizes=(0.33, 0.5),
@@ -79,24 +79,24 @@ _STYLE_LIBRARY: dict[str, _VillainStyleConfig] = {
 }
 
 
-def available_villain_styles() -> tuple[str, ...]:
+def available_rival_styles() -> tuple[str, ...]:
     return tuple(_STYLE_LIBRARY.keys())
 
 
-def _resolve_villain_style(style: str | None) -> _VillainStyleConfig:
+def _resolve_rival_style(style: str | None) -> _RivalStyleConfig:
     key = (style or "balanced").strip().lower()
     if key not in _STYLE_LIBRARY:
-        raise ValueError(f"Unknown villain_style '{style}'. Options: {', '.join(available_villain_styles())}")
+        raise ValueError(f"Unknown rival_style '{style}'. Options: {', '.join(available_rival_styles())}")
     return _STYLE_LIBRARY[key]
 
 
 @dataclass
 class _HandContext:
     hero_cards: list[int]
-    villain_cards: list[int]
+    rival_cards: list[int]
     board: list[int]
     open_size: float
-    villain_range: str
+    rival_range: str
 
 
 class EpisodeBuilder:
@@ -109,16 +109,16 @@ class EpisodeBuilder:
         stacks_bb: float = _DEFAULT_STACKS,
         sb: float = _DEFAULT_SB,
         bb: float = _DEFAULT_BB,
-        villain_style: str = "balanced",
+        rival_style: str = "balanced",
     ) -> None:
         self._rng = rng
         self._stacks = stacks_bb
         self._sb = sb
         self._bb = bb
         self._display_seats = seats
-        self._tree_seats = seats if seats.hero == BB else SeatAssignment(hero=BB, villain=SB)
-        self._rival_label = f"Rival ({self._display_seats.villain})"
-        self._style = _resolve_villain_style(villain_style)
+        self._tree_seats = seats if seats.hero == BB else SeatAssignment(hero=BB, rival=SB)
+        self._rival_label = f"Rival ({self._display_seats.rival})"
+        self._style = _resolve_rival_style(rival_style)
 
     def build(self) -> Episode:
         return self._build_classic_tree()
@@ -128,8 +128,8 @@ class EpisodeBuilder:
 
     def _build_classic_tree(self) -> Episode:
         dealt = self._deal()
-        villain_range = _SB_VILLAIN_RANGE if self._tree_seats.villain == SB else _BB_VILLAIN_RANGE
-        ctx = self._hand_context(villain_range=villain_range, dealt=dealt)
+        rival_range = _SB_RIVAL_RANGE if self._tree_seats.rival == SB else _BB_RIVAL_RANGE
+        ctx = self._hand_context(rival_range=rival_range, dealt=dealt)
 
         hand_state = self._base_state(
             ctx,
@@ -148,7 +148,7 @@ class EpisodeBuilder:
             context=self._node_context(
                 ctx,
                 hand_state,
-                extra={"villain_range": ctx.villain_range},
+                extra={"rival_range": ctx.rival_range},
             ),
         )
 
@@ -163,7 +163,7 @@ class EpisodeBuilder:
         return Episode(
             nodes=[preflop, *postflop],
             hero_seat=self._display_seats.hero,
-            villain_seat=self._display_seats.villain,
+            rival_seat=self._display_seats.rival,
         )
 
     # ------------------------------------------------------------------
@@ -172,14 +172,14 @@ class EpisodeBuilder:
     def _deal(self) -> Dealt:
         return deal_hand_and_board(self._rng)
 
-    def _hand_context(self, *, villain_range: str, dealt: Dealt) -> _HandContext:
+    def _hand_context(self, *, rival_range: str, dealt: Dealt) -> _HandContext:
         open_size = self._rng.choice(_OPEN_SIZES)
         return _HandContext(
             hero_cards=list(dealt.hero),
-            villain_cards=list(dealt.villain),
+            rival_cards=list(dealt.rival),
             board=list(dealt.board),
             open_size=open_size,
-            villain_range=villain_range,
+            rival_range=rival_range,
         )
 
     def _base_state(
@@ -189,33 +189,33 @@ class EpisodeBuilder:
         street: str,
         board_index: int,
     ) -> dict:
-        hero_contrib, villain_contrib = self._initial_contributions(ctx)
+        hero_contrib, rival_contrib = self._initial_contributions(ctx)
         hero_stack = max(0.0, self._stacks - hero_contrib)
-        villain_stack = max(0.0, self._stacks - villain_contrib)
-        pot = hero_contrib + villain_contrib
-        effective_stack = min(hero_stack, villain_stack)
+        rival_stack = max(0.0, self._stacks - rival_contrib)
+        pot = hero_contrib + rival_contrib
+        effective_stack = min(hero_stack, rival_stack)
 
         return {
             "pot": pot,
             "hero_cards": tuple(ctx.hero_cards),
-            "villain_cards": tuple(ctx.villain_cards),
+            "rival_cards": tuple(ctx.rival_cards),
             "full_board": tuple(ctx.board),
             "street": street,
             "history": [],
             "board_index": board_index,
             "hero_seat": self._display_seats.hero,
-            "villain_seat": self._display_seats.villain,
-            "villain_range": ctx.villain_range,
-            "villain_style": self._style.name,
+            "rival_seat": self._display_seats.rival,
+            "rival_range": ctx.rival_range,
+            "rival_style": self._style.name,
             "style_turn_bet_tighten": self._style.turn_bet_tighten,
             "style_turn_probe_tighten": self._style.turn_probe_tighten,
             "style_turn_probe_sizes": self._style.turn_probe_sizes,
             "style_river_check_tighten": self._style.river_check_tighten,
             "style_river_lead_tighten": self._style.river_lead_tighten,
             "hero_contrib": hero_contrib,
-            "villain_contrib": villain_contrib,
+            "rival_contrib": rival_contrib,
             "hero_stack": hero_stack,
-            "villain_stack": villain_stack,
+            "rival_stack": rival_stack,
             "effective_stack": effective_stack,
         }
 
@@ -230,7 +230,7 @@ class EpisodeBuilder:
             "open_size": ctx.open_size,
             "hand_state": hand_state,
             "hero_seat": self._display_seats.hero,
-            "villain_seat": self._display_seats.villain,
+            "rival_seat": self._display_seats.rival,
         }
         if extra:
             base.update(extra)
@@ -254,7 +254,7 @@ class EpisodeBuilder:
             context=self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "check", "villain_range": ctx.villain_range},
+                extra={"facing": "check", "rival_range": ctx.rival_range},
             ),
         )
 
@@ -273,8 +273,8 @@ class EpisodeBuilder:
                 extra={
                     "facing": "bet",
                     "bet": bet_turn,
-                    "villain_range": ctx.villain_range,
-                    "villain_style": self._style.name,
+                    "rival_range": ctx.rival_range,
+                    "rival_style": self._style.name,
                 },
             )
         else:
@@ -283,7 +283,7 @@ class EpisodeBuilder:
             turn_context = self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "check", "villain_range": ctx.villain_range, "villain_style": self._style.name},
+                extra={"facing": "check", "rival_range": ctx.rival_range, "rival_style": self._style.name},
             )
 
         turn_node = Node(
@@ -312,8 +312,8 @@ class EpisodeBuilder:
                 extra={
                     "facing": "bet",
                     "bet": lead_size,
-                    "villain_range": ctx.villain_range,
-                    "villain_style": self._style.name,
+                    "rival_range": ctx.rival_range,
+                    "rival_style": self._style.name,
                 },
             )
         else:
@@ -321,7 +321,7 @@ class EpisodeBuilder:
             river_context = self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "oop-check", "villain_range": ctx.villain_range, "villain_style": self._style.name},
+                extra={"facing": "oop-check", "rival_range": ctx.rival_range, "rival_style": self._style.name},
             )
 
         river_node = Node(
@@ -339,13 +339,13 @@ class EpisodeBuilder:
 
     def _initial_contributions(self, ctx: _HandContext) -> tuple[float, float]:
         hero_contrib = self._blind_for(self._display_seats.hero)
-        villain_contrib = self._blind_for(self._display_seats.villain)
+        rival_contrib = self._blind_for(self._display_seats.rival)
 
-        opener_blind = self._blind_for(self._display_seats.villain)
+        opener_blind = self._blind_for(self._display_seats.rival)
         additional = max(0.0, ctx.open_size - opener_blind)
-        villain_contrib += additional
+        rival_contrib += additional
 
-        return hero_contrib, villain_contrib
+        return hero_contrib, rival_contrib
 
     def _blind_for(self, seat: str) -> float:
         return self._sb if seat == SB else self._bb
@@ -359,7 +359,7 @@ def generate_episode(
     hero_seat: str | None = None,
     *,
     seat_assignment: SeatAssignment | None = None,
-    villain_style: str = "balanced",
+    rival_style: str = "balanced",
 ) -> Episode:
     """Generate a fresh episode for the provided seat assignment.
 
@@ -374,7 +374,7 @@ def generate_episode(
         stacks_bb=stacks_bb,
         sb=sb,
         bb=bb,
-        villain_style=villain_style,
+        rival_style=rival_style,
     )
     return builder.build()
 
@@ -395,5 +395,5 @@ def _resolve_seat_assignment(*, hero_seat: str | None, seat_assignment: SeatAssi
     hero = (hero_seat or BB).upper()
     if hero not in {SB, BB}:
         raise ValueError(f"Unsupported hero seat '{hero_seat}'")
-    villain = SB if hero == BB else BB
-    return SeatAssignment(hero=hero, villain=villain)
+    rival = SB if hero == BB else BB
+    return SeatAssignment(hero=hero, rival=rival)

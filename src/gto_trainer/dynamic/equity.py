@@ -14,14 +14,14 @@ from .cards import card_int_to_str
 def estimate_equity(
     hero: list[int],
     board: list[int],
-    known_villain: list[int] | None,
+    known_rival: list[int] | None,
     rng: random.Random,
     trials: int = 400,
 ) -> float:
-    """Monte Carlo equity estimate vs random villain hand (or a known one).
+    """Monte Carlo equity estimate vs random rival hand (or a known one).
 
     - hero, board are 0..51 int-coded cards; board may be 0..5 cards.
-    - If known_villain is None, sample random opponent hand without collision each trial.
+    - If known_rival is None, sample random opponent hand without collision each trial.
     - Returns equity in [0,1].
     """
     wins = 0
@@ -37,26 +37,26 @@ def estimate_equity(
     if need < 0:
         raise ValueError("Board cannot have more than 5 cards")
 
-    villain_fixed = None
+    rival_fixed = None
     remaining_deck = deck
-    if known_villain is not None:
-        villain_fixed = _treys_cards(known_villain)
-        remaining_deck = [c for c in deck if c not in known_villain]
+    if known_rival is not None:
+        rival_fixed = _treys_cards(known_rival)
+        remaining_deck = [c for c in deck if c not in known_rival]
 
     for _ in range(trials):
-        if villain_fixed is None:
+        if rival_fixed is None:
             picks = rng.sample(deck, 2 + need)
-            villain_raw = picks[:2]
+            rival_raw = picks[:2]
             fill_raw = picks[2:]
-            villain_cards = _treys_cards(villain_raw)
+            rival_cards = _treys_cards(rival_raw)
         else:
-            villain_cards = villain_fixed
+            rival_cards = rival_fixed
             fill_raw = rng.sample(remaining_deck, need) if need else ()
 
         board_now = preset_board + [_TREYS_CACHE[c] for c in fill_raw]
 
         hr = _EVALUATOR.evaluate(hero_cards, board_now)
-        vr = _EVALUATOR.evaluate(villain_cards, board_now)
+        vr = _EVALUATOR.evaluate(rival_cards, board_now)
         if hr < vr:
             wins += 1
         elif hr == vr:
@@ -87,44 +87,44 @@ def _treys_cards(cards: Iterable[int]) -> list[int]:
     return [_TREYS_CACHE[c] for c in cards]
 
 
-def _enumerate_remaining(hero: tuple[int, ...], board: tuple[int, ...], villain: tuple[int, ...]) -> float:
+def _enumerate_remaining(hero: tuple[int, ...], board: tuple[int, ...], rival: tuple[int, ...]) -> float:
     """Enumerate all remaining board fillings for len(board) >= 3 for precise equity."""
 
-    # hero/villain are 2-card combos; board is current board cards.
+    # hero/rival are 2-card combos; board is current board cards.
     need = 5 - len(board)
     if need < 0:
         raise ValueError("Board cannot have more than 5 cards")
 
     hero_cards = _treys_cards(hero)
-    villain_cards = _treys_cards(villain)
+    rival_cards = _treys_cards(rival)
 
     if need == 0:
         board_treys = _treys_cards(board)
         hero_rank = _EVALUATOR.evaluate(hero_cards, board_treys)
-        villain_rank = _EVALUATOR.evaluate(villain_cards, board_treys)
-        if hero_rank < villain_rank:
+        rival_rank = _EVALUATOR.evaluate(rival_cards, board_treys)
+        if hero_rank < rival_rank:
             return 1.0
-        if hero_rank == villain_rank:
+        if hero_rank == rival_rank:
             return 0.5
         return 0.0
 
-    known = set(hero) | set(board) | set(villain)
+    known = set(hero) | set(board) | set(rival)
     deck = [c for c in range(52) if c not in known]
     wins = 0
     ties = 0
     total = 0
     board_prefix = list(board)
     hero_cards_eval = hero_cards
-    villain_cards_eval = villain_cards
+    rival_cards_eval = rival_cards
 
     for fill in combinations(deck, need):
         total += 1
         board_cards = _treys_cards(board_prefix + list(fill))
         hero_rank = _EVALUATOR.evaluate(hero_cards_eval, board_cards)
-        villain_rank = _EVALUATOR.evaluate(villain_cards_eval, board_cards)
-        if hero_rank < villain_rank:
+        rival_rank = _EVALUATOR.evaluate(rival_cards_eval, board_cards)
+        if hero_rank < rival_rank:
             wins += 1
-        elif hero_rank == villain_rank:
+        elif hero_rank == rival_rank:
             ties += 1
 
     return (wins + 0.5 * ties) / total if total else 0.0
@@ -134,21 +134,21 @@ def _enumerate_remaining(hero: tuple[int, ...], board: tuple[int, ...], villain:
 def _cached_equity(
     hero: tuple[int, ...],
     board: tuple[int, ...],
-    villain: tuple[int, ...],
+    rival: tuple[int, ...],
     trials: int,
     target_std_error: float | None,
 ) -> float:
     if len(board) >= 3:
-        return _enumerate_remaining(hero, board, villain)
-    seed = hash((hero, board, villain, trials, round(target_std_error or 0.0, 4))) & 0xFFFFFFFF
+        return _enumerate_remaining(hero, board, rival)
+    seed = hash((hero, board, rival, trials, round(target_std_error or 0.0, 4))) & 0xFFFFFFFF
     rng = random.Random(seed)
     hero_list = list(hero)
     board_list = list(board)
-    villain_list = list(villain) if villain else None
+    rival_list = list(rival) if rival else None
     return _adaptive_monte_carlo(
         hero_list,
         board_list,
-        villain_list,
+        rival_list,
         base_trials=trials,
         rng=rng,
         target_std_error=target_std_error,
@@ -158,7 +158,7 @@ def _cached_equity(
 def _adaptive_monte_carlo(
     hero: list[int],
     board: list[int],
-    villain: list[int] | None,
+    rival: list[int] | None,
     *,
     base_trials: int,
     rng: random.Random,
@@ -190,11 +190,11 @@ def _adaptive_monte_carlo(
     if need < 0:
         raise ValueError("Board cannot have more than 5 cards")
 
-    villain_fixed = None
+    rival_fixed = None
     remaining_deck = deck
-    if villain is not None:
-        villain_fixed = _treys_cards(villain)
-        remaining_deck = [c for c in deck if c not in villain]
+    if rival is not None:
+        rival_fixed = _treys_cards(rival)
+        remaining_deck = [c for c in deck if c not in rival]
 
     wins = 0
     ties = 0
@@ -202,19 +202,19 @@ def _adaptive_monte_carlo(
 
     def _sample_once() -> None:
         nonlocal wins, ties, trials
-        if villain_fixed is None:
+        if rival_fixed is None:
             picks = rng.sample(deck, 2 + need)
-            villain_raw = picks[:2]
+            rival_raw = picks[:2]
             fill_raw = picks[2:]
-            villain_cards = _treys_cards(villain_raw)
+            rival_cards = _treys_cards(rival_raw)
         else:
-            villain_cards = villain_fixed
+            rival_cards = rival_fixed
             fill_raw = rng.sample(remaining_deck, need) if need else ()
 
         board_now = preset_board + [_TREYS_CACHE[c] for c in fill_raw]
 
         hr = _EVALUATOR.evaluate(hero_cards, board_now)
-        vr = _EVALUATOR.evaluate(villain_cards, board_now)
+        vr = _EVALUATOR.evaluate(rival_cards, board_now)
         if hr < vr:
             wins += 1
         elif hr == vr:
@@ -248,9 +248,9 @@ def hero_equity_vs_combo(
 ) -> float:
     hero_t = _sorted_tuple(hero)
     board_t = _sorted_tuple(board)
-    villain_t = _sorted_tuple(combo)
+    rival_t = _sorted_tuple(combo)
     target = target_std_error if target_std_error and target_std_error > 0 else None
-    return _cached_equity(hero_t, board_t, villain_t, trials, target)
+    return _cached_equity(hero_t, board_t, rival_t, trials, target)
 
 
 def hero_equity_vs_range(

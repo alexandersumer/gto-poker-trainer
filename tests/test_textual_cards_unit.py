@@ -85,7 +85,7 @@ def test_build_headline_marks_final_hand():
     app._current_hand_index = 3
     node = Node(
         street="river",
-        description="Villain checks.",
+        description="Rival checks.",
         pot_bb=12.0,
         effective_bb=88.0,
         hero_cards=[],

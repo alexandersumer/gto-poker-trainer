@@ -32,7 +32,7 @@ class Episode:
 
     nodes: list[Node]
     hero_seat: str
-    villain_seat: str
+    rival_seat: str
 
     def __post_init__(self) -> None:
         if not self.nodes:

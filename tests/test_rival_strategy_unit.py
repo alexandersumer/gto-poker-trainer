@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 
-from gto_trainer.dynamic import villain_strategy as vs
+from gto_trainer.dynamic import rival_strategy as vs
 
 
 def test_build_profile_returns_expected_structure() -> None:
@@ -29,9 +29,9 @@ def test_decide_action_biases_by_strength() -> None:
     weak_combo = tuple(ranked[-1])
     seeds = range(200)
     strong_folds = sum(
-        vs.decide_action({"villain_profile": profile}, strong_combo, random.Random(s)).folds for s in seeds
+        vs.decide_action({"rival_profile": profile}, strong_combo, random.Random(s)).folds for s in seeds
     )
-    weak_folds = sum(vs.decide_action({"villain_profile": profile}, weak_combo, random.Random(s)).folds for s in seeds)
+    weak_folds = sum(vs.decide_action({"rival_profile": profile}, weak_combo, random.Random(s)).folds for s in seeds)
     assert strong_folds < weak_folds
 
 

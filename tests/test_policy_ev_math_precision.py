@@ -30,8 +30,8 @@ def test_preflop_threebet_uses_fold_equity_threshold(monkeypatch):
         return combos
 
     eq_map = {
-        combos[0]: 0.62,  # villain equity 0.38 → continues vs threshold 0.35
-        combos[1]: 0.70,  # villain equity 0.30 → folds
+        combos[0]: 0.62,  # rival equity 0.38 → continues vs threshold 0.35
+        combos[1]: 0.70,  # rival equity 0.30 → folds
     }
 
     def fake_combo_eq(_hero, _board, combo, _trials):
@@ -40,7 +40,7 @@ def test_preflop_threebet_uses_fold_equity_threshold(monkeypatch):
     def fake_range_eq(_hero, _board, _range, _trials):
         return sum(eq_map.values()) / len(eq_map)
 
-    monkeypatch.setattr(pol, "villain_sb_open_range", fake_range)
+    monkeypatch.setattr(pol, "rival_sb_open_range", fake_range)
     monkeypatch.setattr(pol, "hero_equity_vs_combo", fake_combo_eq)
     monkeypatch.setattr(pol, "hero_equity_vs_range", fake_range_eq)
 
@@ -82,8 +82,8 @@ def test_flop_half_pot_bet_uses_p_plus_2b_when_called(monkeypatch):
         return combos
 
     eq_map = {
-        combos[0]: 0.40,  # villain equity 0.60 → continues
-        combos[1]: 0.80,  # villain equity 0.20 → folds
+        combos[0]: 0.40,  # rival equity 0.60 → continues
+        combos[1]: 0.80,  # rival equity 0.20 → folds
     }
 
     def fake_combo_eq(_hero, _board, combo, _trials):
@@ -92,7 +92,7 @@ def test_flop_half_pot_bet_uses_p_plus_2b_when_called(monkeypatch):
     def fake_range_eq(_hero, _board, _range, _trials):
         return sum(eq_map.values()) / len(eq_map)
 
-    monkeypatch.setattr(pol, "villain_sb_open_range", fake_range)
+    monkeypatch.setattr(pol, "rival_sb_open_range", fake_range)
     monkeypatch.setattr(pol, "hero_equity_vs_combo", fake_combo_eq)
     monkeypatch.setattr(pol, "hero_equity_vs_range", fake_range_eq)
 
@@ -133,14 +133,14 @@ def test_river_bet_uses_showdown_payout_formula(monkeypatch):
         return combos
 
     eq_map = {
-        combos[0]: 0.40,  # villain equity 0.60 → continues vs threshold 0.25
-        combos[1]: 0.90,  # villain equity 0.10 → folds
+        combos[0]: 0.40,  # rival equity 0.60 → continues vs threshold 0.25
+        combos[1]: 0.90,  # rival equity 0.10 → folds
     }
 
     def fake_combo_eq(_hero, _board, combo, _trials):
         return eq_map[tuple(sorted(combo))]
 
-    monkeypatch.setattr(pol, "villain_sb_open_range", fake_range)
+    monkeypatch.setattr(pol, "rival_sb_open_range", fake_range)
     monkeypatch.setattr(pol, "tighten_range", fake_tighten_range)
     monkeypatch.setattr(pol, "hero_equity_vs_combo", fake_combo_eq)
 

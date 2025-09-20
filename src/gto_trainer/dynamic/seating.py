@@ -18,13 +18,13 @@ BB = "BB"
 
 @dataclass(frozen=True)
 class SeatAssignment:
-    """Hero/villain seat mapping for a single hand."""
+    """Hero/rival seat mapping for a single hand."""
 
     hero: str
-    villain: str
+    rival: str
 
     def swap(self) -> SeatAssignment:
-        return SeatAssignment(hero=self.villain, villain=self.hero)
+        return SeatAssignment(hero=self.rival, rival=self.hero)
 
 
 class SeatRotation:
@@ -38,8 +38,8 @@ class SeatRotation:
 
     def assignment_for(self, hand_index: int) -> SeatAssignment:
         hero = self._order[hand_index % len(self._order)]
-        villain = SB if hero == BB else BB
-        return SeatAssignment(hero=hero, villain=villain)
+        rival = SB if hero == BB else BB
+        return SeatAssignment(hero=hero, rival=rival)
 
 
 DEFAULT_ROTATION = SeatRotation()
