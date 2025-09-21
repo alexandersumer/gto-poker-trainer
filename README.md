@@ -102,9 +102,9 @@ Send the `HX-Request: true` header to receive HTML partials (node panel, feedbac
 
 The EV feedback banner follows the same heuristics you’d expect from professional trainers:
 
-- **Green** – EV loss ≤ max(0.05 bb, 0.75% of the pot).
-- **Yellow** – EV loss between the green band and max(0.25 bb, 3.5% of the pot).
-- **Red** – EV loss between the yellow band and max(0.8 bb, 10% of the pot).
+- **Green** – EV loss ≤ max(0.08 bb, 1% of the pot).
+- **Yellow** – EV loss between the green band and max(0.40 bb, 5% of the pot).
+- **Red** – EV loss between the yellow band and max(1.2 bb, 12% of the pot).
 - **Blunder** – EV loss beyond the red band (or zero-frequency punts once the yellow band is exceeded).
 
 Extremely low-frequency solver lines (<3.5%) still surface as yellow even if the raw EV loss is tiny, so you get a gentle nudge when you replicate something that almost never appears in equilibrium.

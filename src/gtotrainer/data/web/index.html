@@ -3554,13 +3554,13 @@
 
       const classifyFeedback = ({ feedback, node, evLossRaw }) => {
         const EPS = 0.005;
-        const ABS_GREEN_BB = 0.05;
-        const ABS_YELLOW_BB = 0.25;
-        const ABS_BLUNDER_BB = 0.80;
-        const REL_GREEN_RATE = 0.0075;  // 0.75% of pot
-        const REL_YELLOW_RATE = 0.035;  // 3.5% of pot
-        const REL_BLUNDER_RATE = 0.10;  // 10% of pot
-        const MIN_BAND_WIDTH = 0.04;
+        const ABS_GREEN_BB = 0.08;
+        const ABS_YELLOW_BB = 0.40;
+        const ABS_BLUNDER_BB = 1.20;
+        const REL_GREEN_RATE = 0.01;   // 1% of pot
+        const REL_YELLOW_RATE = 0.05;  // 5% of pot
+        const REL_BLUNDER_RATE = 0.12; // 12% of pot
+        const MIN_BAND_WIDTH = 0.06;
         const LOW_FREQ_THRESHOLD = 3.5;
 
         if(typeof evLossRaw !== 'number' || Number.isNaN(evLossRaw)){

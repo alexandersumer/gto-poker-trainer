@@ -91,10 +91,10 @@ def test_feedback_classifier_core_bands():
     assert results["blunder_pot10"]["state"] == "blunder"
 
     # Threshold sanity
-    assert abs(results["yellow_pot8"]["thresholds"]["greenCutoff"] - 0.06) < 1e-9
-    assert abs(results["yellow_pot8"]["thresholds"]["yellowUpper"] - 0.28) < 1e-9
-    assert abs(results["yellow_pot_unknown"]["thresholds"]["yellowUpper"] - 0.25) < 1e-9
-    assert abs(results["blunder_pot10"]["thresholds"]["blunderLower"] - 1.0) < 1e-9
+    assert abs(results["yellow_pot8"]["thresholds"]["greenCutoff"] - 0.08) < 1e-9
+    assert abs(results["yellow_pot8"]["thresholds"]["yellowUpper"] - 0.4) < 1e-9
+    assert abs(results["yellow_pot_unknown"]["thresholds"]["yellowUpper"] - 0.4) < 1e-9
+    assert abs(results["blunder_pot10"]["thresholds"]["blunderLower"] - 1.2) < 1e-9
 
 
 def test_feedback_classifier_frequency_overrides():
