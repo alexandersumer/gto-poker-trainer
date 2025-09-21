@@ -102,9 +102,9 @@ Send the `HX-Request: true` header to receive HTML partials (node panel, feedbac
 
 The EV feedback banner mirrors standard trainer behavior:
 
-- **Green** – EV loss ≤ max(0.01 bb, 0.15% of the pot).
-- **Yellow** – EV loss between the green band and max(0.22 bb, 3.5% of the pot).
-- **Red** – EV loss above the yellow band (zero-frequency punts immediately escalate here).
+- **Green** – EV loss ≤ max(0.015 bb, 0.4% of the pot).
+- **Yellow** – EV loss between the green band and max(0.35 bb, 5% of the pot).
+- **Red** – EV loss above the yellow band (zero-frequency punts still escalate immediately).
 
 Solver suggestions that appear <3.5% of the time are still highlighted in yellow even if the raw EV drop is tiny, so rare-but-correct options don’t quietly slip through.
 
