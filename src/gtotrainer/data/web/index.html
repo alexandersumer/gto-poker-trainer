@@ -1938,6 +1938,32 @@
         background: color-mix(in srgb, var(--text-secondary) 35%, transparent);
         border-radius: 999px;
       }
+      @media (min-width: 720px) {
+        .info-row {
+          display: grid;
+          grid-template-columns: auto auto;
+          align-items: center;
+          justify-content: center;
+          column-gap: clamp(12px, 3vw, 24px);
+        }
+        .info-row .info-label {
+          justify-self: end;
+        }
+        .info-row .info-cards {
+          justify-self: start;
+          width: max-content;
+          justify-content: center;
+        }
+        #hand,
+        #board {
+          overflow-x: visible;
+          padding-left: var(--card-row-pad-x);
+          padding-right: var(--card-row-pad-x);
+        }
+        #hand {
+          padding-left: var(--card-row-pad-x);
+        }
+      }
       @media (max-width: 480px) {
         .info-row {
           gap: 6px;
