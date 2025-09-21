@@ -1200,7 +1200,7 @@
       .summary-page {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
         flex: 1 0 auto;
       }
       .summary-page__header {
@@ -1243,18 +1243,19 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
       }
       .summary-hero {
         display: grid;
-        gap: 10px;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+        align-items: stretch;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
       .summary-hero__metric {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        padding: 10px;
+        padding: 8px 10px;
         border-radius: var(--radius-md);
         border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
         background: color-mix(in srgb, var(--surface-1) 92%, transparent);
@@ -1274,7 +1275,7 @@
       .summary-section {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
       }
       .summary-section__title {
         margin: 0;
@@ -1288,10 +1289,10 @@
         border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
         border-radius: var(--radius-md);
         background: color-mix(in srgb, var(--surface-1) 96%, transparent);
-        padding: 10px;
+        padding: 9px 10px;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 5px;
       }
       .summary-card__label {
         font-size: 0.85rem;
@@ -1311,75 +1312,13 @@
         font-size: 0.85rem;
         color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
       }
-      .summary-last-hand__grid {
-        display: grid;
-        gap: 6px;
-      }
-      .summary-last-hand__row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        font-size: 0.9rem;
-        color: var(--text-primary);
-      }
-      .summary-last-hand__label {
-        font-size: 0.7rem;
-        font-weight: 550;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: color-mix(in srgb, var(--text-secondary) 76%, transparent);
-      }
-      .summary-last-hand__value {
-        display: inline-flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        font-weight: 600;
-      }
-      .summary-last-hand__delta {
-        font-size: 0.85rem;
-        color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
-      }
-      .summary-last-hand__delta.is-negative {
-        color: color-mix(in srgb, var(--error) 68%, transparent);
-      }
-      .summary-collapse {
-        appearance: none;
-        border: none;
-        background: color-mix(in srgb, var(--surface-1) 96%, transparent);
-        border-radius: var(--radius-md);
-        border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
-        padding: 10px 12px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        transition: background 0.2s ease, border-color 0.2s ease;
-      }
-      .summary-collapse:hover {
-        background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-      }
-      .summary-collapse:focus-visible {
-        outline: var(--focus-ring) solid var(--focus-color);
-        outline-offset: 2px;
-      }
-      .summary-collapse__chevron {
-        font-size: 1.2rem;
-        transform: rotate(0deg);
-        transition: transform 0.2s ease;
-      }
-      .summary-collapse[aria-expanded="true"] .summary-collapse__chevron {
-        transform: rotate(90deg);
-      }
-      .summary-card--collapsible {
-        margin-top: -4px;
+      .summary-card--history {
+        margin-top: -2px;
       }
       .summary-list {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 7px;
       }
       .summary-list__item {
         display: flex;
@@ -1393,20 +1332,12 @@
       }
       .summary-page__footer {
         margin-top: auto;
-        padding-top: 12px;
+        padding-top: 10px;
         display: flex;
         justify-content: center;
       }
       .summary-primary {
         width: min(320px, 100%);
-      }
-      @media (min-width: 640px) {
-        .summary-last-hand__grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .summary-hero {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
       }
       #feedback-banner {
         margin-top: calc(var(--space-1) * 0.75);
@@ -2402,33 +2333,9 @@
             </div>
           </section>
 
-          <section class="summary-section hidden" id="summary-last-hand">
-            <h2 class="summary-section__title">Last hand</h2>
-            <div class="summary-card">
-              <div class="summary-last-hand__grid">
-                <div class="summary-last-hand__row">
-                  <div>
-                    <div class="summary-last-hand__label">Your play</div>
-                    <div class="summary-last-hand__value" id="summary-last-hand-choice">—</div>
-                  </div>
-                  <div class="summary-last-hand__delta" id="summary-last-hand-delta">—</div>
-                </div>
-                <div class="summary-last-hand__row">
-                  <div>
-                    <div class="summary-last-hand__label">Best line</div>
-                    <div class="summary-last-hand__value" id="summary-last-hand-best">—</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
           <section class="summary-section" id="summary-history">
-            <button id="summary-history-toggle" class="summary-collapse" type="button" aria-expanded="false">
-              <span>Hand list &amp; mistakes</span>
-              <span class="summary-collapse__chevron" aria-hidden="true">›</span>
-            </button>
-            <div class="summary-card summary-card--collapsible hidden" id="summary-history-body">
+            <h2 class="summary-section__title">Hand list &amp; mistakes</h2>
+            <div class="summary-card summary-card--history" id="summary-history-card">
               <div class="summary-list" id="summary-history-list"></div>
             </div>
           </section>
@@ -2616,12 +2523,6 @@
       const summaryHeroAccuracy = document.querySelector('[data-summary-hero-accuracy]');
       const summaryEvDeltaEl = document.getElementById('summary-ev-delta');
       const summaryEvMetaEl = document.getElementById('summary-ev-meta');
-      const summaryLastHandSection = document.getElementById('summary-last-hand');
-      const summaryLastHandChoice = document.getElementById('summary-last-hand-choice');
-      const summaryLastHandBest = document.getElementById('summary-last-hand-best');
-      const summaryLastHandDelta = document.getElementById('summary-last-hand-delta');
-      const summaryHistoryToggle = document.getElementById('summary-history-toggle');
-      const summaryHistoryBody = document.getElementById('summary-history-body');
       const summaryHistoryList = document.getElementById('summary-history-list');
       const actionAnnouncer = $('#action-announcer');
       let lastFeedback = null;
@@ -4302,51 +4203,18 @@
           summaryEvMetaEl.textContent = parts.join(' · ');
         }
 
-        if(summaryLastHandSection){
-          const lastDelta = typeof lastFeedback?.ev_loss === 'number' ? -lastFeedback.ev_loss : null;
-          if(lastFeedback && (lastFeedback?.chosen?.label || lastFeedback?.best?.label)){
-            summaryLastHandSection.classList.remove('hidden');
-            if(summaryLastHandChoice){
-              summaryLastHandChoice.innerHTML = withCardMarkup(lastFeedback?.chosen?.label || '—');
-            }
-            if(summaryLastHandBest){
-              summaryLastHandBest.innerHTML = withCardMarkup(lastFeedback?.best?.label || '—');
-            }
-            if(summaryLastHandDelta){
-              if(lastDelta === null){
-                summaryLastHandDelta.textContent = '—';
-                summaryLastHandDelta.classList.remove('is-negative');
-              } else {
-                summaryLastHandDelta.textContent = formatSignedBb(lastDelta);
-                summaryLastHandDelta.classList.toggle('is-negative', lastDelta < 0);
-              }
-            }
-          } else {
-            summaryLastHandSection.classList.add('hidden');
-          }
-        }
-
         if(summaryHistoryList){
-          const historyItems = [];
-          historyItems.push({ label: 'Hands played', value: String(s.hands || 0) });
-          historyItems.push({ label: 'Decisions reviewed', value: String(totalDecisions || 0) });
-          historyItems.push({ label: 'Correct decisions', value: hitsDisplay });
-          if(totalDecisions){
-            historyItems.push({ label: 'Accuracy', value: `${accuracyPct}%` });
-          }
-          historyItems.push({ label: 'Total EV delta', value: formatSignedBb(deltaEv) });
+          const historyItems = [
+            { label: 'Hands played', value: String(s.hands || 0) },
+            { label: 'Decisions reviewed', value: String(totalDecisions || 0) },
+            { label: 'Correct decisions', value: hitsDisplay },
+          ];
           summaryHistoryList.innerHTML = historyItems.map(({ label, value }) => `
             <div class="summary-list__item">
               <span class="summary-list__label">${escapeHtml(label)}</span>
               <span>${escapeHtml(value)}</span>
             </div>
           `).join('');
-        }
-        if(summaryHistoryBody){
-          summaryHistoryBody.classList.add('hidden');
-        }
-        if(summaryHistoryToggle){
-          summaryHistoryToggle.setAttribute('aria-expanded', 'false');
         }
 
         pendingSummary = s;
@@ -4410,25 +4278,9 @@
         summaryBackBtn.addEventListener('click', (event)=>{
           event.preventDefault();
           show('#panel-play');
-          if(summaryHistoryToggle){
-            summaryHistoryToggle.setAttribute('aria-expanded', 'false');
-          }
-          if(summaryHistoryBody){
-            summaryHistoryBody.classList.add('hidden');
-          }
           if(pendingSummary){
             setSummaryAvailability(true);
           }
-        });
-      }
-
-      if(summaryHistoryToggle && summaryHistoryBody){
-        summaryHistoryToggle.addEventListener('click', (event)=>{
-          event.preventDefault();
-          const expanded = summaryHistoryToggle.getAttribute('aria-expanded') === 'true';
-          const next = !expanded;
-          summaryHistoryToggle.setAttribute('aria-expanded', String(next));
-          summaryHistoryBody.classList.toggle('hidden', !next);
         });
       }
 
