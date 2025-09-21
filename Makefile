@@ -1,6 +1,6 @@
 # Run project automation through uv for consistent environments.
-UV_RUN := uv run --locked --extra dev --
-UV_SYNC := uv sync --locked --extra dev
+UV_RUN := uv run --no-config --locked --extra dev --
+UV_SYNC := uv sync --no-config --locked --extra dev
 
 .PHONY: ensure-python
 ensure-python:

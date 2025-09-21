@@ -13,14 +13,14 @@ GTO Trainer is a heads-up no-limit hold’em practice environment with both a Te
 ## Quick start (uv)
 
 1. Install [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
-2. Sync dependencies (app + dev extras): `uv sync --locked --extra dev`.
-3. Run everything in one go: `uv run --locked --extra dev -- scripts/run_ci_tests.sh`.
+2. Sync dependencies (app + dev extras): `uv sync --no-config --locked --extra dev`.
+3. Run everything in one go: `uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh`.
 
 Common commands:
 
-- `uv run --locked --extra dev -- pytest -q`
-- `uv run --locked --extra dev -- ruff check .`
-- `uv run --locked --extra dev -- ruff format .`
+- `uv run --no-config --locked --extra dev -- pytest -q`
+- `uv run --no-config --locked --extra dev -- ruff check .`
+- `uv run --no-config --locked --extra dev -- ruff format .`
 
 ## Git hooks
 
@@ -30,19 +30,19 @@ Configure Git to use the repo-managed hooks so staged Python files are auto-form
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook formats staged Python files and then runs the same Ruff + pytest trio as CI via `uv run --locked --extra dev -- …`, marking success in `.git/.precommit_passed`. The pre-push hook checks that marker, so pushes only proceed if the most recent pre-commit run passed.
+The pre-commit hook formats staged Python files and then runs the same Ruff + pytest trio as CI via `uv run --no-config --locked --extra dev -- …`, marking success in `.git/.precommit_passed`. The pre-push hook checks that marker, so pushes only proceed if the most recent pre-commit run passed.
 
 ## Install & run (CLI)
 
 ```bash
-uv sync --locked
-uv run --locked -- gto-trainer --hands 5
+uv sync --no-config --locked
+uv run --no-config --locked -- gto-trainer --hands 5
 ```
 
 Run in-place without installing:
 
 ```bash
-uv run --locked -- python -m gto_trainer
+uv run --no-config --locked -- python -m gto_trainer
 ```
 
 ### CLI options
@@ -65,8 +65,8 @@ Controls inside the CLI: `1–9` choose an action, `h` opens contextual help, `?
 - **Local** – Install dev extras and launch FastAPI with reload enabled:
 
   ```bash
-  uv sync --locked --extra dev
-  uv run --locked --extra dev -- uvicorn gto_trainer.web.app:app --reload
+  uv sync --no-config --locked --extra dev
+  uv run --no-config --locked --extra dev -- uvicorn gto_trainer.web.app:app --reload
   ```
 
 Environment overrides: `HANDS` and `MC` mirror the CLI flags when exported before launch.
@@ -91,7 +91,7 @@ make format        # Ruff formatter
 make render-smoke  # build Docker image & hit /healthz (Render parity)
 ```
 
-CI runs the same trio as `uv run --locked --extra dev -- scripts/run_ci_tests.sh` / `make check` (`ruff check`, `pytest -q`).
+CI runs the same trio as `uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh` / `make check` (`ruff check`, `pytest -q`).
 
 ## Solver architecture (quick tour)
 

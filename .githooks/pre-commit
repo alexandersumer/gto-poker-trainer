@@ -21,7 +21,7 @@ fi
 # Helper to ensure we always execute within the uv-managed environment using the
 # dev dependency group. --locked keeps the lockfile unchanged for reproducible runs.
 uv_exec() {
-  uv run --locked --extra dev -- "$@"
+  uv run --no-config --locked --extra dev -- "$@"
 }
 
 # Collect staged Python files so we can auto-format them before running checks.
