@@ -175,26 +175,27 @@ class _SessionController:
         return self._template_response(request, "session/choice.html", context, trigger={"sessionUpdated": sid})
 
     # ------------------------------------------------------------------ actions
-    def create(self, request: Request, body: CreateSessionRequest) -> Response:
-        session_id = self.manager.create_session(
+    async def create(self, request: Request, body: CreateSessionRequest) -> Response:
+        session_id = await self.manager.create_session_async(
             SessionConfig(hands=body.hands, mc_trials=body.mc, rival_style=body.rival_style)
         )
         if self._is_hx(request):
-            return self._node_fragment(request, self.manager.get_node(session_id), session_id=session_id)
+            payload = await self.manager.get_node_async(session_id)
+            return self._node_fragment(request, payload, session_id=session_id)
         return self._json_response({"session": session_id})
 
-    def node(self, request: Request, sid: str) -> Response:
+    async def node(self, request: Request, sid: str) -> Response:
         try:
-            payload = self.manager.get_node(sid)
+            payload = await self.manager.get_node_async(sid)
         except KeyError as exc:
             raise HTTPException(404, str(exc)) from exc
         if self._is_hx(request):
             return self._node_fragment(request, payload)
         return self._json_response(payload.to_dict())
 
-    def choose(self, request: Request, sid: str, body: ChoiceRequest) -> Response:
+    async def choose(self, request: Request, sid: str, body: ChoiceRequest) -> Response:
         try:
-            result = self.manager.choose(sid, body.choice)
+            result = await self.manager.choose_async(sid, body.choice)
         except KeyError as exc:
             raise HTTPException(404, str(exc)) from exc
         except ValueError as exc:
@@ -203,9 +204,9 @@ class _SessionController:
             return self._choice_fragment(request, sid, result)
         return self._json_response(result.to_dict())
 
-    def summary(self, request: Request, sid: str) -> Response:
+    async def summary(self, request: Request, sid: str) -> Response:
         try:
-            summary = self.manager.summary(sid)
+            summary = await self.manager.summary_async(sid)
         except KeyError as exc:
             raise HTTPException(404, str(exc)) from exc
         if self._is_hx(request):
@@ -223,35 +224,35 @@ def create_session_routers(
     router_legacy = APIRouter(prefix="/api/session", tags=["session-legacy"])
 
     @router_v1.post("")
-    def create_session(request: Request, body: CreateSessionRequest) -> Response:
-        return controller.create(request, body)
+    async def create_session(request: Request, body: CreateSessionRequest) -> Response:
+        return await controller.create(request, body)
 
     @router_legacy.post("")
-    def create_session_legacy(request: Request, body: CreateSessionRequest) -> Response:
-        return controller.create(request, body)
+    async def create_session_legacy(request: Request, body: CreateSessionRequest) -> Response:
+        return await controller.create(request, body)
 
     @router_v1.get("/{sid}/node")
-    def get_node(request: Request, sid: str) -> Response:
-        return controller.node(request, sid)
+    async def get_node(request: Request, sid: str) -> Response:
+        return await controller.node(request, sid)
 
     @router_legacy.get("/{sid}/node")
-    def get_node_legacy(request: Request, sid: str) -> Response:
-        return controller.node(request, sid)
+    async def get_node_legacy(request: Request, sid: str) -> Response:
+        return await controller.node(request, sid)
 
     @router_v1.post("/{sid}/choose")
-    def post_choice(request: Request, sid: str, body: ChoiceRequest) -> Response:
-        return controller.choose(request, sid, body)
+    async def post_choice(request: Request, sid: str, body: ChoiceRequest) -> Response:
+        return await controller.choose(request, sid, body)
 
     @router_legacy.post("/{sid}/choose")
-    def post_choice_legacy(request: Request, sid: str, body: ChoiceRequest) -> Response:
-        return controller.choose(request, sid, body)
+    async def post_choice_legacy(request: Request, sid: str, body: ChoiceRequest) -> Response:
+        return await controller.choose(request, sid, body)
 
     @router_v1.get("/{sid}/summary")
-    def get_summary(request: Request, sid: str) -> Response:
-        return controller.summary(request, sid)
+    async def get_summary(request: Request, sid: str) -> Response:
+        return await controller.summary(request, sid)
 
     @router_legacy.get("/{sid}/summary")
-    def get_summary_legacy(request: Request, sid: str) -> Response:
-        return controller.summary(request, sid)
+    async def get_summary_legacy(request: Request, sid: str) -> Response:
+        return await controller.summary(request, sid)
 
     return router_v1, router_legacy

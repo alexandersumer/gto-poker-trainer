@@ -11,6 +11,7 @@ from typing import Any
 from ..core.models import Option, OptionResolution
 from . import rival_strategy
 from .cards import format_card_ascii, format_cards_spaced
+from .cfr import refine_options as _refine_with_cfr
 from .episode import Node
 from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_vs_range
 from .range_model import rival_bb_defend_range, rival_sb_open_range, tighten_range
@@ -227,6 +228,14 @@ def _apply_profile_meta(
         meta["rival_profile"] = profile
     if continue_range:
         meta["rival_continue_range"] = continue_range
+
+
+def _attach_cfr_meta(meta: dict[str, Any], *, fold_ev: float, continue_ev: float) -> None:
+    meta["supports_cfr"] = True
+    meta["hero_ev_fold"] = float(fold_ev)
+    meta["hero_ev_continue"] = float(continue_ev)
+    meta["villain_ev_fold"] = -float(fold_ev)
+    meta["villain_ev_continue"] = -float(continue_ev)
 
 
 def _update_rival_range(hand_state: dict[str, Any], meta: dict[str, Any] | None, rival_folds: bool) -> None:
@@ -482,6 +491,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
         options.append(Option(f"3-bet to {raise_to:.2f}bb", ev, why, meta=meta))
 
     hero_add = hero_stack
@@ -518,6 +528,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
         options.append(
             Option(
                 "All-in",
@@ -578,12 +589,14 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             "street": "turn",
             "action": "bet",
             "bet": bet,
+            "pot_before": pot,
             "rival_threshold": be_threshold,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
 
     risk = round(node.effective_bb, 2)
@@ -610,6 +623,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
         options.append(
             Option(
                 "All-in",
@@ -673,12 +687,14 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "street": "flop",
             "action": "bet",
             "bet": bet,
+            "pot_before": pot,
             "rival_threshold": be_threshold,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
 
     # All-in shove option for maximum pressure
@@ -706,6 +722,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
         options.append(
             Option(
                 "All-in",
@@ -792,6 +809,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, raise_profile, continue_range)
+    _attach_cfr_meta(raise_meta, fold_ev=pot_after_bet, continue_ev=ev_called)
     options.append(
         Option(
             f"Raise to {raise_to:.2f} bb",
@@ -825,6 +843,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         }
         jam_meta.update(precision.to_meta())
         _apply_profile_meta(jam_meta, profile_ai, continue_range_ai)
+        _attach_cfr_meta(jam_meta, fold_ev=pot_after_bet, continue_ev=ev_called_ai)
         options.append(
             Option(
                 "All-in",
@@ -927,6 +946,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, profile, continue_range)
+    _attach_cfr_meta(raise_meta, fold_ev=pot_before_action, continue_ev=ev_called)
     options.append(Option(f"Raise to {raise_to:.2f} bb", ev, why_raise, meta=raise_meta))
 
     return options
@@ -985,12 +1005,14 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "street": "river",
             "action": "bet",
             "bet": bet,
+            "pot_before": pot,
             "rival_threshold": be_threshold,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
 
     risk = round(node.effective_bb, 2)
@@ -1017,6 +1039,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
         options.append(
             Option(
                 "All-in",
@@ -1035,14 +1058,16 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
 
 def options_for(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
     if node.street == "preflop":
-        return preflop_options(node, rng, mc_trials)
-    if node.street == "flop":
-        return flop_options(node, rng, mc_trials)
-    if node.street == "turn":
-        return turn_options(node, rng, mc_trials)
-    if node.street == "river":
-        return river_options(node, rng, mc_trials)
-    raise ValueError(f"Unknown street: {node.street}")
+        options = preflop_options(node, rng, mc_trials)
+    elif node.street == "flop":
+        options = flop_options(node, rng, mc_trials)
+    elif node.street == "turn":
+        options = turn_options(node, rng, mc_trials)
+    elif node.street == "river":
+        options = river_options(node, rng, mc_trials)
+    else:
+        raise ValueError(f"Unknown street: {node.street}")
+    return _refine_with_cfr(node, options)
 
 
 def resolve_for(node: Node, option: Option, rng: random.Random) -> OptionResolution:

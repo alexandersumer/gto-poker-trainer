@@ -14,6 +14,7 @@ from ...dynamic.cards import format_card_ascii
 from ...dynamic.generator import Episode, Node, available_rival_styles
 from ...dynamic.policy import options_for, resolve_for
 from ...dynamic.seating import SeatRotation
+from .concurrency import run_blocking
 from .engine import SessionEngine
 from .schemas import (
     ActionSnapshot,
@@ -92,6 +93,9 @@ class SessionManager:
             self._sessions[session_id] = state
         return session_id
 
+    async def create_session_async(self, config: SessionConfig) -> str:
+        return await run_blocking(self.create_session, config)
+
     def get_node(self, session_id: str) -> NodeResponse:
         with self._lock:
             state = self._require_session(session_id)
@@ -101,6 +105,9 @@ class SessionManager:
             payload = _node_payload(state, node)
             options = _ensure_options(state, node)
             return NodeResponse(done=False, node=payload, options=_option_payloads(node, options))
+
+    async def get_node_async(self, session_id: str) -> NodeResponse:
+        return await run_blocking(self.get_node, session_id)
 
     def choose(self, session_id: str, choice_index: int) -> ChoiceResult:
         with self._lock:
@@ -159,10 +166,16 @@ class SessionManager:
         )
         return ChoiceResult(feedback=feedback, next_payload=next_payload)
 
+    async def choose_async(self, session_id: str, choice_index: int) -> ChoiceResult:
+        return await run_blocking(self.choose, session_id, choice_index)
+
     def summary(self, session_id: str) -> SummaryPayload:
         with self._lock:
             state = self._require_session(session_id)
             return _summary_payload(state.records)
+
+    async def summary_async(self, session_id: str) -> SummaryPayload:
+        return await run_blocking(self.summary, session_id)
 
     def _require_session(self, session_id: str) -> SessionState:
         state = self._sessions.get(session_id)

@@ -2,13 +2,137 @@ from __future__ import annotations
 
 import math
 import random
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from functools import lru_cache
 from itertools import combinations
+from typing import Final
 
-from treys import Card, Evaluator
+import eval7
+import numpy as np
 
 from .cards import canonicalize_cards, card_int_to_str
+
+__all__ = [
+    "estimate_equity",
+    "hero_equity_vs_combo",
+    "hero_equity_vs_range",
+]
+
+
+class _Eval7MonteCarlo:
+    """Vectorised Monte Carlo equity evaluation backed by eval7."""
+
+    def __init__(self) -> None:
+        # Cache eval7.Card objects for 0..51 to avoid repeated allocations in hot loops.
+        self._card_cache: np.ndarray = np.array([eval7.Card(card_int_to_str(idx)) for idx in range(52)], dtype=object)
+
+    def _cards_from_ints(self, cards: Sequence[int]) -> list[eval7.Card]:
+        if not cards:
+            return []
+        indices = np.fromiter((int(c) for c in cards), dtype=np.int16)
+        return self._card_cache[indices].tolist()
+
+    @staticmethod
+    def _evaluate(hand: list[eval7.Card]) -> int:
+        # eval7.evaluate returns a higher number for stronger hands.
+        return eval7.evaluate(hand)
+
+    @staticmethod
+    def _sample_unique(
+        deck_idx: np.ndarray,
+        draws: int,
+        trials: int,
+        generator: np.random.Generator,
+    ) -> np.ndarray:
+        if trials <= 0:
+            return np.empty((0, draws), dtype=np.int16)
+        if draws <= 0:
+            return np.empty((trials, 0), dtype=np.int16)
+        if draws > deck_idx.size:
+            raise ValueError("Cannot draw more unique cards than remain in the deck")
+        # Assign random priorities to each card per trial and take the lowest `draws` priorities.
+        priorities = generator.random((trials, deck_idx.size))
+        order = np.argsort(priorities, axis=1)
+        selection = deck_idx[order[:, :draws]]
+        return selection.astype(np.int16)
+
+    def run_trials(
+        self,
+        hero: Sequence[int],
+        board: Sequence[int],
+        rival: Sequence[int] | None,
+        *,
+        trials: int,
+        rng: random.Random,
+    ) -> tuple[int, int, int]:
+        if trials <= 0:
+            return 0, 0, 0
+
+        hero_cards = self._cards_from_ints(hero)
+        board_cards = self._cards_from_ints(board)
+        need = 5 - len(board_cards)
+        if need < 0:
+            raise ValueError("Board cannot have more than 5 cards")
+
+        seen = set(hero) | set(board)
+        seed = rng.getrandbits(63)
+        generator = np.random.default_rng(seed)
+
+        wins = 0
+        ties = 0
+
+        if rival is not None:
+            rival_cards = self._cards_from_ints(rival)
+            seen.update(rival)
+            remaining_idx = np.array([c for c in range(52) if c not in seen], dtype=np.int16)
+            if need <= 0 or remaining_idx.size == 0:
+                combined_board = board_cards
+                hero_rank = self._evaluate(hero_cards + combined_board)
+                rival_rank = self._evaluate(rival_cards + combined_board)
+                if hero_rank > rival_rank:
+                    wins += 1
+                elif hero_rank == rival_rank:
+                    ties += 1
+                return wins, ties, 1
+
+            samples = self._sample_unique(remaining_idx, need, trials, generator)
+            for row in samples:
+                fill_cards = self._cards_from_ints(row.tolist())
+                combined_board = board_cards + fill_cards
+                hero_rank = self._evaluate(hero_cards + combined_board)
+                rival_rank = self._evaluate(rival_cards + combined_board)
+                if hero_rank > rival_rank:
+                    wins += 1
+                elif hero_rank == rival_rank:
+                    ties += 1
+            return wins, ties, samples.shape[0]
+
+        deck_idx = np.array([c for c in range(52) if c not in seen], dtype=np.int16)
+        draws = need + 2
+        if draws <= 0:
+            raise ValueError("Monte Carlo requires draws >= 1 when rival is random")
+        samples = self._sample_unique(deck_idx, draws, trials, generator)
+        for row in samples:
+            rival_idx = row[:2].tolist()
+            fill_idx = row[2:].tolist()
+            rival_cards = self._cards_from_ints(rival_idx)
+            combined_board = board_cards + self._cards_from_ints(fill_idx)
+            hero_rank = self._evaluate(hero_cards + combined_board)
+            rival_rank = self._evaluate(rival_cards + combined_board)
+            if hero_rank > rival_rank:
+                wins += 1
+            elif hero_rank == rival_rank:
+                ties += 1
+        return wins, ties, samples.shape[0]
+
+
+_ENGINE: Final[_Eval7MonteCarlo] = _Eval7MonteCarlo()
+
+_MIN_MONTE_TRIALS = 0
+_MAX_MONTE_TRIALS = 1000
+_MONTE_CHUNK = 150
+_TARGET_STD_ERROR = 0.025
+_LAST_MONTE_TRIALS = 0
 
 
 def estimate_equity(
@@ -18,112 +142,9 @@ def estimate_equity(
     rng: random.Random,
     trials: int = 400,
 ) -> float:
-    """Monte Carlo equity estimate vs random rival hand (or a known one).
-
-    - hero, board are 0..51 int-coded cards; board may be 0..5 cards.
-    - If known_rival is None, sample random opponent hand without collision each trial.
-    - Returns equity in [0,1].
-    """
-    wins = 0
-    ties = 0
-
-    hero_cards = _treys_cards(hero)
-    preset_board = _treys_cards(board)
-
-    seen = set(hero) | set(board)
-    deck = [c for c in range(52) if c not in seen]
-
-    need = 5 - len(board)
-    if need < 0:
-        raise ValueError("Board cannot have more than 5 cards")
-
-    rival_fixed = None
-    remaining_deck = deck
-    if known_rival is not None:
-        rival_fixed = _treys_cards(known_rival)
-        remaining_deck = [c for c in deck if c not in known_rival]
-
-    for _ in range(trials):
-        if rival_fixed is None:
-            picks = rng.sample(deck, 2 + need)
-            rival_raw = picks[:2]
-            fill_raw = picks[2:]
-            rival_cards = _treys_cards(rival_raw)
-        else:
-            rival_cards = rival_fixed
-            fill_raw = rng.sample(remaining_deck, need) if need else ()
-
-        board_now = preset_board + [_TREYS_CACHE[c] for c in fill_raw]
-
-        hr = _EVALUATOR.evaluate(hero_cards, board_now)
-        vr = _EVALUATOR.evaluate(rival_cards, board_now)
-        if hr < vr:
-            wins += 1
-        elif hr == vr:
-            ties += 1
-
-    return (wins + 0.5 * ties) / max(1, trials)
-
-
-_EVALUATOR = Evaluator()
-_TREYS_CACHE = [Card.new(card_int_to_str(c)) for c in range(52)]
-
-
-_MIN_MONTE_TRIALS = 0
-_MAX_MONTE_TRIALS = 1000
-_MONTE_CHUNK = 150
-_TARGET_STD_ERROR = 0.025
-
-# Exposed for tests to introspect how many trials were used in the most recent
-# adaptive Monte Carlo run. Not relied upon by runtime logic.
-_LAST_MONTE_TRIALS = 0
-
-
-def _treys_cards(cards: Iterable[int]) -> list[int]:
-    return [_TREYS_CACHE[c] for c in cards]
-
-
-def _enumerate_remaining(hero: tuple[int, ...], board: tuple[int, ...], rival: tuple[int, ...]) -> float:
-    """Enumerate all remaining board fillings for len(board) >= 3 for precise equity."""
-
-    # hero/rival are 2-card combos; board is current board cards.
-    need = 5 - len(board)
-    if need < 0:
-        raise ValueError("Board cannot have more than 5 cards")
-
-    hero_cards = _treys_cards(hero)
-    rival_cards = _treys_cards(rival)
-
-    if need == 0:
-        board_treys = _treys_cards(board)
-        hero_rank = _EVALUATOR.evaluate(hero_cards, board_treys)
-        rival_rank = _EVALUATOR.evaluate(rival_cards, board_treys)
-        if hero_rank < rival_rank:
-            return 1.0
-        if hero_rank == rival_rank:
-            return 0.5
-        return 0.0
-
-    known = set(hero) | set(board) | set(rival)
-    deck = [c for c in range(52) if c not in known]
-    wins = 0
-    ties = 0
-    total = 0
-    board_prefix = list(board)
-    hero_cards_eval = hero_cards
-    rival_cards_eval = rival_cards
-
-    for fill in combinations(deck, need):
-        total += 1
-        board_cards = _treys_cards(board_prefix + list(fill))
-        hero_rank = _EVALUATOR.evaluate(hero_cards_eval, board_cards)
-        rival_rank = _EVALUATOR.evaluate(rival_cards_eval, board_cards)
-        if hero_rank < rival_rank:
-            wins += 1
-        elif hero_rank == rival_rank:
-            ties += 1
-
-    return (wins + 0.5 * ties) / total if total else 0.0
+    wins, ties, total = _ENGINE.run_trials(hero, board, known_rival, trials=trials, rng=rng)
+    total = max(1, total)
+    return (wins + 0.5 * ties) / total
 
 
 @lru_cache(maxsize=50000)
@@ -151,6 +172,45 @@ def _cached_equity(
     )
 
 
+def _enumerate_remaining(hero: tuple[int, ...], board: tuple[int, ...], rival: tuple[int, ...]) -> float:
+    hero_cards = _ENGINE._cards_from_ints(hero)
+    board_cards = _ENGINE._cards_from_ints(board)
+    rival_cards = _ENGINE._cards_from_ints(rival)
+
+    need = 5 - len(board_cards)
+    if need < 0:
+        raise ValueError("Board cannot have more than 5 cards")
+
+    if need == 0:
+        hero_rank = _ENGINE._evaluate(hero_cards + board_cards)
+        rival_rank = _ENGINE._evaluate(rival_cards + board_cards)
+        if hero_rank > rival_rank:
+            return 1.0
+        if hero_rank == rival_rank:
+            return 0.5
+        return 0.0
+
+    seen = set(hero) | set(board) | set(rival)
+    deck = [c for c in range(52) if c not in seen]
+
+    wins = 0
+    ties = 0
+    total = 0
+
+    for fill in combinations(deck, need):
+        fill_cards = _ENGINE._cards_from_ints(fill)
+        combined_board = board_cards + fill_cards
+        hero_rank = _ENGINE._evaluate(hero_cards + combined_board)
+        rival_rank = _ENGINE._evaluate(rival_cards + combined_board)
+        total += 1
+        if hero_rank > rival_rank:
+            wins += 1
+        elif hero_rank == rival_rank:
+            ties += 1
+
+    return (wins + 0.5 * ties) / total if total else 0.0
+
+
 def _adaptive_monte_carlo(
     hero: list[int],
     board: list[int],
@@ -162,12 +222,7 @@ def _adaptive_monte_carlo(
     max_trials: int | None = None,
     target_std_error: float | None = None,
 ) -> float:
-    """Return a Monte Carlo equity estimate with adaptive precision.
-
-    The sampler keeps drawing until either the estimated standard error drops
-    below ``target_std_error`` or ``max_trials`` is reached. Deterministic
-    seeding is maintained by the caller.
-    """
+    """Return a Monte Carlo equity estimate with adaptive precision."""
 
     global _LAST_MONTE_TRIALS
 
@@ -176,62 +231,35 @@ def _adaptive_monte_carlo(
     target = target_std_error if target_std_error is not None else _TARGET_STD_ERROR
     chunk = max(1, min(_MONTE_CHUNK, max_trials))
 
-    hero_cards = _treys_cards(hero)
-    preset_board = _treys_cards(board)
-
-    seen = set(hero) | set(board)
-    deck = [c for c in range(52) if c not in seen]
-
-    need = 5 - len(board)
-    if need < 0:
-        raise ValueError("Board cannot have more than 5 cards")
-
-    rival_fixed = None
-    remaining_deck = deck
-    if rival is not None:
-        rival_fixed = _treys_cards(rival)
-        remaining_deck = [c for c in deck if c not in rival]
-
     wins = 0
     ties = 0
-    trials = 0
+    total_trials = 0
 
-    def _sample_once() -> None:
-        nonlocal wins, ties, trials
-        if rival_fixed is None:
-            picks = rng.sample(deck, 2 + need)
-            rival_raw = picks[:2]
-            fill_raw = picks[2:]
-            rival_cards = _treys_cards(rival_raw)
-        else:
-            rival_cards = rival_fixed
-            fill_raw = rng.sample(remaining_deck, need) if need else ()
-
-        board_now = preset_board + [_TREYS_CACHE[c] for c in fill_raw]
-
-        hr = _EVALUATOR.evaluate(hero_cards, board_now)
-        vr = _EVALUATOR.evaluate(rival_cards, board_now)
-        if hr < vr:
-            wins += 1
-        elif hr == vr:
-            ties += 1
-        trials += 1
-
-    while trials < max_trials:
-        remaining = max_trials - trials
+    while total_trials < max_trials:
+        remaining = max_trials - total_trials
         current_chunk = min(chunk, remaining)
-        for _ in range(current_chunk):
-            _sample_once()
+        chunk_wins, chunk_ties, chunk_total = _ENGINE.run_trials(
+            hero,
+            board,
+            rival,
+            trials=current_chunk,
+            rng=rng,
+        )
+        if chunk_total == 0:
+            break
+        wins += chunk_wins
+        ties += chunk_ties
+        total_trials += chunk_total
 
-        equity = (wins + 0.5 * ties) / trials if trials else 0.0
+        equity = (wins + 0.5 * ties) / total_trials if total_trials else 0.0
         variance = max(equity * (1 - equity), 0.0)
-        std_error = math.sqrt(variance / trials) if trials else float("inf")
+        std_error = math.sqrt(variance / total_trials) if total_trials else float("inf")
 
-        if trials >= min_trials and std_error <= target:
+        if total_trials >= min_trials and std_error <= target:
             break
 
-    _LAST_MONTE_TRIALS = trials
-    return (wins + 0.5 * ties) / max(1, trials)
+    _LAST_MONTE_TRIALS = total_trials
+    return (wins + 0.5 * ties) / max(1, total_trials)
 
 
 def hero_equity_vs_combo(

@@ -210,6 +210,31 @@ def test_option_cache_returns_defensive_copies(monkeypatch: pytest.MonkeyPatch):
     assert second[0] is not first[0]
 
 
+def test_session_manager_async_wrappers_align_with_sync():
+    manager = SessionManager()
+    config = SessionConfig(hands=2, mc_trials=50, seed=2024)
+
+    async def _exercise() -> None:
+        sid_sync = manager.create_session(config)
+        sid_async = await manager.create_session_async(config)
+
+        node_sync = manager.get_node(sid_sync)
+        node_async = await manager.get_node_async(sid_async)
+        assert node_async.to_dict() == node_sync.to_dict()
+
+        choice_sync = manager.choose(sid_sync, 0)
+        choice_async = await manager.choose_async(sid_async, 0)
+        assert choice_async.to_dict() == choice_sync.to_dict()
+
+        summary_sync = manager.summary(sid_sync)
+        summary_async = await manager.summary_async(sid_async)
+        assert summary_async.to_dict() == summary_sync.to_dict()
+
+    import asyncio
+
+    asyncio.run(_exercise())
+
+
 def _play_session_with_policy(manager, sid, chooser):
     node_resp = manager.get_node(sid)
     guard = 0
