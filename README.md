@@ -113,5 +113,3 @@ CI runs `uv sync --no-config --locked --extra dev`, installs Playwright browsers
 ## License
 
 Proprietary (see `pyproject.toml`).
-
-The standalone CLI was removed; use the web UI or HTTP API endpoints for all interactive or automated workflows.
