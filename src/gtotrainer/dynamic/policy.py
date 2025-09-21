@@ -102,22 +102,107 @@ def _sample_cap_postflop(mc_trials: int) -> int:
     return max(30, min(120, int(mc_trials * 0.6)))
 
 
+def _combo_category(combo: tuple[int, int]) -> str:
+    a, b = combo
+    if a // 4 == b // 4:
+        return "pair"
+    if a % 4 == b % 4:
+        return "suited"
+    return "offsuit"
+
+
+def _evenly_sample_indexed(entries: list[tuple[int, tuple[int, int]]], count: int) -> list[tuple[int, tuple[int, int]]]:
+    if count <= 0 or not entries:
+        return []
+    if len(entries) <= count:
+        return entries.copy()
+
+    step = len(entries) / count
+    sampled: list[tuple[int, tuple[int, int]]] = []
+    for i in range(count):
+        idx = int(i * step)
+        if idx >= len(entries):
+            idx = len(entries) - 1
+        sampled.append(entries[idx])
+    return sampled
+
+
 def _sample_range(
     combos: Iterable[tuple[int, int]],
     limit: int,
 ) -> list[tuple[int, int]]:
     combos_list = list(combos)
-    if len(combos_list) <= limit:
+    total = len(combos_list)
+    if limit <= 0 or total <= limit:
         return combos_list
-    # Take evenly spaced combos across the ordered range to keep a representative mix.
-    step = len(combos_list) / limit
-    sampled: list[tuple[int, int]] = []
-    for i in range(limit):
-        idx = int(i * step)
-        if idx >= len(combos_list):
-            idx = len(combos_list) - 1
-        sampled.append(combos_list[idx])
-    return sampled
+
+    buckets: dict[str, list[tuple[int, tuple[int, int]]]] = {
+        "pair": [],
+        "suited": [],
+        "offsuit": [],
+    }
+    for idx, combo in enumerate(combos_list):
+        buckets[_combo_category(combo)].append((idx, combo))
+
+    # Allocate slots proportional to bucket sizes while respecting the limit.
+    allocations: dict[str, int] = {"pair": 0, "suited": 0, "offsuit": 0}
+    remainders: list[tuple[float, str]] = []
+    assigned = 0
+    for cat, entries in buckets.items():
+        count = len(entries)
+        if count == 0:
+            continue
+        exact = limit * (count / total)
+        alloc = min(count, int(exact))
+        allocations[cat] = alloc
+        assigned += alloc
+        remainders.append((exact - alloc, cat))
+
+    # Distribute remaining slots starting with the largest fractional remainder.
+    remaining = limit - assigned
+    if remaining > 0:
+        remainders.sort(reverse=True)
+        for _, cat in remainders:
+            if remaining <= 0:
+                break
+            available = len(buckets[cat])
+            current = allocations[cat]
+            if current >= available:
+                continue
+            allocations[cat] += 1
+            remaining -= 1
+
+    # If we still have spare slots (e.g., some buckets empty), fill them greedily.
+    if remaining > 0:
+        for cat in ("pair", "suited", "offsuit"):
+            if remaining <= 0:
+                break
+            available = len(buckets[cat])
+            if available == 0:
+                continue
+            alloc = allocations[cat]
+            extra = min(available - alloc, remaining)
+            if extra <= 0:
+                continue
+            allocations[cat] += extra
+            remaining -= extra
+
+    selected: list[tuple[int, tuple[int, int]]] = []
+    for cat in ("pair", "suited", "offsuit"):
+        entries = buckets[cat]
+        if not entries:
+            continue
+        take = allocations[cat]
+        if take <= 0:
+            continue
+        selected.extend(_evenly_sample_indexed(entries, take))
+
+    # Ensure we return exactly `limit` combos by trimming the weakest indices if needed.
+    selected.sort(key=lambda item: item[0])
+    if len(selected) > limit:
+        selected = selected[:limit]
+
+    return [combo for _, combo in selected]
 
 
 def _default_open_size(node: Node) -> float:
@@ -179,12 +264,14 @@ def _cached_profile(
     combos_key: tuple[tuple[int, int], ...],
     fold_probability: float,
     continue_ratio: float,
+    strengths_key: tuple[tuple[int, float], ...] | None,
 ) -> dict | None:
     try:
         return rival_strategy.build_profile(
             list(combos_key),
             fold_probability=fold_probability,
             continue_ratio=continue_ratio,
+            strengths=strengths_key,
         )
     except Exception:
         return None
@@ -196,16 +283,32 @@ def _rival_profile(
     tag: str,
     fold_probability: float,
     continue_ratio: float,
+    strengths: dict[tuple[int, int], float] | None = None,
 ) -> tuple[dict | None, tuple[tuple[int, int], ...] | None]:
     combo_list = list(combos)
     if not combo_list:
         return None, None
     combos_key = tuple(tuple(map(int, combo)) for combo in combo_list)
+    strengths_key: tuple[tuple[int, float], ...] | None = None
+    if strengths:
+        keyed: list[tuple[tuple[int, int], float]] = []
+        for combo in combo_list:
+            score = strengths.get(combo)
+            normalized = tuple(sorted((int(combo[0]), int(combo[1]))))
+            if score is None:
+                score = strengths.get(normalized)
+            if score is None:
+                continue
+            keyed.append((normalized, float(score)))
+        if keyed:
+            keyed.sort(key=lambda item: item[0])
+            strengths_key = tuple(((pair[0], pair[1]), round(score, 4)) for pair, score in keyed)
     profile = _cached_profile(
         tag,
         combos_key,
         round(float(fold_probability), 4),
         round(float(continue_ratio), 4),
+        strengths_key,
     )
     if not profile:
         return None, None
@@ -477,6 +580,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
+            strengths=equities,
         )
         meta = {
             "street": "preflop",
@@ -514,6 +618,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
+            strengths=equities,
         )
         meta = {
             "street": "preflop",
@@ -584,6 +689,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
+            strengths=equities,
         )
         meta = {
             "street": "turn",
@@ -611,6 +717,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
+            strengths=equities,
         )
         meta = {
             "street": "turn",
@@ -682,6 +789,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
+            strengths=equities,
         )
         meta = {
             "street": "flop",
@@ -710,6 +818,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
+            strengths=equities,
         )
         meta = {
             "street": "flop",
@@ -796,6 +905,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         tag=_rival_range_tag(node),
         fold_probability=fe,
         continue_ratio=continue_ratio,
+        strengths=equities,
     )
     raise_meta = {
         "street": "river",
@@ -831,6 +941,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
             tag=_rival_range_tag(node),
             fold_probability=fe_ai,
             continue_ratio=continue_ratio_ai,
+            strengths=equities,
         )
         jam_meta = {
             "street": "river",
@@ -933,6 +1044,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         tag=_rival_range_tag(node),
         fold_probability=fe,
         continue_ratio=continue_ratio,
+        strengths=equities,
     )
     raise_meta = {
         "street": "turn",
@@ -1000,6 +1112,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
+            strengths=equities,
         )
         meta = {
             "street": "river",
@@ -1027,6 +1140,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             tag=_rival_range_tag(node),
             fold_probability=fe,
             continue_ratio=continue_ratio,
+            strengths=equities,
         )
         meta = {
             "street": "river",

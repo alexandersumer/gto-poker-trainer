@@ -17,6 +17,7 @@ if TYPE_CHECKING:  # pragma: no cover
 class LocalCFRConfig:
     iterations: int = 200
     minimum_actions: int = 2
+    extra_iterations_per_action: int = 120
 
 
 class LocalCFRBackend:
@@ -43,7 +44,11 @@ class LocalCFRBackend:
         villain_regret = np.zeros(2, dtype=np.float64)
         villain_strategy_sum = np.zeros(2, dtype=np.float64)
 
-        iterations = max(self.config.iterations, 1)
+        extra_actions = max(0, num_actions - self.config.minimum_actions)
+        iterations = max(
+            self.config.iterations + extra_actions * self.config.extra_iterations_per_action,
+            1,
+        )
 
         for _ in range(iterations):
             hero_strategy = _regret_matching(hero_regret)

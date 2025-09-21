@@ -29,14 +29,14 @@ def test_decide_action_without_rival_cards_samples_profile(monkeypatch: pytest.M
     meta = {"rival_profile": profile}
     captured: list[tuple[int, int]] = []
 
-    def capture_percentile(_profile, combo):
+    def capture_strength(_profile, combo):
         captured.append(tuple(combo))
         return 0.5
 
-    monkeypatch.setattr(vs, "_percentile_for_combo", capture_percentile)
+    monkeypatch.setattr(vs, "_strength_for_combo", capture_strength)
     rng = random.Random(2)
 
     vs.decide_action(meta, None, rng)
 
-    assert captured, "expected percentile helper to be invoked"
+    assert captured, "expected strength helper to be invoked"
     assert captured[0] in {tuple(map(int, combo)) for combo in profile["ranked"]}

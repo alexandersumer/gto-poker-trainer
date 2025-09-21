@@ -9,6 +9,7 @@ frequencies inferred from solver-style heuristics.
 
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -44,6 +45,7 @@ def build_profile(
     *,
     fold_probability: float,
     continue_ratio: float,
+    strengths: Iterable[tuple[tuple[int, int], float]] | None = None,
 ) -> dict:
     """Create a lightweight metadata profile for rival response sampling.
 
@@ -54,8 +56,21 @@ def build_profile(
     - ``continue_ratio`` is the share of holdings that should continue.
     """
 
+    strength_lookup: dict[str, float] = {}
+    if strengths:
+        for combo_pair, score in strengths:
+            key = _encode_combo(combo_pair)
+            strength_lookup[key] = float(score)
+
     combos = {_encode_combo(combo): [int(combo[0]), int(combo[1])] for combo in sampled_range}
-    ranked = sorted(combos.values(), key=_combo_strength, reverse=True)
+
+    def _strength_for(combo: Sequence[int]) -> float:
+        key = _encode_combo(combo)
+        if key in strength_lookup:
+            return strength_lookup[key]
+        return _combo_strength(combo)
+
+    ranked = sorted(combos.values(), key=_strength_for, reverse=True)
     total = len(ranked)
     fold_probability = max(0.0, min(1.0, float(fold_probability)))
     continue_ratio = max(0.0, min(1.0, float(continue_ratio)))
@@ -63,8 +78,15 @@ def build_profile(
     if continue_ratio > 0 and continue_count == 0:
         continue_count = 1
 
-    strengths = [_combo_strength(c) for c in ranked]
+    strengths = [_strength_for(c) for c in ranked]
     ranks = {_encode_combo(c): idx for idx, c in enumerate(ranked)}
+    min_strength = min(strengths) if strengths else 0.0
+    max_strength = max(strengths) if strengths else 1.0
+    threshold_strength = strengths[continue_count - 1] if continue_count > 0 else min_strength
+    temperature = max(0.05, 0.2 * (1.0 - continue_ratio))
+
+    # Prepare deterministic noise seed contribution: sorted key list hashed as float.
+    hash_seed = float(total)
 
     return {
         "fold_probability": fold_probability,
@@ -74,6 +96,10 @@ def build_profile(
         "ranked": ranked,
         "strengths": strengths,
         "ranks": ranks,
+        "strength_bounds": (min_strength, max_strength),
+        "threshold_strength": threshold_strength,
+        "temperature": temperature,
+        "noise_seed": hash_seed,
     }
 
 
@@ -98,6 +124,22 @@ def _percentile_for_combo(profile: Mapping[str, object], combo: Sequence[int]) -
                 break
     # Convert to percentile where 1.0 -> strongest, 0.0 -> weakest.
     return 1.0 - (idx / max(1, total - 1)) if total > 1 else 1.0
+
+
+def _strength_for_combo(profile: Mapping[str, object], combo: Sequence[int]) -> float:
+    ranked = profile.get("ranked")
+    strengths = profile.get("strengths")
+    if not ranked or not strengths:
+        return _combo_strength(combo)
+    ranks = profile.get("ranks")
+    key = _encode_combo(combo)
+    if isinstance(ranks, Mapping) and key in ranks:
+        idx = int(ranks[key])
+        try:
+            return float(strengths[idx])  # type: ignore[index]
+        except (IndexError, TypeError, ValueError):
+            return _combo_strength(combo)
+    return _combo_strength(combo)
 
 
 def _sample_profile_combo(profile: Mapping[str, object], rng: random.Random) -> tuple[int, int] | None:
@@ -149,15 +191,39 @@ def decide_action(
         return RivalDecision(folds=False)
 
     fold_prob = float(profile.get("fold_probability", 0.0))
-    percentile = 0.5
+    threshold_strength = float(profile.get("threshold_strength", 0.0))
+    bounds = profile.get("strength_bounds", (0.0, 1.0))
+    if isinstance(bounds, Sequence) and len(bounds) == 2:
+        min_strength = float(bounds[0])
+        max_strength = float(bounds[1])
+    else:
+        min_strength = 0.0
+        max_strength = 1.0
+    spread = max(1e-6, max_strength - min_strength)
+    continue_ratio = float(profile.get("continue_ratio", 0.0))
+    temperature = float(profile.get("temperature", 0.12))
+    noise = min(0.08, max(0.0, 0.18 * (1.0 - continue_ratio)))
+
+    strength = None
     if rival_cards is not None:
-        percentile = _percentile_for_combo(profile, rival_cards)
+        strength = _strength_for_combo(profile, rival_cards)
     else:
         sampled = _sample_profile_combo(profile, rng)
         if sampled is not None:
-            percentile = _percentile_for_combo(profile, sampled)
+            strength = _strength_for_combo(profile, sampled)
 
-    bias_scale = min(0.6, max(0.2, fold_prob + 0.2))
-    fold_prob = max(0.0, min(1.0, fold_prob + (0.5 - percentile) * bias_scale))
+    if strength is not None:
+        strength_norm = (strength - min_strength) / spread
+        threshold_norm = (threshold_strength - min_strength) / spread
+        delta = strength_norm - threshold_norm
+        bias_scale = min(0.45, max(0.18, (1.0 - fold_prob) * 0.5 + 0.18))
+        slope = max(0.02, temperature)
+        shift = math.tanh(delta / slope)
+        fold_prob -= shift * bias_scale
+
+    if noise > 0:
+        fold_prob += (rng.random() - 0.5) * 2.0 * noise
+
+    fold_prob = max(0.0, min(1.0, fold_prob))
     draw = rng.random()
     return RivalDecision(folds=draw < fold_prob)

@@ -983,24 +983,27 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
         width: 100%;
-        white-space: nowrap;
-        overflow-x: auto;
-        padding: 3px clamp(10px, 1.6vw, 16px);
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+        gap: clamp(4px, 0.8vw, 8px);
+        padding-block: 3px;
+        padding-inline: var(--space-2);
+        padding-inline: calc(var(--space-2) + env(safe-area-inset-left, 0px)) calc(var(--space-2) + env(safe-area-inset-right, 0px));
+        box-sizing: border-box;
       }
-      .status-compact::-webkit-scrollbar { display: none; }
       .status-compact__text {
         display: inline-flex;
-        align-items: baseline;
+        align-items: center;
         justify-content: center;
-        gap: 6px;
-        white-space: nowrap;
+        flex-wrap: wrap;
+        gap: clamp(4px, 0.8vw, 8px);
+        row-gap: clamp(2px, 0.6vw, 6px);
+        white-space: normal;
+        text-align: center;
         font-variant-numeric: tabular-nums;
         font-size: clamp(0.7rem, 0.68rem + 0.6vw, 0.8rem);
         margin: 0 auto;
+        max-width: 100%;
       }
       .status-compact__text .status-seg:first-child { padding-left: 2px; }
       .status-compact__text .status-seg:last-child { padding-right: 2px; }
@@ -2511,6 +2514,7 @@
       let startBusy = false;
       let pendingSummary = null;
       const screen = document.querySelector('main.screen');
+      const statusCompact = $('#status-compact');
       const headerStatus = $('#header-status');
       const themeToggle = $('#theme-toggle');
       const themeMenu = $('#theme-menu');
@@ -3010,6 +3014,9 @@
           .join('<span class="status-dot">·</span>');
 
         headerStatus.innerHTML = markup || '<span class="status-seg">Ready</span>';
+        if(statusCompact){
+          statusCompact.scrollLeft = 0;
+        }
       };
 
       const formatStatusLine = (node, descriptor) => {
