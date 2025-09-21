@@ -18,12 +18,20 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
       - name: Sync dependencies
-        run: uv sync --locked --extra dev
+        env:
+          UV_DEFAULT_INDEX: https://pypi.org/simple
+        run: uv sync --locked --extra dev --preview-features extra-build-dependencies
       - name: Install Playwright browsers
+        env:
+          UV_DEFAULT_INDEX: https://pypi.org/simple
         run: uv run --locked --extra dev -- python -m playwright install --with-deps chromium
       - name: Lint
+        env:
+          UV_DEFAULT_INDEX: https://pypi.org/simple
         run: |
           uv run --locked --extra dev -- ruff format --check .
           uv run --locked --extra dev -- ruff check .
       - name: Test
+        env:
+          UV_DEFAULT_INDEX: https://pypi.org/simple
         run: uv run --locked --extra dev -- pytest -q
