@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, model_validator
 
@@ -57,6 +58,44 @@ class ChoiceRequest(BaseModel):
 
 app = FastAPI(title="GTO Trainer")
 _manager = SessionManager()
+_api_v1 = APIRouter(prefix="/api/v1/session", tags=["session"])
+
+
+def _create_session(body: CreateSessionRequest) -> dict[str, str]:
+    session_id = _manager.create_session(
+        SessionConfig(
+            hands=body.hands,
+            mc_trials=body.mc,
+            rival_style=body.rival_style,
+        )
+    )
+    return {"session": session_id}
+
+
+def _session_node(sid: str) -> dict[str, object]:
+    try:
+        payload = _manager.get_node(sid)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return payload.to_dict()
+
+
+def _session_choice(sid: str, body: ChoiceRequest) -> dict[str, object]:
+    try:
+        result = _manager.choose(sid, body.choice)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return result.to_dict()
+
+
+def _session_summary(sid: str) -> dict[str, object]:
+    try:
+        summary = _manager.summary(sid)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return summary.to_dict()
 
 
 @app.get("/healthz")
@@ -76,45 +115,64 @@ def index() -> str:
         return f"<html><body><h1>GTO Trainer</h1><p>Failed to load UI: {exc}</p></body></html>"
 
 
+@_api_v1.post("")
+def create_session_v1(body: CreateSessionRequest) -> JSONResponse:
+    return JSONResponse(_create_session(body))
+
+
 @app.post("/api/session")
 def create_session(body: CreateSessionRequest) -> JSONResponse:
-    session_id = _manager.create_session(
-        SessionConfig(
-            hands=body.hands,
-            mc_trials=body.mc,
-            rival_style=body.rival_style,
-        )
-    )
-    return JSONResponse({"session": session_id})
+    return JSONResponse(_create_session(body))
+
+
+@_api_v1.get("/{sid}/node")
+def get_node_v1(sid: str) -> JSONResponse:
+    return JSONResponse(_session_node(sid))
 
 
 @app.get("/api/session/{sid}/node")
 def get_node(sid: str) -> JSONResponse:
-    try:
-        payload = _manager.get_node(sid)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
-    return JSONResponse(payload.to_dict())
+    return JSONResponse(_session_node(sid))
+
+
+@_api_v1.post("/{sid}/choose")
+def post_choice_v1(sid: str, body: ChoiceRequest) -> JSONResponse:
+    return JSONResponse(_session_choice(sid, body))
 
 
 @app.post("/api/session/{sid}/choose")
 def post_choice(sid: str, body: ChoiceRequest) -> JSONResponse:
-    try:
-        result = _manager.choose(sid, body.choice)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    return JSONResponse(result.to_dict())
+    return JSONResponse(_session_choice(sid, body))
+
+
+@_api_v1.get("/{sid}/summary")
+def get_summary_v1(sid: str) -> JSONResponse:
+    return JSONResponse(_session_summary(sid))
+
+
+app.include_router(_api_v1)
 
 
 @app.get("/api/session/{sid}/summary")
 def get_summary(sid: str) -> JSONResponse:
-    try:
-        summary = _manager.summary(sid)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
-    return JSONResponse(summary.to_dict())
+    return JSONResponse(_session_summary(sid))
+
+
+def _custom_openapi() -> dict[str, object]:  # pragma: no cover - exercised via docs
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version="1.0.0",
+        description=app.description,
+        routes=app.routes,
+    )
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = _custom_openapi  # type: ignore[assignment]
+app.openapi_schema = None
 
 
 def main() -> None:  # pragma: no cover - runner
@@ -122,7 +180,7 @@ def main() -> None:  # pragma: no cover - runner
 
     host = os.environ.get("BIND", "0.0.0.0")
     port = int(os.environ.get("PORT", "8000"))
-    uvicorn.run("gto_trainer.web.app:app", host=host, port=port, factory=False)
+    uvicorn.run(app, host=host, port=port, factory=False)
 
 
 if __name__ == "__main__":  # pragma: no cover

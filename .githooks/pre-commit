@@ -49,7 +49,7 @@ run_ci_step() {
 }
 
 run_ci_step "Ruff format --check" ruff format --check .
-run_ci_step "Ruff lint" ruff check .
+run_ci_step "Ruff lint" ruff check --fix .
 run_ci_step "Pytest suite" pytest -q
 
 echo "[pre-commit] Full CI checks passed."

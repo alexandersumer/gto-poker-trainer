@@ -63,6 +63,17 @@ Environment variables `HANDS` and `MC` control the default session size and Mont
 
 Live demo: [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
 
+### HTTP API
+
+All HTTP routes are versioned under `/api/v1`.
+
+- `POST /api/v1/session` — create a session (`{"session": "..."}` response).
+- `GET /api/v1/session/{id}/node` — fetch the current node payload with options.
+- `POST /api/v1/session/{id}/choose` — submit a choice and receive the next payload.
+- `GET /api/v1/session/{id}/summary` — retrieve the aggregated session summary.
+
+Legacy `/api/session/...` paths remain available for now but will be removed after downstream clients migrate.
+
 ## Tests and CI parity
 
 CI runs `uv sync --no-config --locked --extra dev`, installs Playwright browsers, then executes Ruff format, Ruff lint, and `pytest -q`. Run `uv run --no-config --locked --extra dev -- python -m playwright install --with-deps chromium` once locally before the browser tests. After that, mirror CI with `uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh` or `make check`.

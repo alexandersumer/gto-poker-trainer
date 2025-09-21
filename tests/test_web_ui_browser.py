@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import contextlib
+import os
 import subprocess
 import sys
 import time
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 
@@ -16,12 +18,18 @@ sync_playwright = sync_module.sync_playwright
 def _run_server() -> Iterator[str]:
     """Start the FastAPI server on localhost and yield its base URL."""
 
+    env = os.environ.copy()
+    src_path = Path(__file__).resolve().parents[1] / "src"
+    existing = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = f"{src_path}{os.pathsep}{existing}" if existing else str(src_path)
+
     proc = subprocess.Popen(  # noqa: S603 - trusted command
-        [sys.executable, "-m", "gto_trainer.web.app"],
+        [sys.executable, "-m", "uvicorn", "gto_trainer.web.app:app"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
         bufsize=1,
+        env=env,
     )
     try:
         start = time.time()

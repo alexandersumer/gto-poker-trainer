@@ -14,6 +14,15 @@ from ..dynamic.cards import format_card_ascii
 from ..dynamic.generator import Episode, Node, available_rival_styles
 from ..dynamic.policy import options_for, resolve_for
 from ..dynamic.seating import SeatRotation
+from ..services.session_v1 import (
+    ActionSnapshot,
+    ChoiceResult,
+    FeedbackPayload,
+    NodePayload,
+    NodeResponse,
+    OptionPayload,
+    SummaryPayload,
+)
 from .session_engine import SessionEngine
 
 
@@ -29,145 +38,6 @@ class SessionConfig:
     mc_trials: int
     seed: int | None = None
     rival_style: str = "balanced"
-
-
-@dataclass(frozen=True)
-class NodePayload:
-    """UI-agnostic snapshot of the current node state."""
-
-    street: str
-    description: str
-    pot_bb: float
-    effective_bb: float
-    hero_cards: list[str]
-    board_cards: list[str]
-    actor: str
-    hand_no: int
-    total_hands: int
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "street": self.street,
-            "description": self.description,
-            "pot_bb": self.pot_bb,
-            "effective_bb": self.effective_bb,
-            "hero_cards": list(self.hero_cards),
-            "board_cards": list(self.board_cards),
-            "actor": self.actor,
-            "hand_no": self.hand_no,
-            "total_hands": self.total_hands,
-        }
-
-
-@dataclass(frozen=True)
-class SummaryPayload:
-    hands: int
-    decisions: int
-    hits: int
-    ev_lost: float
-    score: float
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "hands": self.hands,
-            "decisions": self.decisions,
-            "hits": self.hits,
-            "ev_lost": self.ev_lost,
-            "score": self.score,
-        }
-
-
-@dataclass(frozen=True)
-class OptionPayload:
-    key: str
-    label: str
-    ev: float
-    why: str
-    ends_hand: bool
-    gto_freq: float | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        data = {
-            "key": self.key,
-            "label": self.label,
-            "ev": self.ev,
-            "why": self.why,
-            "ends_hand": self.ends_hand,
-        }
-        if self.gto_freq is not None:
-            data["gto_freq"] = self.gto_freq
-        return data
-
-
-@dataclass(frozen=True)
-class ActionSnapshot:
-    key: str
-    label: str
-    ev: float
-    why: str
-    gto_freq: float | None
-    resolution_note: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        data = {
-            "key": self.key,
-            "label": self.label,
-            "ev": self.ev,
-            "why": self.why,
-        }
-        if self.gto_freq is not None:
-            data["gto_freq"] = self.gto_freq
-        if self.resolution_note:
-            data["resolution_note"] = self.resolution_note
-        return data
-
-
-@dataclass(frozen=True)
-class FeedbackPayload:
-    correct: bool
-    ev_loss: float
-    chosen: ActionSnapshot
-    best: ActionSnapshot
-    ended: bool
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "correct": self.correct,
-            "ev_loss": self.ev_loss,
-            "chosen": self.chosen.to_dict(),
-            "best": self.best.to_dict(),
-            "ended": self.ended,
-        }
-
-
-@dataclass(frozen=True)
-class ChoiceResult:
-    feedback: FeedbackPayload
-    next_payload: NodeResponse
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "feedback": self.feedback.to_dict(),
-            "next": self.next_payload.to_dict(),
-        }
-
-
-@dataclass(frozen=True)
-class NodeResponse:
-    done: bool
-    node: NodePayload | None = None
-    options: list[OptionPayload] | None = None
-    summary: SummaryPayload | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        if self.done:
-            return {"done": True, "summary": None if self.summary is None else self.summary.to_dict()}
-        data = {
-            "done": False,
-            "node": None if self.node is None else self.node.to_dict(),
-            "options": [opt.to_dict() for opt in self.options or []],
-        }
-        return data
 
 
 @dataclass

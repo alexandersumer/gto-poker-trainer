@@ -3807,9 +3807,16 @@
       async function api(path, opts){
         beginRequest();
         try{
-          const r = await fetch(path, opts);
-          if(!r.ok) throw new Error(await r.text());
-          return r.headers.get('content-type')?.includes('json') ? r.json() : r.text();
+          let response = await fetch(path, opts);
+          if(response.status === 404 && path.startsWith('/api/v1/')){
+            const legacyPath = path.replace('/api/v1/', '/api/');
+            response = await fetch(legacyPath, opts);
+          }
+          if(!response.ok){
+            throw new Error(await response.text());
+          }
+          const contentType = response.headers.get('content-type') || '';
+          return contentType.includes('json') ? response.json() : response.text();
         } finally {
           endRequest();
         }
@@ -4003,7 +4010,7 @@
           }
           const hands = handsResult.value;
           const mc = depthResult.value;
-          const data = await api('/api/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands, mc})});
+          const data = await api('/api/v1/session', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hands, mc})});
           sid = data.session;
           answered = 0;
           correctDecisions = 0;
@@ -4036,7 +4043,7 @@
       const showNode = async () => {
         showPlaceholderCards();
         try {
-          const payload = await api(`/api/session/${sid}/node`);
+          const payload = await api(`/api/v1/session/${sid}/node`);
           await renderNodePayload(payload, {clearFeedback: true});
         } catch (err) {
           throw err;
@@ -4129,7 +4136,7 @@
         }
         triggerHaptic('selection');
         try{
-          const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:index})});
+          const data = await api(`/api/v1/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:index})});
           const feedback = data.feedback;
           answered += 1;
           if(feedback){
@@ -4168,7 +4175,7 @@
       };
 
       const showSummary = async (prefetched) => {
-        const s = prefetched || await api(`/api/session/${sid}/summary`);
+        const s = prefetched || await api(`/api/v1/session/${sid}/summary`);
         const decisions = s.decisions ?? answered;
         const totalDecisions = typeof decisions === 'number' ? decisions : 0;
         const accuracyPct = totalDecisions ? Math.round((s.hits / totalDecisions) * 100) : 0;
@@ -4230,7 +4237,7 @@
       const endSession = async () => {
         if(!sid || pending) return;
         try{
-          const summary = await api(`/api/session/${sid}/summary`);
+          const summary = await api(`/api/v1/session/${sid}/summary`);
           answered = summary.hands || answered;
           await showSummary(summary);
         } catch(err){
