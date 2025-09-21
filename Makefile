@@ -1,38 +1,12 @@
-# Run project automation through uv for consistent environments.
-UV_RUN := uv run --locked --extra dev --
-UV_SYNC := uv sync --locked --extra dev
+fmt:
+	cargo fmt --all
 
-.PHONY: ensure-python
-ensure-python:
-	@$(UV_RUN) python -c "import sys; version = sys.version.split()[0]; expected = '3.12.11'; assert version == expected, f'Expected {expected}, got {version}'; print(f'Using Python {version}')"
+clippy:
+	cargo clippy --all-targets -- -D warnings
 
-.PHONY: venv install-dev test lint fix format check render-smoke clean
+test:
+	cargo test --all --all-features
 
-venv:
-	uv venv
+ci: fmt clippy test
 
-install-dev: ensure-python
-	$(UV_SYNC)
-
-test: ensure-python
-	$(UV_RUN) pytest -q
-
-lint: ensure-python
-	$(UV_RUN) ruff check .
-
-fix: ensure-python
-	$(UV_RUN) ruff check . --fix
-
-format: ensure-python
-	$(UV_RUN) ruff format .
-
-check: ensure-python lint test
-
-render-smoke: ensure-python
-	$(UV_RUN) python scripts/check_render.py
-
-clean:
-	find . -name "__pycache__" -type d -prune -exec rm -rf {} +
-	find . -name "*.py[cod]" -delete
-	rm -rf .pytest_cache .ruff_cache
-	rm -rf src/*.egg-info
+.PHONY: fmt clippy test ci

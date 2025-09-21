@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GTO Trainer (Rust)</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>GTO Trainer</h1>
+        <p class="subtitle">Heads-up no-limit hold'em trainer rebuilt in Rust.</p>
+      </header>
+
+      <section class="controls">
+        <button id="new-session">New Session</button>
+        <label>
+          Hands
+          <input id="hands" type="number" min="1" value="1" />
+        </label>
+        <label>
+          Monte Carlo samples
+          <input id="samples" type="number" min="50" value="200" step="50" />
+        </label>
+        <label>
+          Rival style
+          <select id="rival-style">
+            <option value="balanced" selected>Balanced</option>
+            <option value="aggressive">Aggressive</option>
+            <option value="passive">Passive</option>
+          </select>
+        </label>
+      </section>
+
+      <section id="status" class="status hidden"></section>
+
+      <section class="session" id="session">
+        <div class="info">
+          <div><strong>Hand:</strong> <span id="hand-index">-</span></div>
+          <div><strong>Hero:</strong> <span id="hero-cards">--</span></div>
+          <div><strong>Board:</strong> <span id="board-cards">--</span></div>
+          <div><strong>Pot:</strong> <span id="pot">0.0</span> bb</div>
+          <div><strong>Stack:</strong> <span id="stack">0.0</span> bb</div>
+        </div>
+        <div class="options" id="options"></div>
+      </section>
+
+      <section class="summary" id="summary">
+        <h2>Summary</h2>
+        <p>Hands played: <span id="hands-played">0</span></p>
+        <p>Total EV loss: <span id="ev-loss">0.00</span> bb</p>
+        <p>Total profit: <span id="profit">0.00</span> bb</p>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

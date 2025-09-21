@@ -1,106 +1,80 @@
-# GTO Trainer
+# GTO Trainer (Rust Edition)
 
-GTO Trainer is a heads-up no-limit hold’em practice environment with both a Textual CLI and a FastAPI web UI. Each scenario deals a full rival hand, lets the opponent react street by street, and reports the EV delta for every action you take.
+GTO Trainer is a heads-up no-limit hold'em practice environment rebuilt end-to-end in Rust. It provides a terminal experience and a lightweight web UI that serve multi-street scenarios, Monte Carlo EV estimates, and rival style presets. The project replaces the previous Python implementation while maintaining deep testing coverage and CI parity.
 
-## Project status
+## Features
 
-- **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
+- **Rust native engine** &mdash; session management, EV sampling, and rival heuristics implemented in safe Rust.
+- **Interactive CLI** &mdash; play through preflop, flop, turn, and river decisions with contextual descriptions and EV feedback. Auto-play mode available for quick simulations.
+- **Web API + UI** &mdash; Axum-based API and static frontend that mirrors the CLI flow for browser-based training.
+- **Monte Carlo equity** &mdash; configurable sampling depth per decision with deterministic seeding support.
+- **Profiles** &mdash; balanced, aggressive, and passive opponent presets that influence fold frequencies and aggression.
+- **Robust tests** &mdash; unit, integration, CLI, and HTTP smoke tests covering core behaviour and toolchain expectations.
 
-## Requirements
+## Getting started
 
-- Python 3.12.11 exactly (`pyenv` or another version manager is recommended to match CI).
+### Prerequisites
 
-## Quick start (uv)
+- Rust toolchain (1.90 or newer). Install via [`rustup`](https://rustup.rs/).
 
-1. Install [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
-2. Sync dependencies (app + dev extras): `uv sync --locked --extra dev`.
-3. Run everything in one go: `uv run --locked --extra dev -- scripts/run_ci_tests.sh`.
-
-Common commands:
-
-- `uv run --locked --extra dev -- pytest -q`
-- `uv run --locked --extra dev -- ruff check .`
-- `uv run --locked --extra dev -- ruff format .`
-
-## Git hooks
-
-Configure Git to use the repo-managed hooks so staged Python files are auto-formatted before every commit and pushes are blocked when pre-commit fails:
+### CLI quick start
 
 ```bash
-git config core.hooksPath .githooks
+cargo run -- --hands 3 --mc 400 --rival-style aggressive
 ```
 
-The pre-commit hook formats staged Python files and then runs the same Ruff + pytest trio as CI via `uv run --locked --extra dev -- …`, marking success in `.git/.precommit_passed`. The pre-push hook checks that marker, so pushes only proceed if the most recent pre-commit run passed.
-
-## Install & run (CLI)
+Auto-play without manual input (useful for smoke tests):
 
 ```bash
-uv sync --locked
-uv run --locked -- gto-trainer --hands 5
+cargo run -- --hands 5 --auto --no-color
 ```
 
-Run in-place without installing:
+### Web UI
 
 ```bash
-uv run --locked -- python -m gto_trainer
+# Run the web server on http://localhost:8080
+cargo run -- serve --addr 127.0.0.1:8080
 ```
 
-### CLI options
+Open `http://127.0.0.1:8080` in your browser to play through the session.
 
+### Testing & linting
+
+```bash
+cargo fmt --all
+cargo clippy --all-targets -- -D warnings
+cargo test --all --all-features
 ```
-gto-trainer [--hands N] [--seed N] [--mc N] [--no-color] [--solver-csv PATH]
-```
 
-- `--hands N` — number of hands to play (default `1`).
-- `--seed N` — RNG seed (omit for randomness).
-- `--mc N` — Monte Carlo samples per node (default `200`).
-- `--solver-csv PATH` — optional preflop CSV to seed opening ranges.
-- `--no-color` — disable ANSI colors if your terminal strips them.
+## Development workflow
 
-Controls inside the CLI: `1–9` choose an action, `h` opens contextual help, `?` shows pot + SPR, `q` quits.
-
-## Web UI
-
-- **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
-- **Local** – Install dev extras and launch FastAPI with reload enabled:
-
+- **Pre-commit hooks** &mdash; Configure git hooks to run formatting, clippy, and tests before each commit:
   ```bash
-  uv sync --locked --extra dev
-  uv run --locked --extra dev -- uvicorn gto_trainer.web.app:app --reload
+  git config core.hooksPath .githooks
+  ```
+- **CI** &mdash; GitHub Actions runs `cargo fmt --check`, `cargo clippy`, and `cargo test` on every push and pull request.
+- **Docker** &mdash; Build a production image with:
+  ```bash
+  docker build -t gto-trainer .
+  docker run --rm -p 8080:8080 gto-trainer
   ```
 
-Environment overrides: `HANDS` and `MC` mirror the CLI flags when exported before launch.
+## Project structure
 
-## How it works
-
-- **Simulation loop** – Each hand is generated from sampled preflop ranges, then walked street by street with Monte Carlo rollouts (`--mc`) to stabilise EV estimates.
-- **Solver logic** – Post-flop options blend heuristics with lookup data; when a CSV is supplied, the trainer wraps it in a composite provider that falls back to dynamic sizing rules.
-- **EV math** – For every action we store `best_ev`, `chosen_ev`, and compute `ev_loss = best_ev - chosen_ev`, rolling those numbers into session-level accuracy and EV summaries.
-- **Rival model** – Rival decisions come from range tightening plus fold / continue sampling, so the opponent profile updates as stacks and pot sizes change.
-
-## Local development
-
-If you prefer Make targets:
-
-```bash
-make install-dev   # uv sync with dev extras
-make check         # lint + tests (matches CI)
-make test          # pytest -q
-make lint          # Ruff lint
-make format        # Ruff formatter
-make render-smoke  # build Docker image & hit /healthz (Render parity)
 ```
-
-CI runs the same trio as `uv run --locked --extra dev -- scripts/run_ci_tests.sh` / `make check` (`ruff check`, `pytest -q`).
-
-## Solver architecture (quick tour)
-
-- **Episode generator** – `src/gto_trainer/dynamic/generator.py` creates preflop→river node trees, alternating blinds via `SeatRotation` so training covers both positions.
-- **Trainer loop** – `SessionManager` (and CLI/web adapters) request actions from `dynamic.policy`, cache option lists defensively, and record outcomes for scoring.
-- **Solver logic** – `dynamic.policy` samples rival ranges, runs equity Monte Carlo with adaptive precision, and emits `Option` objects carrying EVs, justifications, and metadata for resolution.
-- **Rival model** – `dynamic.rival_strategy` consumes cached range profiles to decide folds/calls/raises so postflop play mirrors solver frequencies instead of perfect clairvoyance.
-- **Resolution & scoring** – `dynamic.policy.resolve_for` applies actions, updates stacks/pot state, and `core.scoring` aggregates EV loss into session summaries.
+Cargo.toml
+src/
+  cards.rs        # Card representations and deck utilities
+  equity.rs       # Hand evaluation + Monte Carlo equity sampling
+  game.rs         # Shared structures for actions and nodes
+  rival.rs        # Rival style presets and heuristics
+  session.rs      # Session lifecycle, EV aggregation, and scoring
+  trainer.rs      # CLI facade and interactive runner
+  web/            # Axum web server + API handlers
+public/           # Static assets for the web UI
+tests/            # Integration tests (CLI, web, session)
+```
 
 ## License
 
-Proprietary (see `pyproject.toml`).
+Proprietary (see `LICENSE` if provided). Contact the maintainers for usage guidance.
