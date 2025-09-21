@@ -3645,8 +3645,6 @@
         const NOISE_FLOOR = 0.02;
         const GREEN_POT_MULTIPLIER = 0.0025;
         const YELLOW_POT_MULTIPLIER = 0.01;
-        const BLUNDER_POT_MULTIPLIER = 0.03;
-        const BLUNDER_ABS = 2.0;
         const LOW_FREQ_THRESHOLD = 3.5;
         const YELLOW_FALLBACK = NOISE_FLOOR * 4;
 
@@ -3662,7 +3660,8 @@
           };
         }
 
-        let loss = evLossRaw;
+        const rawLoss = evLossRaw;
+        let loss = rawLoss;
         if(loss < 0 && Math.abs(loss) <= EPS){
           loss = 0;
         }
@@ -3672,11 +3671,9 @@
         const pot = typeof rawPot === 'number' && Number.isFinite(rawPot) && rawPot > 0 ? rawPot : null;
         let greenCutoff = NOISE_FLOOR;
         let yellowUpper = YELLOW_FALLBACK;
-        let blunderCutoff = BLUNDER_ABS;
         if(pot){
           greenCutoff = Math.max(NOISE_FLOOR, GREEN_POT_MULTIPLIER * pot);
           yellowUpper = YELLOW_POT_MULTIPLIER * pot;
-          blunderCutoff = Math.max(BLUNDER_ABS, BLUNDER_POT_MULTIPLIER * pot);
         }
 
         const evLossPct = pot ? (absLoss / pot) * 100 : null;
@@ -3697,16 +3694,14 @@
             state = 'warning';
             tone = 'warning';
           } else {
-            state = loss >= blunderCutoff - EPS ? 'blunder' : 'danger';
-            tone = state === 'blunder' ? 'blunder' : 'danger';
-          }
-        }
-
-        if(freq === 0 && loss > greenCutoff + EPS){
-          if(state !== 'blunder'){
             state = 'danger';
             tone = 'danger';
           }
+        }
+
+        if(freq === 0 && loss > greenCutoff){
+          state = 'danger';
+          tone = 'danger';
         } else if(gtoFreqPct != null && gtoFreqPct > 0 && gtoFreqPct < LOW_FREQ_THRESHOLD){
           if(state === 'success' || state === 'gain'){
             state = 'warning';
@@ -3714,11 +3709,11 @@
           }
         }
 
-        const shouldTintValue = absLoss > 0;
+        const shouldTintValue = rawLoss < 0 ? true : rawLoss > 0 && (tone === 'warning' || tone === 'danger');
         let symbol;
         if(tone === 'warning'){
           symbol = '!';
-        } else if(tone === 'danger' || tone === 'blunder'){
+        } else if(tone === 'danger'){
           symbol = '×';
         } else {
           symbol = '✓';
@@ -3732,7 +3727,7 @@
           evLossPct,
           gtoFreqPct,
           evLossBb: absLoss,
-          thresholds: { greenCutoff, yellowUpper, blunderCutoff },
+          thresholds: { greenCutoff, yellowUpper },
         };
       };
 
