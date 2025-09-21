@@ -2,26 +2,43 @@
 
 Heads-up no-limit hold’em trainer delivered through a FastAPI web UI. The engine plays out full hands, evaluates every decision against the best available action, and reports EV loss so you can review mistakes.
 
+## Contents
+
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Tooling](#tooling)
+- [Running the Trainer](#running-the-trainer)
+- [Tests and CI Parity](#tests-and-ci-parity)
+- [Architecture Overview](#architecture-overview)
+- [License](#license)
+
 ## Requirements
 
 - Python 3.12.11 (matches CI; managed via `pyenv` or similar).
 - [uv](https://docs.astral.sh/uv/) for dependency management.
 
-## Quick start
+## Quick Start
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh   # install uv
-uv sync --no-config --locked --extra dev          # create the virtualenv with dev extras
-uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh
-```
+1. Install uv.
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+2. Sync dependencies with dev extras.
+   ```bash
+   uv sync --no-config --locked --extra dev
+   ```
+3. Run the full CI-equivalent suite.
+   ```bash
+   uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh
+   ```
 
-Common one-offs:
+Common one-off commands:
 
 - `uv run --no-config --locked --extra dev -- pytest -q`
 - `uv run --no-config --locked --extra dev -- ruff check .`
 - `uv run --no-config --locked --extra dev -- ruff format .`
 
-All commands include `--no-config` so local uv configuration (e.g. private indices) cannot diverge from the project lockfile.
+> Note: every `uv` command intentionally includes `--no-config` so local uv configuration (for example, private indices) cannot diverge from the project lockfile.
 
 ## Tooling
 
@@ -37,14 +54,14 @@ git config core.hooksPath .githooks
 
 ### Make targets
 
-```bash
-make install-dev   # uv sync with dev extras
-make check         # Ruff + pytest (CI equivalent)
-make test          # pytest -q
-make lint          # Ruff lint only
-make format        # Ruff formatter
-make render-smoke  # build the Render image and hit /healthz
-```
+| Target | Description |
+| --- | --- |
+| `make install-dev` | Run `uv sync` with dev extras. |
+| `make check` | Execute Ruff lint + pytest (CI equivalent). |
+| `make test` | Run `pytest -q`. |
+| `make lint` | Run Ruff lint only. |
+| `make format` | Run the Ruff formatter. |
+| `make render-smoke` | Build the Render image and hit `/healthz`. |
 
 ## Running the trainer
 
@@ -59,7 +76,10 @@ uv sync --no-config --locked --extra dev
 uv run --no-config --locked --extra dev -- uvicorn gto_trainer.web.app:app --reload
 ```
 
-Environment variables `HANDS` and `MC` control the default session size and Monte Carlo sample count.
+Environment variables:
+
+- `HANDS` — default session size.
+- `MC` — Monte Carlo sample count.
 
 Live demo: [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
 
@@ -67,10 +87,12 @@ Live demo: [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
 
 All HTTP routes are versioned under `/api/v1`.
 
-- `POST /api/v1/session` — create a session (`{"session": "..."}` response).
-- `GET /api/v1/session/{id}/node` — fetch the current node payload with options.
-- `POST /api/v1/session/{id}/choose` — submit a choice and receive the next payload.
-- `GET /api/v1/session/{id}/summary` — retrieve the aggregated session summary.
+| Method & Path | Purpose |
+| --- | --- |
+| `POST /api/v1/session` | Create a session (`{"session": "..."}` response). |
+| `GET /api/v1/session/{id}/node` | Fetch the current node payload with options. |
+| `POST /api/v1/session/{id}/choose` | Submit a choice and receive the next payload. |
+| `GET /api/v1/session/{id}/summary` | Retrieve the aggregated session summary. |
 
 Legacy `/api/session/...` paths remain available for now but will be removed after downstream clients migrate.
 
