@@ -35,7 +35,7 @@
         color-scheme: light;
         --bg: #F8FAFC;
         --surface-1: #FFFFFF;
-        --surface-2: #F3F4F6;
+        --surface-2: #F8FAFC;
         --surface-3: #FFFFFF;
         --border: #E5E7EB;
         --field-bg: color-mix(in srgb, var(--surface-2) 88%, white 12%);
@@ -50,18 +50,19 @@
         --field-error-border: color-mix(in srgb, var(--error) 70%, transparent);
         --shadow-soft: 0 18px 34px rgba(15, 23, 42, 0.075);
         --shadow-card: 0 1px 0 rgba(15, 23, 42, 0.035), 0 12px 24px rgba(15, 23, 42, 0.09);
-        --text-primary: #0B1220;
-        --text-secondary: #4B5563;
-        --text-tertiary: #6B7280;
+        --text-primary: #0F172A;
+        --text-secondary: #64748B;
+        --text-tertiary: #94A3B8;
         --text-inverse: #FFFFFF;
         --brand: #2563EB;
         --brand-pressed: #1D4ED8;
+        --brand-outline: #93C5FD;
         --on-brand: #FFFFFF;
         --success: #16A34A;
         --on-success: #FFFFFF;
         --warning: #F59E0B;
         --on-warning: #111827;
-        --error: #EF4444;
+        --error: #DC2626;
         --on-error: #FFFFFF;
         --chip-bg: color-mix(in srgb, #1D4ED8 15%, transparent);
         --chip-border: color-mix(in srgb, #1D4ED8 30%, transparent);
@@ -94,11 +95,11 @@
         --action-caution-border: #f0d4e1;
         --action-caution-selected-bg: #f3dbe7;
         --action-caution-selected-border: #dfb9cc;
-        --action-negative-text: #6b444d;
-        --action-negative-bg: #f7e8eb;
-        --action-negative-border: #ebd3da;
-        --action-negative-selected-bg: #efdfe3;
-        --action-negative-selected-border: #d7b0ba;
+        --action-negative-text: #DC2626;
+        --action-negative-bg: color-mix(in srgb, var(--error) 16%, white 84%);
+        --action-negative-border: color-mix(in srgb, var(--error) 45%, transparent);
+        --action-negative-selected-bg: var(--error);
+        --action-negative-selected-border: color-mix(in srgb, var(--error) 70%, transparent);
         --chipbar-bg: #EAEFF7;
         --chipbar-text: #0F172A;
         --chipbar-border: color-mix(in srgb, #94A3B8 35%, transparent);
@@ -113,11 +114,11 @@
       :root[data-theme="dark"] {
 
         color-scheme: dark;
-        --bg: #0B0F14;
-        --surface-1: #0F141A;
-        --surface-2: #141B23;
-        --surface-3: #0F172A;
-        --border: #2A3645;
+        --bg: #0B1220;
+        --surface-1: #111827;
+        --surface-2: #16213A;
+        --surface-3: #1E293B;
+        --border: #1F2937;
         --field-bg: color-mix(in srgb, var(--surface-2) 55%, var(--surface-1) 45%);
         --field-bg-hover: color-mix(in srgb, var(--surface-2) 62%, var(--surface-1) 38%);
         --field-border: color-mix(in srgb, var(--outline) 85%, transparent);
@@ -130,18 +131,19 @@
         --field-error-border: color-mix(in srgb, var(--error) 48%, var(--outline) 52%);
         --shadow-soft: 0 18px 34px rgba(11, 15, 20, 0.4);
         --shadow-card: 0 1px 0 rgba(7, 11, 16, 0.35), 0 12px 24px rgba(7, 11, 16, 0.35);
-        --text-primary: #E6EDF3;
-        --text-secondary: #B7C1CC;
-        --text-tertiary: #8A94A6;
+        --text-primary: #E5E7EB;
+        --text-secondary: #9CA3AF;
+        --text-tertiary: #6B7280;
         --text-inverse: #0B0F14;
         --brand: #2563EB;
         --brand-pressed: #1D4ED8;
+        --brand-outline: #2563EB;
         --on-brand: #F8FAFC;
         --success: #16A34A;
         --on-success: #04210E;
         --warning: #F59E0B;
         --on-warning: #1D1204;
-        --error: #EF4444;
+        --error: #DC2626;
         --on-error: #2A0707;
         --chip-bg: color-mix(in oklab, #1D4ED8 18%, transparent);
         --chip-border: color-mix(in srgb, #1D4ED8 32%, transparent);
@@ -174,11 +176,11 @@
         --action-caution-border: #B86774;
         --action-caution-selected-bg: #5A2F38;
         --action-caution-selected-border: #DE8C98;
-        --action-negative-text: #FFFFFF;
-        --action-negative-bg: #C42635;
-        --action-negative-border: #F27B89;
-        --action-negative-selected-bg: #D32F3D;
-        --action-negative-selected-border: #F8A4AE;
+        --action-negative-text: #FFE4E6;
+        --action-negative-bg: color-mix(in srgb, var(--error) 32%, var(--surface-2) 68%);
+        --action-negative-border: color-mix(in srgb, var(--error) 55%, transparent);
+        --action-negative-selected-bg: var(--error);
+        --action-negative-selected-border: color-mix(in srgb, var(--error) 70%, transparent);
         --chipbar-bg: #1F2937;
         --chipbar-text: #EAEFF7;
         --chipbar-border: color-mix(in srgb, #94A3B8 45%, transparent);
@@ -242,17 +244,17 @@
       }
       .card {
         display: inline-flex;
-        align-items: center;
+        align-items: baseline;
         justify-content: center;
-        border-radius: var(--radius-sm);
+        border-radius: var(--radius-md);
         border: 1px solid var(--card-edge);
-        padding: 0.4rem 0.66rem;
+        padding: 0.42rem 0.7rem;
         font-size: clamp(1.3rem, 3.6vw, 1.66rem);
         font-weight: 700;
-        letter-spacing: 0.2px;
-        margin: 0 0.18rem 0.18rem 0;
-        background: var(--card-face);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        letter-spacing: 0.18px;
+        margin: 0 0.2rem 0.2rem 0;
+        background: color-mix(in srgb, var(--surface-1) 92%, white 8%);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
         line-height: 1.02;
       }
       .poker-card {
@@ -261,31 +263,22 @@
         flex: 0 0 clamp(38px, 6.8vw, 56px);
       }
       .card.placeholder {
-        color: color-mix(in srgb, var(--text-tertiary) 70%, transparent);
-        background: linear-gradient(
-          135deg,
-          var(--placeholder-base) 0%,
-          color-mix(in srgb, var(--placeholder-base) 85%, white 15%) 100%
-        );
-        border: 1px solid var(--placeholder-border);
+        color: color-mix(in srgb, var(--text-tertiary) 55%, transparent);
+        background: linear-gradient(135deg, var(--placeholder-base) 0%, color-mix(in srgb, var(--placeholder-base) 70%, white 30%) 100%);
+        border: 1px solid color-mix(in srgb, var(--placeholder-border) 85%, transparent);
         box-shadow: none;
         opacity: 0.95;
         position: relative;
         overflow: hidden;
       }
       .card.placeholder.placeholder-loading::after {
-        content: "";
+        content: '';
         position: absolute;
         top: 0;
         bottom: 0;
         left: -60%;
         width: 45%;
-        background: linear-gradient(
-          90deg,
-          transparent 0%,
-          color-mix(in srgb, var(--placeholder-highlight) 65%, transparent) 50%,
-          transparent 100%
-        );
+        background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--placeholder-highlight) 60%, transparent) 50%, transparent 100%);
         animation: placeholder-sheen 1.9s ease-in-out infinite;
       }
       @keyframes placeholder-sheen {
@@ -294,12 +287,12 @@
         100% { left: 120%; }
       }
       .card.placeholder .placeholder-icon {
-        font-size: 1.15em;
+        font-size: 1.12em;
         line-height: 1;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.02em;
         transition: opacity 0.3s ease;
-        color: color-mix(in srgb, var(--placeholder-highlight) 55%, var(--text-tertiary) 45%);
-        opacity: 0.65;
+        color: color-mix(in srgb, var(--placeholder-highlight) 40%, var(--text-tertiary) 60%);
+        opacity: 0.55;
       }
       .card.placeholder.placeholder-wide {
         padding-inline: 0.95rem;
@@ -314,7 +307,16 @@
       .card.c { color: var(--suit-club); }
       .card.h { color: var(--suit-heart); }
       .card.d { color: var(--suit-diamond); }
-      .glass {
+      :root[data-theme="dark"] .card {
+        background: color-mix(in srgb, var(--surface-2) 88%, transparent 12%);
+        border-color: color-mix(in srgb, var(--border) 85%, transparent);
+        box-shadow: none;
+      }
+      :root[data-theme="dark"] .card.placeholder {
+        background: color-mix(in srgb, var(--surface-2) 75%, transparent 25%);
+        border-color: color-mix(in srgb, var(--placeholder-border) 65%, transparent);
+      }
+.glass {
         backdrop-filter: blur(18px);
         background: color-mix(in srgb, var(--surface-1) 85%, transparent);
         box-shadow: var(--shadow-soft);
@@ -400,11 +402,11 @@
       .field-group {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 8px;
       }
       .field-label {
         font-size: var(--text-size-label);
-        font-weight: 600;
+        font-weight: 650;
         letter-spacing: -0.01em;
         color: var(--text-primary);
       }
@@ -979,6 +981,39 @@
       .action-area[data-pending="true"]::before {
         opacity: 1;
       }
+      .ev-pulse {
+        position: absolute;
+        top: -12px;
+        right: 18px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        background: color-mix(in srgb, var(--surface-1) 65%, var(--brand) 35%);
+        color: var(--brand);
+        border: 1px solid color-mix(in srgb, var(--brand) 40%, transparent);
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+        opacity: 0;
+        transform: translateY(-6px);
+        transition: opacity 0.18s ease, transform 0.18s ease;
+        pointer-events: none;
+      }
+      .ev-pulse[data-state="positive"] {
+        background: color-mix(in srgb, var(--surface-1) 60%, var(--success) 40%);
+        color: color-mix(in srgb, var(--success) 70%, var(--on-success) 30%);
+        border-color: color-mix(in srgb, var(--success) 50%, transparent);
+      }
+      .ev-pulse[data-state="negative"] {
+        background: color-mix(in srgb, var(--surface-1) 55%, var(--error) 45%);
+        color: color-mix(in srgb, var(--error) 70%, var(--on-error) 30%);
+        border-color: color-mix(in srgb, var(--error) 55%, transparent);
+      }
+      .ev-pulse.is-active {
+        opacity: 1;
+        transform: translateY(0);
+      }
       #panel-play .panel-box.panel-soft {
         padding: calc(var(--space-1) + 3px);
       }
@@ -1077,7 +1112,7 @@
       .bet-group__label {
         font-size: 0.76rem;
         font-weight: 650;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
         color: color-mix(in srgb, var(--action-accent-text) 85%, var(--text-primary) 15%);
       }
@@ -1089,7 +1124,7 @@
       .action-sizes {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: calc(var(--space-1) - 2px);
+        gap: 12px;
         min-height: calc(var(--min-tap) - 10px);
       }
       .action-sizes .action-button {
@@ -1117,22 +1152,24 @@
         justify-content: center;
         gap: 2px;
         width: 100%;
-        min-height: calc(var(--min-tap) - 8px);
+        min-height: var(--min-tap);
         border-radius: var(--radius-md);
         border: 1px solid var(--field-border);
         background: #f9faff;
         color: var(--text-primary);
         font: 600 var(--text-size-body)/1.3 var(--font-sans);
-        padding: calc(var(--space-1) - 4px) calc(var(--space-1) + 2px);
+        padding: calc(var(--space-1)) calc(var(--space-1) + 4px);
         text-align: left;
-        transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, color 0.18s ease;
+        transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
         word-break: break-word;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
       }
       .action-button:not([disabled]):active {
         transform: translateY(1px);
+        box-shadow: 0 3px 8px rgba(15, 23, 42, 0.12);
       }
       .action-button:focus-visible {
-        outline: var(--focus-ring) solid var(--focus-color);
+        outline: var(--focus-ring) solid var(--brand-outline);
         outline-offset: 2px;
       }
       .action-button .action-label {
@@ -1155,13 +1192,13 @@
         border-color: var(--action-neutral-selected-border);
       }
       .action-button.action-primary {
-        background: var(--action-accent-bg);
-        border-color: var(--action-accent-border);
-        color: var(--action-accent-text);
+        background: var(--surface-2);
+        border-color: color-mix(in srgb, var(--border) 70%, transparent);
+        color: var(--text-primary);
       }
       .action-button.action-primary:hover {
-        background: color-mix(in srgb, var(--action-accent-bg) 88%, var(--action-accent-selected-bg) 12%);
-        border-color: var(--action-accent-selected-border);
+        background: color-mix(in srgb, var(--surface-2) 85%, var(--brand) 15%);
+        border-color: color-mix(in srgb, var(--brand) 25%, var(--border) 75%);
       }
       .action-button.action-destructive {
         background: color-mix(in srgb, var(--action-neutral-bg) 92%, transparent);
@@ -1224,6 +1261,15 @@
         color: var(--action-negative-text);
         box-shadow: 0 12px 26px rgba(12, 18, 28, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
       }
+      :root[data-theme="dark"] .action-button,
+      :root[data-theme="dark"] .action-button.action-primary {
+        background: var(--surface-2);
+        border-color: color-mix(in srgb, var(--border) 80%, transparent);
+        box-shadow: none;
+      }
+      :root[data-theme="dark"] .action-button:hover {
+        border-color: color-mix(in srgb, var(--brand) 25%, var(--border) 75%);
+      }
       :root[data-theme="dark"] .action-button.action-negative .action-meta {
         color: color-mix(in srgb, var(--action-negative-text) 65%, rgba(255, 255, 255, 0.75) 35%);
       }
@@ -1258,51 +1304,84 @@
         border-color: color-mix(in srgb, var(--action-neutral-selected-border) 85%, transparent);
       }
       .size-chip {
+        display: inline-flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 0.18em;
         border-radius: var(--radius-md);
         border: 1px solid var(--muted-border);
         background: var(--muted-bg);
         color: var(--text-primary);
-        padding: 9px 0;
-        font-size: 0.82rem;
+        padding: 12px 0;
+        font-size: 0.84rem;
         font-weight: 600;
         text-align: center;
-        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
       }
       .size-chip:hover {
         background: var(--muted-hover);
         border-color: color-mix(in srgb, var(--muted-border) 65%, var(--brand) 35%);
       }
-      .size-chip--jam {
-        width: 100%;
-        justify-content: center;
+      .size-chip__value {
+        font-size: 1.08em;
         font-weight: 700;
-        letter-spacing: 0.03em;
+        margin-right: 0.12em;
+      }
+      .size-chip__unit {
+        opacity: 0.78;
+      }
+      .size-chip--jam {
+        display: inline-flex;
+        align-items: baseline;
+        justify-content: center;
+        width: 100%;
+        font-weight: 700;
+        letter-spacing: 0.015em;
         text-transform: uppercase;
-        background: color-mix(in srgb, var(--brand) 88%, var(--surface-1) 12%);
+        background: var(--brand);
         color: var(--on-brand);
-        border-color: color-mix(in srgb, var(--brand) 78%, transparent);
+        border-color: color-mix(in srgb, var(--brand) 80%, transparent);
+        box-shadow: 0 12px 22px rgba(37, 99, 235, 0.24);
       }
       .size-chip--jam:hover {
-        background: color-mix(in srgb, var(--brand) 92%, white 8%);
-        border-color: color-mix(in srgb, var(--brand) 85%, transparent);
+        background: color-mix(in srgb, var(--brand) 94%, white 6%);
+        border-color: color-mix(in srgb, var(--brand) 88%, transparent);
       }
       .size-chip--jam:active {
         background: var(--brand-pressed);
         border-color: color-mix(in srgb, var(--brand-pressed) 80%, transparent);
       }
+      .size-chip--jam.is-confirm {
+        background: color-mix(in srgb, var(--brand-pressed) 82%, var(--surface-1) 18%);
+        border-color: color-mix(in srgb, var(--brand-pressed) 80%, transparent);
+        box-shadow: 0 8px 16px rgba(29, 78, 216, 0.25);
+      }
       .size-chip:focus-visible {
-        outline: var(--focus-ring) solid var(--focus-color);
+        outline: var(--focus-ring) solid var(--brand-outline);
         outline-offset: 2px;
       }
       .size-chip.is-selected {
-        background: var(--muted-bg);
-        border-color: var(--muted-border);
-        color: var(--text-primary);
-        box-shadow: none;
+        background: var(--brand);
+        border-color: color-mix(in srgb, var(--brand) 80%, transparent);
+        color: var(--on-brand);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
       }
       .size-chip[disabled] {
         opacity: 0.55;
         cursor: not-allowed;
+      }
+      :root[data-theme="dark"] .size-chip {
+        background: color-mix(in srgb, var(--surface-2) 90%, transparent 10%);
+        border-color: color-mix(in srgb, var(--border) 78%, transparent);
+        color: var(--text-primary);
+      }
+      :root[data-theme="dark"] .size-chip:hover {
+        background: color-mix(in srgb, var(--surface-2) 75%, var(--brand) 25%);
+        border-color: color-mix(in srgb, var(--brand) 35%, var(--border) 65%);
+      }
+      :root[data-theme="dark"] .size-chip.is-selected,
+      :root[data-theme="dark"] .size-chip--jam {
+        box-shadow: none;
       }
       .action-area.is-disabled .action-button,
       .action-area.is-disabled .size-chip {
@@ -1400,6 +1479,11 @@
         color: var(--text-primary);
         box-shadow: var(--shadow-card);
       }
+      :root[data-theme="dark"] .info-card {
+        background: var(--surface-2);
+        border-color: color-mix(in srgb, var(--border) 85%, transparent);
+        box-shadow: none;
+      }
       .sr-only {
         position: absolute;
         width: 1px;
@@ -1413,27 +1497,26 @@
       }
       .info-row {
         display: flex;
-        align-items: center;
-        gap: calc(var(--space-1) - 2px);
+        align-items: baseline;
+        gap: 12px;
       }
       .info-label {
-        font-size: 0.7rem;
-        letter-spacing: 0.12em;
-        text-transform: none;
+        font-size: 0.64rem;
+        font-weight: 650;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
         color: var(--text-tertiary);
-        min-width: 2.75rem;
+        min-width: 3rem;
       }
       .info-cards {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
-        font-size: 1.05rem;
-        font-weight: 600;
+        gap: 8px;
+        font-size: 1.12rem;
+        font-weight: 650;
         color: var(--text-primary);
         flex: 1 1 auto;
         min-width: 0;
-        padding-left: 6px;
-        padding-right: 2px;
       }
       .info-cards .card {
         margin: 0;
@@ -2047,6 +2130,9 @@
       let correctDecisions = 0;
       let sessionHands = 0;
       let activeNode = null;
+      let jamConfirmTimeout = null;
+      let jamConfirmButton = null;
+      let jamConfirmLabel = '';
 
       const escapeHtml = (text) => String(text)
         .replace(/&/g, "&amp;")
@@ -2054,6 +2140,18 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+
+      const triggerHaptic = (pattern = 'selection') => {
+        try {
+          const vib = window.navigator && typeof window.navigator.vibrate === 'function'
+            ? window.navigator.vibrate.bind(window.navigator)
+            : null;
+          if(!vib) return;
+          vib(pattern === 'impact' ? 20 : 10);
+        } catch (error) {
+          /* haptics optional */
+        }
+      };
 
       const SUIT_CLASS = {
         S: 's', H: 'h', D: 'd', C: 'c',
@@ -2196,6 +2294,12 @@
           nextHandButton.removeEventListener('click', handleNextHandClick);
           nextHandButton = null;
         }
+        if(jamConfirmTimeout){
+          clearTimeout(jamConfirmTimeout);
+          jamConfirmTimeout = null;
+        }
+        jamConfirmButton = null;
+        jamConfirmLabel = '';
         if(actionArea){
           actionArea.classList.remove('is-disabled');
           delete actionArea.dataset.pending;
@@ -2651,6 +2755,15 @@
 
       const renderActions = (options, node) => {
         if(!actionArea) return;
+        if(jamConfirmTimeout){
+          clearTimeout(jamConfirmTimeout);
+          jamConfirmTimeout = null;
+        }
+        if(jamConfirmButton){
+          jamConfirmButton.classList.remove('is-confirm');
+          jamConfirmButton = null;
+        }
+        jamConfirmLabel = '';
         if(pending){
           actionArea.dataset.pending = 'true';
         } else {
@@ -2706,6 +2819,18 @@
         let betGroup = null;
 
         const mainButtons = {};
+
+        const chipMarkup = (label) => {
+          const raw = (label || '').trim();
+          if(!raw) return '';
+          const match = raw.match(/^([0-9]+(?:\.[0-9]+)?)(.*)$/);
+          if(!match){
+            return escapeHtml(raw);
+          }
+          const [, value, unit] = match;
+          const unitText = unit.trim() || 'bb';
+          return `<span class="size-chip__value">${escapeHtml(value)}</span><span class="size-chip__unit">${escapeHtml(unitText)}</span>`;
+        };
 
         const makeLabelMeta = (descriptor, override = {}) => {
           if(!descriptor) return { label: override.fallbackLabel || '', meta: '' };
@@ -2809,7 +2934,7 @@
             chip.className = 'size-chip';
             chip.dataset.optionIndex = String(descriptor.index);
             chip.dataset.optionLabel = `${raiseVerb(descriptor, { isFacingBet })} ${chipLabel(descriptor)}`;
-            chip.textContent = chipLabel(descriptor);
+            chip.innerHTML = chipMarkup(chipLabel(descriptor));
             if(descriptor.disabled){
               chip.disabled = true;
             }
@@ -2841,7 +2966,7 @@
           jamButton.className = 'size-chip size-chip--jam';
           const jamLabelMeta = formatBetLabel(jamOpt, { isFacingBet, includeSize: true });
           const jamLabelText = jamLabelMeta.label || 'All-in';
-          jamButton.textContent = jamLabelText;
+          jamButton.innerHTML = chipMarkup(jamLabelText);
           jamButton.dataset.optionIndex = String(jamOpt.index);
           jamButton.dataset.optionLabel = jamLabelMeta.meta
             ? `${jamLabelText} (${jamLabelMeta.meta})`
@@ -2849,11 +2974,38 @@
           if(jamOpt.disabled){
             jamButton.disabled = true;
           }
+          const resetJamConfirm = () => {
+            if(jamConfirmTimeout){
+              clearTimeout(jamConfirmTimeout);
+              jamConfirmTimeout = null;
+            }
+            if(jamConfirmButton){
+              jamConfirmButton.classList.remove('is-confirm');
+              jamConfirmButton.innerHTML = chipMarkup(jamConfirmLabel || jamLabelText);
+              jamConfirmButton = null;
+            }
+          };
           jamButton.addEventListener('click', (event) => {
             event.preventDefault();
             if(jamButton.disabled || pending) return;
+            if(jamConfirmButton !== jamButton){
+              resetJamConfirm();
+            }
+            if(!jamConfirmButton){
+              jamConfirmButton = jamButton;
+              jamConfirmLabel = jamLabelText;
+              jamButton.classList.add('is-confirm');
+              jamButton.innerHTML = '<span class="size-chip__value">Confirm</span><span class="size-chip__unit">All-in</span>';
+              jamConfirmTimeout = window.setTimeout(() => {
+                resetJamConfirm();
+              }, 2200);
+              triggerHaptic('selection');
+              return;
+            }
+            resetJamConfirm();
             selectedMainAction = null;
             refreshMainArming();
+            triggerHaptic('impact');
             choose(jamOpt.index);
           });
           jamRow.appendChild(jamButton);
@@ -2884,6 +3036,22 @@
         if(actionAnnouncer){
           setTextWithCards(actionAnnouncer, message ? `Action selected: ${message}` : '');
         }
+      };
+
+      const flashEvPulse = (value, deltaSign) => {
+        if(!actionArea) return;
+        let pulse = actionArea.querySelector('.ev-pulse');
+        if(!pulse){
+          pulse = document.createElement('div');
+          pulse.className = 'ev-pulse';
+          actionArea.appendChild(pulse);
+        }
+        pulse.dataset.state = deltaSign > 0 ? 'negative' : 'positive';
+        pulse.textContent = deltaSign > 0 ? `-${formatBb(value)}` : `+${formatBb(value)}`;
+        pulse.classList.add('is-active');
+        window.setTimeout(() => {
+          pulse?.classList.remove('is-active');
+        }, 1800);
       };
 
       const hideFeedbackDrawer = () => {
@@ -2941,6 +3109,9 @@
           : deltaValue
             ? `EV loss ${formatBb(deltaValue)} • Best ${bestLabel}`
             : `Best • ${bestLabel}`;
+        if(deltaValue !== null && deltaValue > 0){
+          flashEvPulse(deltaValue, feedback?.ev_loss || 0);
+        }
         const resolutionNote = feedback?.chosen?.resolution_note || '';
         const summarizeResolution = (text) => {
           if(!text) return '';
@@ -3365,6 +3536,7 @@
         } else {
           announceAction('');
         }
+        triggerHaptic('selection');
         try{
           const data = await api(`/api/session/${sid}/choose`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({choice:index})});
           const feedback = data.feedback;
