@@ -7,7 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY . /app
 
-RUN python -m pip install -U pip \
+RUN apt-get update \ 
+ && apt-get install -y --no-install-recommends build-essential \ 
+ && rm -rf /var/lib/apt/lists/* \ 
+ && python -m pip install -U pip \
  && python -m pip install --no-cache-dir "Cython>=3.0" "setuptools>=70" wheel \
  && python -m pip install --no-cache-dir -e . \
  && python -m pip install --no-cache-dir fastapi uvicorn
