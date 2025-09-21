@@ -2,7 +2,7 @@
 
 Heads-up no-limit hold’em trainer delivered through a FastAPI web UI. The engine plays out full hands, evaluates every decision against the best available action, and reports EV loss so you can review mistakes.
 
-Hosted app: **gto.alexandersumer.com**
+Hosted app: [gto.alexandersumer.com](https://gto.alexandersumer.com/)
 
 ## Contents
 
