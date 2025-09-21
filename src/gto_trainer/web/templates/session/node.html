@@ -1,0 +1,44 @@
+{% set street = node.street.upper() %}
+<div class="hx-node" data-hand="{{ node.hand_no }}" data-total="{{ node.total_hands }}">
+  <header class="hx-node__header">
+    <h2>{{ street }}{% if node.description %} — {{ node.description }}{% endif %}</h2>
+    <p class="hx-node__meta">
+      Hand {{ node.hand_no }} / {{ node.total_hands }} · Pot {{ '%.2f'|format(node.pot_bb) }}bb · SPR {{ '%.1f'|format(node.effective_bb / node.pot_bb if node.pot_bb else 0) }}
+    </p>
+  </header>
+  <section class="hx-node__cards">
+    <h3>Your hand</h3>
+    <div class="hx-card-row">
+      {% for card in hero_cards %}
+      <span class="card poker-card {{ card.css }}">
+        <span class="card__rank">{{ card.rank }}</span><span class="card__suit">{{ card.symbol }}</span>
+      </span>
+      {% endfor %}
+    </div>
+    {% if board_cards %}
+    <h3>Board</h3>
+    <div class="hx-card-row">
+      {% for card in board_cards %}
+      <span class="card poker-card {{ card.css }}">
+        <span class="card__rank">{{ card.rank }}</span><span class="card__suit">{{ card.symbol }}</span>
+      </span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+  <section class="hx-node__actions">
+    <h3>Available actions</h3>
+    <ul class="hx-options">
+      {% for option in options %}
+      <li class="hx-option{% if option.ends_hand %} hx-option--terminal{% endif %}" data-key="{{ option.key }}">
+        <div class="hx-option__label">{{ option.label }}</div>
+        <div class="hx-option__ev">EV {{ '%.2f'|format(option.ev) }} bb</div>
+        <p class="hx-option__why">{{ option.why }}</p>
+        {% if option.gto_freq is not none %}
+        <p class="hx-option__freq">GTO frequency: {{ '%.0f'|format(option.gto_freq * 100) }}%</p>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>

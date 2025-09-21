@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from fastapi.testclient import TestClient
 
 from gto_trainer.web.app import app
@@ -98,6 +100,37 @@ def test_create_session_with_missing_or_invalid_inputs():
     sid3 = r3.json()["session"]
     node3 = client.get(f"{base}/{sid3}/node")
     assert node3.status_code == 200
+
+
+def test_hx_requests_receive_html_fragments():
+    client = TestClient(app)
+    headers = {"HX-Request": "true"}
+
+    r = client.post("/api/v1/session", json={"hands": 1, "mc": 50}, headers=headers)
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/html")
+    assert "hx-node" in r.text
+    trigger_header = r.headers.get("hx-trigger")
+    assert trigger_header, "HX-Trigger header should contain session metadata"
+    trigger = json.loads(trigger_header)
+    sid = trigger.get("sessionCreated")
+    assert sid, "sessionCreated trigger missing"
+
+    node = client.get(f"/api/v1/session/{sid}/node", headers=headers)
+    assert node.status_code == 200
+    assert "hx-node" in node.text
+
+    choice = client.post(
+        f"/api/v1/session/{sid}/choose",
+        json={"choice": 0},
+        headers=headers,
+    )
+    assert choice.status_code == 200
+    assert "hx-feedback" in choice.text
+
+    summary = client.get(f"/api/v1/session/{sid}/summary", headers=headers)
+    assert summary.status_code == 200
+    assert "hx-summary" in summary.text
 
 
 def test_legacy_routes_still_operate():

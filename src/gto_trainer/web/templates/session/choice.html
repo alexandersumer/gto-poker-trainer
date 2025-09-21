@@ -1,0 +1,17 @@
+<div class="hx-feedback">
+  <h3>Decision feedback</h3>
+  {% if feedback.correct %}
+  <p class="hx-feedback__status hx-feedback__status--correct">✅ Correct choice!</p>
+  {% else %}
+  <p class="hx-feedback__status hx-feedback__status--miss">⚠️ EV lost {{ '%.2f'|format(feedback.ev_loss) }} bb</p>
+  {% endif %}
+  <p class="hx-feedback__chosen"><strong>You chose:</strong> {{ feedback.chosen.label }} — {{ feedback.chosen.why }}</p>
+  {% if not feedback.correct %}
+  <p class="hx-feedback__best"><strong>Best action:</strong> {{ feedback.best.label }} — {{ feedback.best.why }}</p>
+  {% endif %}
+</div>
+{% if summary %}
+  {% include "session/summary.html" %}
+{% elif node %}
+  {% include "session/node.html" %}
+{% endif %}

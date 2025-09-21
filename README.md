@@ -74,6 +74,8 @@ All HTTP routes are versioned under `/api/v1`.
 
 Legacy `/api/session/...` paths remain available for now but will be removed after downstream clients migrate.
 
+Send the `HX-Request: true` header to receive HTML partials (node panel, feedback, or summary) that can be swapped directly into the UI via HTMX. JSON remains the default response shape when the header is absent.
+
 ## Tests and CI parity
 
 CI runs `uv sync --no-config --locked --extra dev`, installs Playwright browsers, then executes Ruff format, Ruff lint, and `pytest -q`. Run `uv run --no-config --locked --extra dev -- python -m playwright install --with-deps chromium` once locally before the browser tests. After that, mirror CI with `uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh` or `make check`.

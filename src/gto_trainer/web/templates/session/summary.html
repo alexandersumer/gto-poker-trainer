@@ -1,0 +1,10 @@
+<div class="hx-summary">
+  <h2>Session summary</h2>
+  <dl class="hx-summary__grid">
+    <div><dt>Hands</dt><dd>{{ summary.hands }}</dd></div>
+    <div><dt>Decisions</dt><dd>{{ summary.decisions }}</dd></div>
+    <div><dt>Best hits</dt><dd>{{ summary.hits }}</dd></div>
+    <div><dt>Total EV lost</dt><dd>{{ '%.2f'|format(summary.ev_lost) }} bb</dd></div>
+    <div><dt>Score</dt><dd>{{ '%.0f'|format(summary.score) }}</dd></div>
+  </dl>
+</div>
