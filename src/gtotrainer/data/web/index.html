@@ -1905,9 +1905,10 @@
         font-size: 1.12rem;
         font-weight: 650;
         color: var(--text-primary);
-        flex: 1 1 auto;
+        flex: 0 0 auto;
         min-width: 0;
         align-items: center;
+        justify-content: flex-start;
       }
       .info-cards .card {
         margin: 0;
@@ -1930,6 +1931,7 @@
         padding-bottom: 8px;
         scroll-padding-left: var(--card-row-pad-x);
         scroll-padding-right: var(--card-row-pad-x);
+        padding-left: calc(var(--card-row-pad-x) + var(--card-hand-offset));
       }
       #board::-webkit-scrollbar {
         height: 4px;
@@ -1937,32 +1939,6 @@
       #board::-webkit-scrollbar-thumb {
         background: color-mix(in srgb, var(--text-secondary) 35%, transparent);
         border-radius: 999px;
-      }
-      @media (min-width: 720px) {
-        .info-row {
-          display: grid;
-          grid-template-columns: auto auto;
-          align-items: center;
-          justify-content: center;
-          column-gap: clamp(12px, 3vw, 24px);
-        }
-        .info-row .info-label {
-          justify-self: end;
-        }
-        .info-row .info-cards {
-          justify-self: start;
-          width: max-content;
-          justify-content: center;
-        }
-        #hand,
-        #board {
-          overflow-x: visible;
-          padding-left: var(--card-row-pad-x);
-          padding-right: var(--card-row-pad-x);
-        }
-        #hand {
-          padding-left: var(--card-row-pad-x);
-        }
       }
       @media (max-width: 480px) {
         .info-row {
@@ -1976,6 +1952,8 @@
         }
         .info-cards {
           gap: 4px;
+          flex: 1 1 auto;
+          justify-content: center;
         }
         #hand,
         #board {
