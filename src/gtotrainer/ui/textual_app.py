@@ -125,11 +125,13 @@ _BASE_CSS = """
     }
     .headline-col { width: 100%; }
     #headline {
-        padding: 0.2 2;
+        padding: 0.3 2;
         background: #e7edff;
         border: 1px solid #c7d6ff;
         color: #1b2d55;
         text-align: center;
+        line-height: 1.25;
+        margin: 0 auto;
         min-width: 24;
     }
     .meta-panel {
