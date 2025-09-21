@@ -67,15 +67,15 @@ def test_feedback_classifier_core_bands():
         },
         {
             "id": "yellow_pot8",
-            "args": {"feedback": {}, "node": {"pot_bb": 8}, "evLossRaw": 0.08},
+            "args": {"feedback": {}, "node": {"pot_bb": 8}, "evLossRaw": 0.22},
         },
         {
             "id": "red_pot10",
-            "args": {"feedback": {}, "node": {"pot_bb": 10}, "evLossRaw": 0.25},
+            "args": {"feedback": {}, "node": {"pot_bb": 10}, "evLossRaw": 0.5},
         },
         {
             "id": "yellow_pot_unknown",
-            "args": {"feedback": {}, "node": {}, "evLossRaw": 0.1},
+            "args": {"feedback": {}, "node": {}, "evLossRaw": 0.2},
         },
     ]
     results = _run_node(cases)
@@ -86,9 +86,9 @@ def test_feedback_classifier_core_bands():
     assert results["red_pot10"]["state"] == "danger"
 
     # Threshold sanity
-    assert abs(results["yellow_pot8"]["thresholds"]["greenCutoff"] - 0.02) < 1e-9
-    assert abs(results["yellow_pot8"]["thresholds"]["yellowUpper"] - 0.16) < 1e-9
-    assert abs(results["yellow_pot_unknown"]["thresholds"]["yellowUpper"] - 0.12) < 1e-9
+    assert abs(results["yellow_pot8"]["thresholds"]["greenCutoff"] - 0.012) < 1e-9
+    assert abs(results["yellow_pot8"]["thresholds"]["yellowUpper"] - 0.28) < 1e-9
+    assert abs(results["yellow_pot_unknown"]["thresholds"]["yellowUpper"] - 0.22) < 1e-9
 
 
 def test_feedback_classifier_frequency_overrides():
@@ -98,7 +98,7 @@ def test_feedback_classifier_frequency_overrides():
             "args": {
                 "feedback": {"chosen": {"gto_freq": 0}},
                 "node": {"pot_bb": 10},
-                "evLossRaw": 0.1,
+                "evLossRaw": 0.3,
             },
         },
         {
@@ -106,7 +106,7 @@ def test_feedback_classifier_frequency_overrides():
             "args": {
                 "feedback": {"chosen": {"gto_freq": 0}},
                 "node": {"pot_bb": 10},
-                "evLossRaw": 0.25,
+                "evLossRaw": 0.55,
             },
         },
         {

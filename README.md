@@ -2,6 +2,8 @@
 
 Heads-up no-limit hold’em trainer delivered through a FastAPI web UI. The engine plays out full hands, evaluates every decision against the best available action, and reports EV loss so you can review mistakes.
 
+Hosted app: **gto.alexandersumer.com**
+
 ## Contents
 
 - [Requirements](#requirements)
@@ -81,8 +83,6 @@ Environment variables:
 - `HANDS` — default session size.
 - `MC` — Monte Carlo sample count.
 
-Live demo: [gtotrainer.onrender.com](https://gtotrainer.onrender.com/)
-
 ### HTTP API
 
 All HTTP routes are versioned under `/api/v1`.
@@ -97,6 +97,16 @@ All HTTP routes are versioned under `/api/v1`.
 Legacy `/api/session/...` paths remain available for now but will be removed after downstream clients migrate.
 
 Send the `HX-Request: true` header to receive HTML partials (node panel, feedback, or summary) that can be swapped directly into the UI via HTMX. JSON remains the default response shape when the header is absent.
+
+### Feedback tiers
+
+The EV feedback banner mirrors standard trainer behavior:
+
+- **Green** – EV loss ≤ max(0.01 bb, 0.15% of the pot).
+- **Yellow** – EV loss between the green band and max(0.22 bb, 3.5% of the pot).
+- **Red** – EV loss above the yellow band (zero-frequency punts immediately escalate here).
+
+Solver suggestions that appear <3.5% of the time are still highlighted in yellow even if the raw EV drop is tiny, so rare-but-correct options don’t quietly slip through.
 
 ## Tests and CI parity
 
