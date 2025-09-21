@@ -1570,6 +1570,35 @@
         border-color: var(--action-neutral-selected-border);
         color: var(--action-neutral-text);
       }
+      :root[data-theme="dark"] .action-button.action-neutral {
+        background: color-mix(in srgb, var(--surface-1) 78%, rgba(96, 165, 250, 0.18) 22%);
+        border-color: color-mix(in srgb, var(--action-neutral-selected-border) 88%, rgba(255, 255, 255, 0.12) 12%);
+        color: color-mix(in srgb, #F8FAFC 88%, var(--text-secondary) 12%);
+        box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.18);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral .action-label {
+        color: #F8FAFC;
+        font-weight: 550;
+      }
+      :root[data-theme="dark"] .action-button.action-neutral .action-meta {
+        color: color-mix(in srgb, #DCE8FF 78%, var(--text-secondary) 22%);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral:hover {
+        background: color-mix(in srgb, var(--surface-1) 68%, rgba(96, 165, 250, 0.3) 32%);
+        border-color: color-mix(in srgb, var(--action-neutral-selected-border) 95%, rgba(255, 255, 255, 0.22) 5%);
+        box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.28);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral:active {
+        background: color-mix(in srgb, var(--surface-1) 60%, rgba(96, 165, 250, 0.38) 40%);
+        border-color: color-mix(in srgb, var(--action-neutral-selected-border) 95%, rgba(255, 255, 255, 0.3) 5%);
+        box-shadow: 0 10px 22px rgba(10, 16, 26, 0.45), 0 0 0 1px rgba(96, 165, 250, 0.55), 0 0 0 6px rgba(96, 165, 250, 0.18);
+      }
+      :root[data-theme="dark"] .action-button.is-armed.action-neutral {
+        background: color-mix(in srgb, var(--surface-1) 56%, rgba(96, 165, 250, 0.44) 44%);
+        border-color: var(--action-neutral-selected-border);
+        color: #F8FAFC;
+        box-shadow: 0 14px 28px rgba(10, 16, 26, 0.48), inset 0 0 0 1px rgba(96, 165, 250, 0.3);
+      }
       .action-button.is-armed.action-primary {
         background: var(--action-accent-selected-bg);
         border-color: var(--action-accent-selected-border);
