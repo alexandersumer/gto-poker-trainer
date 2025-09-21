@@ -14,7 +14,7 @@ Heads-up no-limit hold’em trainer delivered through a FastAPI web UI. The engi
 
 ## Requirements
 
-- Python 3.13.5 exactly (matches CI and container images; managed via `pyenv` or similar).
+- Python 3.13.7 exactly (matches CI and container images; managed via `pyenv` or similar).
 - [uv](https://docs.astral.sh/uv/) for dependency management.
 
 ## Quick Start
