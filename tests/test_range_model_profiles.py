@@ -48,4 +48,3 @@ def test_playability_score_orders_connectivity() -> None:
     score_q4o = hand_strength.combo_playability_score(q4o)
     score_q9s = hand_strength.combo_playability_score(q9s)
     assert score_q9s > score_q4o
-

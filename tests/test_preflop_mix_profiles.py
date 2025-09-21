@@ -16,9 +16,7 @@ def _aggregate_mix(open_size: float) -> dict[str, float]:
     totals: dict[str, float] = defaultdict(float)
     combos = preflop_mix._sorted_combos()
     for combo in combos:
-        mix = preflop_mix.normalise_mix(
-            preflop_mix.action_mix_for_combo(combo, open_size=open_size)
-        )
+        mix = preflop_mix.normalise_mix(preflop_mix.action_mix_for_combo(combo, open_size=open_size))
         for action, freq in mix.items():
             totals[action] += freq
     n = len(combos)
@@ -41,15 +39,9 @@ def test_bb_defence_rates_track_solver_guidance(open_size: float, target_defend:
 
 def test_weak_offsuit_hands_fold_more_as_opens_grow() -> None:
     q4o = _combo("Qs4h")
-    mix_small = preflop_mix.normalise_mix(
-        preflop_mix.action_mix_for_combo(q4o, open_size=2.0)
-    )
-    mix_mid = preflop_mix.normalise_mix(
-        preflop_mix.action_mix_for_combo(q4o, open_size=2.5)
-    )
-    mix_large = preflop_mix.normalise_mix(
-        preflop_mix.action_mix_for_combo(q4o, open_size=3.0)
-    )
+    mix_small = preflop_mix.normalise_mix(preflop_mix.action_mix_for_combo(q4o, open_size=2.0))
+    mix_mid = preflop_mix.normalise_mix(preflop_mix.action_mix_for_combo(q4o, open_size=2.5))
+    mix_large = preflop_mix.normalise_mix(preflop_mix.action_mix_for_combo(q4o, open_size=3.0))
 
     assert mix_small.get("fold", 0.0) == 0.0
     assert mix_mid.get("fold", 0.0) >= 0.55
@@ -58,17 +50,11 @@ def test_weak_offsuit_hands_fold_more_as_opens_grow() -> None:
 
 def test_value_hands_prefer_aggressive_actions() -> None:
     aa = _combo("AcAd")
-    mix = preflop_mix.normalise_mix(
-        preflop_mix.action_mix_for_combo(aa, open_size=2.5)
-    )
+    mix = preflop_mix.normalise_mix(preflop_mix.action_mix_for_combo(aa, open_size=2.5))
     assert mix.get("threebet", 0.0) + mix.get("jam", 0.0) >= 0.95
 
     kjo = _combo("KdJh")
-    mix_small = preflop_mix.normalise_mix(
-        preflop_mix.action_mix_for_combo(kjo, open_size=2.0)
-    )
-    mix_large = preflop_mix.normalise_mix(
-        preflop_mix.action_mix_for_combo(kjo, open_size=3.0)
-    )
+    mix_small = preflop_mix.normalise_mix(preflop_mix.action_mix_for_combo(kjo, open_size=2.0))
+    mix_large = preflop_mix.normalise_mix(preflop_mix.action_mix_for_combo(kjo, open_size=3.0))
     assert mix_small.get("threebet", 0.0) > 0.3
     assert mix_large.get("threebet", 0.0) >= mix_small.get("threebet", 0.0)

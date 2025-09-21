@@ -113,9 +113,9 @@ def test_card_markup_helpers_render() -> None:
             """
         )
 
-        assert 'inline-card' in markup
-        assert 'inline-card--s' in markup
-        assert 'inline-card--d' in markup
+        assert "inline-card" in markup
+        assert "inline-card--s" in markup
+        assert "inline-card--d" in markup
 
         assert not console_errors, f"Console errors captured: {console_errors}"
         assert not page_errors, f"Page errors captured: {page_errors}"
