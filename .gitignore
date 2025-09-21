@@ -20,3 +20,6 @@ env/
 # PyCharm
 .idea/
 *.iml
+
+# Rust build artifacts
+target/
