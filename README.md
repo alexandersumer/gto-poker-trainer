@@ -98,6 +98,17 @@ Legacy `/api/session/...` paths remain available for now but will be removed aft
 
 Send the `HX-Request: true` header to receive HTML partials (node panel, feedback, or summary) that can be swapped directly into the UI via HTMX. JSON remains the default response shape when the header is absent.
 
+### Feedback tiers
+
+The EV feedback banner follows the same heuristics you’d expect from professional trainers:
+
+- **Green** – EV loss ≤ max(0.08 bb, 1% of the pot).
+- **Yellow** – EV loss between the green band and max(0.40 bb, 5% of the pot).
+- **Red** – EV loss between the yellow band and max(1.2 bb, 12% of the pot).
+- **Blunder** – EV loss beyond the red band (or zero-frequency punts once the yellow band is exceeded).
+
+Extremely low-frequency solver lines (<3.5%) still surface as yellow even if the raw EV loss is tiny, so you get a gentle nudge when you replicate something that almost never appears in equilibrium.
+
 ## Tests and CI parity
 
 CI runs `uv sync --no-config --locked --extra dev`, installs Playwright browsers, then executes Ruff format, Ruff lint, and `pytest -q`. Run `uv run --no-config --locked --extra dev -- python -m playwright install --with-deps chromium` once locally before the browser tests. After that, mirror CI with `uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh` or `make check`.
