@@ -1,82 +1,80 @@
-# GTO Trainer (Rust)
+# GTO Trainer (Rust Edition)
 
-GTO Trainer is a heads-up no-limit hold'em practice environment implemented entirely in Rust. It includes a CLI, REST API, and browser UI for running multi-street scenarios with Monte Carlo EV estimates and configurable rival profiles.
+GTO Trainer is a heads-up no-limit hold'em practice environment rebuilt end-to-end in Rust. It provides a terminal experience and a lightweight web UI that serve multi-street scenarios, Monte Carlo EV estimates, and rival style presets. The project replaces the previous Python implementation while maintaining deep testing coverage and CI parity.
 
-## Requirements
+## Features
 
-- Rust toolchain 1.90+ (`rustup` recommended)
-- Node.js 20+ (for Playwright browser checks)
-- Python 3.12 (for API smoke tests)
+- **Rust native engine** &mdash; session management, EV sampling, and rival heuristics implemented in safe Rust.
+- **Interactive CLI** &mdash; play through preflop, flop, turn, and river decisions with contextual descriptions and EV feedback. Auto-play mode available for quick simulations.
+- **Web API + UI** &mdash; Axum-based API and static frontend that mirrors the CLI flow for browser-based training.
+- **Monte Carlo equity** &mdash; configurable sampling depth per decision with deterministic seeding support.
+- **Profiles** &mdash; balanced, aggressive, and passive opponent presets that influence fold frequencies and aggression.
+- **Robust tests** &mdash; unit, integration, CLI, and HTTP smoke tests covering core behaviour and toolchain expectations.
 
-## Run the CLI
+## Getting started
+
+### Prerequisites
+
+- Rust toolchain (1.90 or newer). Install via [`rustup`](https://rustup.rs/).
+
+### CLI quick start
 
 ```bash
 cargo run -- --hands 3 --mc 400 --rival-style aggressive
 ```
 
-Autoplay without prompts:
+Auto-play without manual input (useful for smoke tests):
 
 ```bash
 cargo run -- --hands 5 --auto --no-color
 ```
 
-## Run the web server
+### Web UI
 
 ```bash
+# Run the web server on http://localhost:8080
 cargo run -- serve --addr 127.0.0.1:8080
-# open http://127.0.0.1:8080
 ```
 
-## Test matrix
+Open `http://127.0.0.1:8080` in your browser to play through the session.
+
+### Testing & linting
 
 ```bash
-# Rust lint + tests
 cargo fmt --all
 cargo clippy --all-targets -- -D warnings
 cargo test --all --all-features
-
-# Python API smokes (requires release build)
-cargo build --release
-GTO_TRAINER_BIN=./target/release/gto-trainer python -m pip install -r qa/requirements.txt
-GTO_TRAINER_BIN=./target/release/gto-trainer python -m pytest qa/tests
-
-# Browser smoke tests (Playwright)
-npm ci
-npx playwright install --with-deps chromium
-GTO_TRAINER_HOST=127.0.0.1 GTO_TRAINER_PORT=8082 npm test
 ```
 
-## Development notes
+## Development workflow
 
-- Configure git hooks to run format/lint/test before each commit:
+- **Pre-commit hooks** &mdash; Configure git hooks to run formatting, clippy, and tests before each commit:
   ```bash
   git config core.hooksPath .githooks
   ```
-- GitHub Actions runs the same Rust, Python, and Playwright suites on every push and pull request.
-- Build a Docker image if needed:
+- **CI** &mdash; GitHub Actions runs `cargo fmt --check`, `cargo clippy`, and `cargo test` on every push and pull request.
+- **Docker** &mdash; Build a production image with:
   ```bash
   docker build -t gto-trainer .
   docker run --rm -p 8080:8080 gto-trainer
   ```
 
-## Layout
+## Project structure
 
 ```
 Cargo.toml
 src/
-  cards.rs        # Card primitives and deck utilities
+  cards.rs        # Card representations and deck utilities
   equity.rs       # Hand evaluation + Monte Carlo equity sampling
-  game.rs         # Shared action/node types
+  game.rs         # Shared structures for actions and nodes
   rival.rs        # Rival style presets and heuristics
-  session.rs      # Session lifecycle and EV bookkeeping
-  trainer.rs      # CLI runner
-  web/            # Axum server + static hosting
-public/           # Static assets for the browser UI
-qa/               # Python smoke tests
-ui-tests/         # Playwright tests
-tests/            # Rust integration tests (CLI, API, session)
+  session.rs      # Session lifecycle, EV aggregation, and scoring
+  trainer.rs      # CLI facade and interactive runner
+  web/            # Axum web server + API handlers
+public/           # Static assets for the web UI
+tests/            # Integration tests (CLI, web, session)
 ```
 
 ## License
 
-Proprietary (see `LICENSE` if provided).
+Proprietary (see `LICENSE` if provided). Contact the maintainers for usage guidance.

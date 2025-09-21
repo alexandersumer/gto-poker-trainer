@@ -25,12 +25,3 @@ env/
 # Added by cargo
 
 /target
-
-# Node / Playwright artifacts
-node_modules/
-playwright-report/
-test-results/
-ui-tests/.cache/
-
-# Python virtual environments
-qa/.venv/
