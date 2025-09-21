@@ -3640,120 +3640,87 @@
         feedbackDrawer.setAttribute('aria-hidden', 'false');
       };
 
-      const classifyFeedback = ({ feedback, node, evLossRaw, lossMagnitude }) => {
-        const defaults = {
-          nearOptimalPct: 0.25,
-          inaccuracyPct: 1.0,
-          blunderPct: 3.0,
-          blunderBb: 2.0,
-          lowFreqPct: 3.5,
-        };
-        const pot = typeof node?.pot_bb === 'number' ? Math.max(node.pot_bb, 0) : null;
-        const effective = typeof node?.effective_bb === 'number' ? Math.max(node.effective_bb, 0) : null;
-        const bestEv = typeof feedback?.best?.ev === 'number' ? Math.abs(feedback.best.ev) : null;
-        const chosenEv = typeof feedback?.chosen?.ev === 'number' ? Math.abs(feedback.chosen.ev) : null;
-        let baseForPct = pot && pot > 0 ? pot : effective && effective > 0 ? effective : null;
-        if(!baseForPct){
-          baseForPct = Math.max(bestEv || 0, chosenEv || 0) || null;
-        }
-        let nearOptimalPct = defaults.nearOptimalPct;
-        let inaccuracyPct = defaults.inaccuracyPct;
-        const evLossPct = typeof lossMagnitude === 'number' && baseForPct ? (lossMagnitude / baseForPct) * 100 : null;
-        const gtoFreqRaw = typeof feedback?.chosen?.gto_freq === 'number' ? feedback.chosen.gto_freq : null;
-        const gtoFreqPct = gtoFreqRaw != null ? Math.max(0, gtoFreqRaw) * 100 : null;
+      const classifyFeedback = ({ feedback, node, evLossRaw }) => {
+        const EPS = 0.005;
+        const NOISE_FLOOR = 0.02;
+        const GREEN_POT_MULTIPLIER = 0.0025;
+        const YELLOW_POT_MULTIPLIER = 0.01;
+        const BLUNDER_POT_MULTIPLIER = 0.03;
+        const BLUNDER_ABS = 2.0;
+        const LOW_FREQ_THRESHOLD = 3.5;
+        const YELLOW_FALLBACK = NOISE_FLOOR * 4;
 
-        if(baseForPct){
-          const noiseFloorEv = Math.max(0.02, 0.0025 * baseForPct);
-          const noiseFloorPct = (noiseFloorEv / baseForPct) * 100;
-          if(Number.isFinite(noiseFloorPct)){
-            nearOptimalPct = Math.max(nearOptimalPct, noiseFloorPct);
-            inaccuracyPct = Math.max(inaccuracyPct, nearOptimalPct + 0.5);
-          }
-        }
-
-        const thresholds = {
-          nearOptimalPct,
-          inaccuracyPct,
-          blunderPct: defaults.blunderPct,
-          blunderBb: defaults.blunderBb,
-          lowFreqPct: defaults.lowFreqPct,
-        };
-
-        if(typeof evLossRaw !== 'number'){
+        if(typeof evLossRaw !== 'number' || Number.isNaN(evLossRaw)){
           return {
             state: 'neutral',
             tone: 'neutral',
             symbol: '',
             shouldTintValue: false,
-            evLossPct,
-            gtoFreqPct,
-            evLossBb: typeof lossMagnitude === 'number' ? lossMagnitude : 0,
+            evLossPct: null,
+            gtoFreqPct: null,
+            evLossBb: 0,
           };
         }
 
-        const lossIsGain = evLossRaw < 0;
-        if(lossIsGain){
-          return {
-            state: 'gain',
-            tone: 'gain',
-            symbol: '✓',
-            shouldTintValue: Math.abs(evLossRaw) > 0,
-            evLossPct,
-            gtoFreqPct,
-            evLossBb: typeof lossMagnitude === 'number' ? Math.abs(evLossRaw) : 0,
-          };
+        let loss = evLossRaw;
+        if(loss < 0 && Math.abs(loss) <= EPS){
+          loss = 0;
+        }
+        const absLoss = Math.abs(loss);
+
+        const rawPot = node?.pot_bb;
+        const pot = typeof rawPot === 'number' && Number.isFinite(rawPot) && rawPot > 0 ? rawPot : null;
+        let greenCutoff = NOISE_FLOOR;
+        let yellowUpper = YELLOW_FALLBACK;
+        let blunderCutoff = BLUNDER_ABS;
+        if(pot){
+          greenCutoff = Math.max(NOISE_FLOOR, GREEN_POT_MULTIPLIER * pot);
+          yellowUpper = YELLOW_POT_MULTIPLIER * pot;
+          blunderCutoff = Math.max(BLUNDER_ABS, BLUNDER_POT_MULTIPLIER * pot);
         }
 
-        const lossMagnitudeBb = typeof lossMagnitude === 'number' ? lossMagnitude : 0;
-        const freqZero = gtoFreqRaw === 0;
-        const freqSparse = gtoFreqPct != null && gtoFreqPct < thresholds.lowFreqPct;
-        const blunderByPct = evLossPct != null && evLossPct >= thresholds.blunderPct;
-        const blunderByBb = lossMagnitudeBb >= thresholds.blunderBb;
-        const hasPercent = evLossPct != null;
+        const evLossPct = pot ? (absLoss / pot) * 100 : null;
+        const freqRaw = typeof feedback?.chosen?.gto_freq === 'number' ? feedback.chosen.gto_freq : null;
+        const freq = freqRaw != null && Number.isFinite(freqRaw) ? Math.max(0, freqRaw) : null;
+        const gtoFreqPct = freq != null ? freq * 100 : null;
 
-        let state = 'neutral';
-        let tone = 'neutral';
-
-        if(freqZero || blunderByPct || blunderByBb){
-          state = blunderByPct || blunderByBb ? 'blunder' : 'danger';
-          tone = state === 'blunder' ? 'blunder' : 'danger';
-        } else if(hasPercent && evLossPct > thresholds.inaccuracyPct) {
-          state = 'danger';
-          tone = 'danger';
-        } else if(freqSparse || (hasPercent && evLossPct > thresholds.nearOptimalPct)) {
-          state = 'warning';
-          tone = 'warning';
-        } else {
-          state = 'success';
+        let state;
+        let tone;
+        if(loss <= 0){
+          state = loss < 0 ? 'gain' : 'success';
           tone = 'success';
-        }
-
-        if(!hasPercent){
-          if(freqZero){
-            state = blunderByBb ? 'blunder' : 'danger';
-            tone = state;
-          } else if(lossMagnitudeBb >= thresholds.blunderBb){
-            state = 'blunder';
-            tone = 'blunder';
-          } else if(lossMagnitudeBb > 1.0){
-            state = 'danger';
-            tone = 'danger';
-          } else if(lossMagnitudeBb > 0.25 || freqSparse){
+        } else {
+          if(loss <= greenCutoff + EPS){
+            state = 'success';
+            tone = 'success';
+          } else if(loss <= yellowUpper + EPS){
             state = 'warning';
             tone = 'warning';
           } else {
-            state = 'success';
-            tone = 'success';
+            state = loss >= blunderCutoff - EPS ? 'blunder' : 'danger';
+            tone = state === 'blunder' ? 'blunder' : 'danger';
           }
         }
 
-        const shouldTintValue = lossMagnitudeBb > 0;
-        let symbol = '';
+        if(freq === 0 && loss > greenCutoff + EPS){
+          if(state !== 'blunder'){
+            state = 'danger';
+            tone = 'danger';
+          }
+        } else if(gtoFreqPct != null && gtoFreqPct > 0 && gtoFreqPct < LOW_FREQ_THRESHOLD){
+          if(state === 'success' || state === 'gain'){
+            state = 'warning';
+            tone = 'warning';
+          }
+        }
+
+        const shouldTintValue = absLoss > 0;
+        let symbol;
         if(tone === 'warning'){
           symbol = '!';
         } else if(tone === 'danger' || tone === 'blunder'){
           symbol = '×';
-        } else if(tone === 'success' || tone === 'gain'){
+        } else {
           symbol = '✓';
         }
 
@@ -3764,7 +3731,8 @@
           shouldTintValue,
           evLossPct,
           gtoFreqPct,
-          evLossBb: lossMagnitudeBb,
+          evLossBb: absLoss,
+          thresholds: { greenCutoff, yellowUpper, blunderCutoff },
         };
       };
 
@@ -3793,7 +3761,7 @@
           return normalized.length <= 110 ? normalized : `${normalized.slice(0, 107).trim()}…`;
         };
         const secondaryLine = summarizeResolution(resolutionNote);
-        const classification = classifyFeedback({ feedback, node: activeNode, evLossRaw, lossMagnitude });
+        const classification = classifyFeedback({ feedback, node: activeNode, evLossRaw });
         if(classification?.state && classification.state !== 'neutral'){
           feedbackBanner.dataset.state = classification.state;
         } else {
