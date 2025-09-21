@@ -1361,10 +1361,10 @@
         outline-offset: 2px;
       }
       .size-chip.is-selected {
-        background: var(--brand);
-        border-color: color-mix(in srgb, var(--brand) 80%, transparent);
-        color: var(--on-brand);
-        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+        background: var(--muted-bg);
+        border-color: color-mix(in srgb, var(--muted-border) 55%, var(--brand) 45%);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-outline) 30%, transparent);
       }
       .size-chip[disabled] {
         opacity: 0.55;
@@ -1379,7 +1379,12 @@
         background: color-mix(in srgb, var(--surface-2) 75%, var(--brand) 25%);
         border-color: color-mix(in srgb, var(--brand) 35%, var(--border) 65%);
       }
-      :root[data-theme="dark"] .size-chip.is-selected,
+      :root[data-theme="dark"] .size-chip.is-selected {
+        background: color-mix(in srgb, var(--surface-2) 88%, transparent 12%);
+        border-color: color-mix(in srgb, var(--brand) 35%, var(--border) 65%);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-outline) 22%, transparent);
+      }
       :root[data-theme="dark"] .size-chip--jam {
         box-shadow: none;
       }
@@ -2133,6 +2138,7 @@
       let jamConfirmTimeout = null;
       let jamConfirmButton = null;
       let jamConfirmLabel = '';
+      let jamConfirmMarkup = '';
 
       const escapeHtml = (text) => String(text)
         .replace(/&/g, "&amp;")
@@ -2305,6 +2311,7 @@
           delete actionArea.dataset.pending;
           actionArea.innerHTML = '';
         }
+        jamConfirmMarkup = '';
       };
 
       const advanceToNextHand = async () => {
@@ -2761,9 +2768,17 @@
         }
         if(jamConfirmButton){
           jamConfirmButton.classList.remove('is-confirm');
+          if(jamConfirmMarkup){
+            jamConfirmButton.innerHTML = jamConfirmMarkup;
+          } else {
+            jamConfirmButton.innerHTML = chipMarkup(jamConfirmLabel || 'All-in');
+          }
+          jamConfirmButton.removeAttribute('aria-label');
+          jamConfirmButton.removeAttribute('aria-live');
           jamConfirmButton = null;
         }
         jamConfirmLabel = '';
+        jamConfirmMarkup = '';
         if(pending){
           actionArea.dataset.pending = 'true';
         } else {
@@ -2981,9 +2996,16 @@
             }
             if(jamConfirmButton){
               jamConfirmButton.classList.remove('is-confirm');
-              jamConfirmButton.innerHTML = chipMarkup(jamConfirmLabel || jamLabelText);
+              if(jamConfirmMarkup){
+                jamConfirmButton.innerHTML = jamConfirmMarkup;
+              } else {
+                jamConfirmButton.innerHTML = chipMarkup(jamConfirmLabel || jamLabelText);
+              }
+              jamConfirmButton.removeAttribute('aria-label');
+              jamConfirmButton.removeAttribute('aria-live');
               jamConfirmButton = null;
             }
+            jamConfirmMarkup = '';
           };
           jamButton.addEventListener('click', (event) => {
             event.preventDefault();
@@ -2994,8 +3016,11 @@
             if(!jamConfirmButton){
               jamConfirmButton = jamButton;
               jamConfirmLabel = jamLabelText;
+              jamConfirmMarkup = jamButton.innerHTML;
               jamButton.classList.add('is-confirm');
               jamButton.innerHTML = '<span class="size-chip__value">Confirm</span><span class="size-chip__unit">All-in</span>';
+              jamButton.setAttribute('aria-label', 'Tap again to confirm all-in');
+              jamButton.setAttribute('aria-live', 'polite');
               jamConfirmTimeout = window.setTimeout(() => {
                 resetJamConfirm();
               }, 2200);
@@ -3003,6 +3028,7 @@
               return;
             }
             resetJamConfirm();
+            jamButton.setAttribute('aria-label', 'All-in');
             selectedMainAction = null;
             refreshMainArming();
             triggerHaptic('impact');
