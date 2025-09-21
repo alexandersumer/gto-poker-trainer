@@ -24,13 +24,13 @@ Common commands:
 
 ## Git hooks
 
-Configure Git to use the repo-managed hooks so staged Python files are auto-formatted before every commit:
+Configure Git to use the repo-managed hooks so staged Python files are auto-formatted before every commit and pushes are blocked when pre-commit fails:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook formats staged Python files and then runs the same Ruff + pytest trio as CI via `uv run --locked --extra dev -- …`, so commits only land when the full suite passes locally.
+The pre-commit hook formats staged Python files and then runs the same Ruff + pytest trio as CI via `uv run --locked --extra dev -- …`, marking success in `.git/.precommit_passed`. The pre-push hook checks that marker, so pushes only proceed if the most recent pre-commit run passed.
 
 ## Install & run (CLI)
 

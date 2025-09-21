@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+marker_file="$repo_root/.git/.precommit_passed"
+
+if [[ ! -f "$marker_file" ]]; then
+  echo "[pre-push] Last pre-commit checks did not complete successfully. Aborting push." >&2
+  echo "[pre-push] Run git commit again after fixing issues." >&2
+  exit 1
+fi
+
+echo "[pre-push] Detected successful pre-commit run. Proceeding with push."

@@ -4,6 +4,9 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
+marker_file="$repo_root/.git/.precommit_passed"
+rm -f "$marker_file"
+
 if ! command -v uv >/dev/null 2>&1; then
   echo "[pre-commit] Missing 'uv'. Install via 'pip install uv' or see https://docs.astral.sh/uv/" >&2
   exit 1
@@ -50,3 +53,5 @@ run_ci_step "Ruff lint" ruff check .
 run_ci_step "Pytest suite" pytest -q
 
 echo "[pre-commit] Full CI checks passed."
+
+printf 'ok %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$marker_file"
