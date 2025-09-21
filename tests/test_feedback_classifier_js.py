@@ -67,19 +67,15 @@ def test_feedback_classifier_core_bands():
         },
         {
             "id": "yellow_pot8",
-            "args": {"feedback": {}, "node": {"pot_bb": 8}, "evLossRaw": 0.22},
+            "args": {"feedback": {}, "node": {"pot_bb": 8}, "evLossRaw": 0.08},
         },
         {
             "id": "red_pot10",
-            "args": {"feedback": {}, "node": {"pot_bb": 10}, "evLossRaw": 0.65},
+            "args": {"feedback": {}, "node": {"pot_bb": 10}, "evLossRaw": 0.25},
         },
         {
             "id": "yellow_pot_unknown",
             "args": {"feedback": {}, "node": {}, "evLossRaw": 0.1},
-        },
-        {
-            "id": "blunder_pot10",
-            "args": {"feedback": {}, "node": {"pot_bb": 10}, "evLossRaw": 1.6},
         },
     ]
     results = _run_node(cases)
@@ -88,13 +84,11 @@ def test_feedback_classifier_core_bands():
     assert results["yellow_pot8"]["state"] == "warning"
     assert results["yellow_pot_unknown"]["state"] == "warning"
     assert results["red_pot10"]["state"] == "danger"
-    assert results["blunder_pot10"]["state"] == "blunder"
 
     # Threshold sanity
-    assert abs(results["yellow_pot8"]["thresholds"]["greenCutoff"] - 0.08) < 1e-9
-    assert abs(results["yellow_pot8"]["thresholds"]["yellowUpper"] - 0.4) < 1e-9
-    assert abs(results["yellow_pot_unknown"]["thresholds"]["yellowUpper"] - 0.4) < 1e-9
-    assert abs(results["blunder_pot10"]["thresholds"]["blunderLower"] - 1.2) < 1e-9
+    assert abs(results["yellow_pot8"]["thresholds"]["greenCutoff"] - 0.02) < 1e-9
+    assert abs(results["yellow_pot8"]["thresholds"]["yellowUpper"] - 0.16) < 1e-9
+    assert abs(results["yellow_pot_unknown"]["thresholds"]["yellowUpper"] - 0.12) < 1e-9
 
 
 def test_feedback_classifier_frequency_overrides():
@@ -104,7 +98,7 @@ def test_feedback_classifier_frequency_overrides():
             "args": {
                 "feedback": {"chosen": {"gto_freq": 0}},
                 "node": {"pot_bb": 10},
-                "evLossRaw": 0.3,
+                "evLossRaw": 0.1,
             },
         },
         {
@@ -112,7 +106,7 @@ def test_feedback_classifier_frequency_overrides():
             "args": {
                 "feedback": {"chosen": {"gto_freq": 0}},
                 "node": {"pot_bb": 10},
-                "evLossRaw": 0.8,
+                "evLossRaw": 0.25,
             },
         },
         {

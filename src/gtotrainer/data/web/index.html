@@ -3554,14 +3554,11 @@
 
       const classifyFeedback = ({ feedback, node, evLossRaw }) => {
         const EPS = 0.005;
-        const ABS_GREEN_BB = 0.08;
-        const ABS_YELLOW_BB = 0.40;
-        const ABS_BLUNDER_BB = 1.20;
-        const REL_GREEN_RATE = 0.01;   // 1% of pot
-        const REL_YELLOW_RATE = 0.05;  // 5% of pot
-        const REL_BLUNDER_RATE = 0.12; // 12% of pot
-        const MIN_BAND_WIDTH = 0.06;
+        const NOISE_FLOOR = 0.02;
+        const GREEN_POT_MULTIPLIER = 0.0025;
+        const YELLOW_POT_MULTIPLIER = 0.02;
         const LOW_FREQ_THRESHOLD = 3.5;
+        const YELLOW_FALLBACK = 0.12;
 
         if(typeof evLossRaw !== 'number' || Number.isNaN(evLossRaw)){
           return {
@@ -3584,19 +3581,14 @@
 
         const rawPot = node?.pot_bb;
         const pot = typeof rawPot === 'number' && Number.isFinite(rawPot) && rawPot > 0 ? rawPot : null;
-        let greenCutoff = ABS_GREEN_BB;
-        let yellowUpper = ABS_YELLOW_BB;
-        let blunderLower = ABS_BLUNDER_BB;
+        let greenCutoff = NOISE_FLOOR;
+        let yellowUpper = YELLOW_FALLBACK;
         if(pot){
-          greenCutoff = Math.max(ABS_GREEN_BB, REL_GREEN_RATE * pot);
-          yellowUpper = Math.max(ABS_YELLOW_BB, REL_YELLOW_RATE * pot);
-          blunderLower = Math.max(ABS_BLUNDER_BB, REL_BLUNDER_RATE * pot);
+          greenCutoff = Math.max(NOISE_FLOOR, GREEN_POT_MULTIPLIER * pot);
+          yellowUpper = Math.max(YELLOW_POT_MULTIPLIER * pot, YELLOW_FALLBACK);
         }
         if(yellowUpper <= greenCutoff){
-          yellowUpper = greenCutoff + MIN_BAND_WIDTH;
-        }
-        if(blunderLower <= yellowUpper){
-          blunderLower = yellowUpper + MIN_BAND_WIDTH;
+          yellowUpper = greenCutoff + 0.03;
         }
 
         const evLossPct = pot ? (absLoss / pot) * 100 : null;
@@ -3609,23 +3601,22 @@
         if(loss <= 0){
           state = loss < 0 ? 'gain' : 'success';
           tone = 'success';
-        } else if(loss <= greenCutoff + EPS){
-          state = 'success';
-          tone = 'success';
-        } else if(loss <= yellowUpper + EPS){
-          state = 'warning';
-          tone = 'warning';
-        } else if(loss <= blunderLower + EPS){
-          state = 'danger';
-          tone = 'danger';
         } else {
-          state = 'blunder';
-          tone = 'blunder';
+          if(loss <= greenCutoff + EPS){
+            state = 'success';
+            tone = 'success';
+          } else if(loss <= yellowUpper + EPS){
+            state = 'warning';
+            tone = 'warning';
+          } else {
+            state = 'danger';
+            tone = 'danger';
+          }
         }
 
         if(freq === 0 && loss > yellowUpper + EPS){
-          state = loss > blunderLower + EPS ? 'blunder' : 'danger';
-          tone = state;
+          state = 'danger';
+          tone = 'danger';
         } else if(gtoFreqPct != null && gtoFreqPct > 0 && gtoFreqPct < LOW_FREQ_THRESHOLD){
           if(state === 'success' || state === 'gain'){
             state = 'warning';
@@ -3633,14 +3624,12 @@
           }
         }
 
-        const shouldTintValue = rawLoss < 0 ? true : rawLoss > 0 && (tone === 'warning' || tone === 'danger' || tone === 'blunder');
+        const shouldTintValue = rawLoss < 0 ? true : rawLoss > 0 && (tone === 'warning' || tone === 'danger');
         let symbol;
         if(tone === 'warning'){
           symbol = '!';
         } else if(tone === 'danger'){
           symbol = '×';
-        } else if(tone === 'blunder'){
-          symbol = '‼';
         } else {
           symbol = '✓';
         }
@@ -3653,7 +3642,7 @@
           evLossPct,
           gtoFreqPct,
           evLossBb: absLoss,
-          thresholds: { greenCutoff, yellowUpper, blunderLower },
+          thresholds: { greenCutoff, yellowUpper },
         };
       };
 
