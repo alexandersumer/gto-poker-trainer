@@ -7,41 +7,51 @@ cd "$repo_root"
 marker_file="$repo_root/.git/.precommit_passed"
 rm -f "$marker_file"
 
-if [[ "${SKIP_PRECOMMIT_CI:-}" == "1" ]]; then
-  echo "[pre-commit] SKIP_PRECOMMIT_CI=1 detected. Skipping checks."
-  exit 0
-fi
-
-if ! command -v cargo >/dev/null 2>&1; then
-  echo "[pre-commit] Missing 'cargo'. Install Rust via https://rustup.rs." >&2
+if ! command -v uv >/dev/null 2>&1; then
+  echo "[pre-commit] Missing 'uv'. Install via 'pip install uv' or see https://docs.astral.sh/uv/" >&2
   exit 1
 fi
 
-staged_files=()
-while IFS= read -r -d '' path; do
-  staged_files+=("$path")
-done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.rs' 'Cargo.toml')
-
-if (( ${#staged_files[@]} > 0 )); then
-  echo "[pre-commit] Running cargo fmt (changed Rust files detected)..."
-  cargo fmt
-  git add -- "${staged_files[@]}"
+# Allow developers to opt out when necessary (e.g. rebasing) without editing the hook.
+if [[ "${SKIP_PRECOMMIT_CI:-}" == "1" ]]; then
+  echo "[pre-commit] SKIP_PRECOMMIT_CI=1 detected. Heavy checks skipped."
+  exit 0
 fi
 
-run_step() {
+# Helper to ensure we always execute within the uv-managed environment using the
+# dev dependency group. --locked keeps the lockfile unchanged for reproducible runs.
+uv_exec() {
+  uv run --locked --extra dev -- "$@"
+}
+
+# Collect staged Python files so we can auto-format them before running checks.
+files=()
+while IFS= read -r -d '' path; do
+  files+=("$path")
+done < <(git diff --cached --name-only --diff-filter=ACM -z -- '*.py')
+
+if (( ${#files[@]} > 0 )); then
+  echo "[pre-commit] Formatting staged Python files with Ruff..."
+  uv_exec ruff format "${files[@]}"
+  git add -- "${files[@]}"
+  echo "[pre-commit] Re-staged formatted files."
+fi
+
+run_ci_step() {
   local label=$1
   shift
   echo "[pre-commit] ${label}..."
-  if ! "$@"; then
+  if ! uv_exec "$@"; then
     echo "[pre-commit] ${label} failed. Aborting commit." >&2
-    exit 1
+    return 1
   fi
   echo "[pre-commit] ${label} OK."
 }
 
-run_step "cargo fmt --check" cargo fmt -- --check
-run_step "cargo clippy" cargo clippy -- -D warnings
-run_step "cargo test" cargo test
+run_ci_step "Ruff format --check" ruff format --check .
+run_ci_step "Ruff lint" ruff check .
+run_ci_step "Pytest suite" pytest -q
 
-echo "[pre-commit] All checks passed."
+echo "[pre-commit] Full CI checks passed."
+
 printf 'ok %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$marker_file"

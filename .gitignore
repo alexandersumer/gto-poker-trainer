@@ -20,8 +20,3 @@ env/
 # PyCharm
 .idea/
 *.iml
-
-
-# Added by cargo
-
-/target

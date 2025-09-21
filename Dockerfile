@@ -1,21 +1,17 @@
-# syntax=docker/dockerfile:1
+FROM python:3.12-slim
 
-FROM rust:1.90 as builder
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
+COPY . /app
 
-# Cache dependencies
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-COPY public ./public
-RUN cargo build --release
+RUN python -m pip install -U pip \
+ && python -m pip install -e . \
+ && python -m pip install fastapi uvicorn
 
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY --from=builder /app/target/release/gto-trainer /usr/local/bin/gto-trainer
-COPY public ./public
+EXPOSE 8000
 
-ENV RUST_LOG=info
-EXPOSE 8080
-
-CMD ["gto-trainer", "serve", "--addr", "0.0.0.0:8080"]
+# Run FastAPI web app (no Textual dependency for serving).
+CMD ["python","-m","gto_trainer.web.app"]
