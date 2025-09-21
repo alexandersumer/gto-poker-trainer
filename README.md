@@ -1,105 +1,100 @@
 # GTO Trainer
 
-GTO Trainer is a heads-up no-limit hold’em practice environment with both a Textual CLI and a FastAPI web UI. Each scenario deals a full rival hand, lets the opponent react street by street, and reports the EV delta for every action you take.
-
-## Project status
-
-- **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
+Heads-up no-limit hold’em trainer with both a Textual CLI and a FastAPI web UI. The engine plays out full hands, evaluates every decision against the best available action, and reports EV loss so you can review mistakes.
 
 ## Requirements
 
-- Python 3.12.11 exactly (`pyenv` or another version manager is recommended to match CI).
+- Python 3.12.11 (matches CI; managed via `pyenv` or similar).
+- [uv](https://docs.astral.sh/uv/) for dependency management.
 
-## Quick start (uv)
+## Quick start
 
-1. Install [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
-2. Sync dependencies (app + dev extras): `uv sync --no-config --locked --extra dev`.
-3. Run everything in one go: `uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh`.
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh   # install uv
+uv sync --no-config --locked --extra dev          # create the virtualenv with dev extras
+uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh
+```
 
-Common commands:
+Common one-offs:
 
 - `uv run --no-config --locked --extra dev -- pytest -q`
 - `uv run --no-config --locked --extra dev -- ruff check .`
 - `uv run --no-config --locked --extra dev -- ruff format .`
 
-## Git hooks
+All commands include `--no-config` so local uv configuration (e.g. private indices) cannot diverge from the project lockfile.
 
-Configure Git to use the repo-managed hooks so staged Python files are auto-formatted before every commit and pushes are blocked when pre-commit fails:
+## Tooling
+
+### Git hooks
+
+Enable the repo-managed hooks so commits run the same checks as CI:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook formats staged Python files and then runs the same Ruff + pytest trio as CI via `uv run --no-config --locked --extra dev -- …`, marking success in `.git/.precommit_passed`. The pre-push hook checks that marker, so pushes only proceed if the most recent pre-commit run passed.
+`pre-commit` formats staged Python files, then runs Ruff format, Ruff lint, and pytest via `uv run --no-config --locked --extra dev -- …`. On success it drops `.git/.precommit_passed`. `pre-push` refuses to push if the marker is missing, which catches skipped or failed local checks.
 
-## Install & run (CLI)
+### Make targets
+
+```bash
+make install-dev   # uv sync with dev extras
+make check         # Ruff + pytest (CI equivalent)
+make test          # pytest -q
+make lint          # Ruff lint only
+make format        # Ruff formatter
+make render-smoke  # build the Render image and hit /healthz
+```
+
+## Running the trainer
+
+### CLI
 
 ```bash
 uv sync --no-config --locked
 uv run --no-config --locked -- gto-trainer --hands 5
 ```
 
-Run in-place without installing:
+Run the module directly if you prefer:
 
 ```bash
 uv run --no-config --locked -- python -m gto_trainer
 ```
 
-### CLI options
+Key CLI flags:
 
-```
-gto-trainer [--hands N] [--seed N] [--mc N] [--no-color] [--solver-csv PATH]
-```
+- `--hands N` – number of hands (default 1).
+- `--seed N` – deterministic RNG seed.
+- `--mc N` – Monte Carlo trials per node (default 200).
+- `--solver-csv PATH` – optional preflop CSV for solver overrides.
+- `--no-color` – disable ANSI color output.
 
-- `--hands N` — number of hands to play (default `1`).
-- `--seed N` — RNG seed (omit for randomness).
-- `--mc N` — Monte Carlo samples per node (default `200`).
-- `--solver-csv PATH` — optional preflop CSV to seed opening ranges.
-- `--no-color` — disable ANSI colors if your terminal strips them.
+In-session shortcuts: `1–9` select options, `h` shows help, `?` shows pot/SPR, `q` exits.
 
-Controls inside the CLI: `1–9` choose an action, `h` opens contextual help, `?` shows pot + SPR, `q` quits.
+### Web UI
 
-## Web UI
-
-- **Live demo** – [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
-- **Local** – Install dev extras and launch FastAPI with reload enabled:
-
-  ```bash
-  uv sync --no-config --locked --extra dev
-  uv run --no-config --locked --extra dev -- uvicorn gto_trainer.web.app:app --reload
-  ```
-
-Environment overrides: `HANDS` and `MC` mirror the CLI flags when exported before launch.
-
-## How it works
-
-- **Simulation loop** – Each hand is generated from sampled preflop ranges, then walked street by street with Monte Carlo rollouts (`--mc`) to stabilise EV estimates.
-- **Solver logic** – Post-flop options blend heuristics with lookup data; when a CSV is supplied, the trainer wraps it in a composite provider that falls back to dynamic sizing rules.
-- **EV math** – For every action we store `best_ev`, `chosen_ev`, and compute `ev_loss = best_ev - chosen_ev`, rolling those numbers into session-level accuracy and EV summaries.
-- **Rival model** – Rival decisions come from range tightening plus fold / continue sampling, so the opponent profile updates as stacks and pot sizes change.
-
-## Local development
-
-If you prefer Make targets:
+Local development server:
 
 ```bash
-make install-dev   # uv sync with dev extras
-make check         # lint + tests (matches CI)
-make test          # pytest -q
-make lint          # Ruff lint
-make format        # Ruff formatter
-make render-smoke  # build Docker image & hit /healthz (Render parity)
+uv sync --no-config --locked --extra dev
+uv run --no-config --locked --extra dev -- uvicorn gto_trainer.web.app:app --reload
 ```
 
-CI runs the same trio as `uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh` / `make check` (`ruff check`, `pytest -q`).
+Environment variables `HANDS` and `MC` mirror the CLI defaults.
 
-## Solver architecture (quick tour)
+Live demo: [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
 
-- **Episode generator** – `src/gto_trainer/dynamic/generator.py` creates preflop→river node trees, alternating blinds via `SeatRotation` so training covers both positions.
-- **Trainer loop** – `SessionManager` (and CLI/web adapters) request actions from `dynamic.policy`, cache option lists defensively, and record outcomes for scoring.
-- **Solver logic** – `dynamic.policy` samples rival ranges, runs equity Monte Carlo with adaptive precision, and emits `Option` objects carrying EVs, justifications, and metadata for resolution.
-- **Rival model** – `dynamic.rival_strategy` consumes cached range profiles to decide folds/calls/raises so postflop play mirrors solver frequencies instead of perfect clairvoyance.
-- **Resolution & scoring** – `dynamic.policy.resolve_for` applies actions, updates stacks/pot state, and `core.scoring` aggregates EV loss into session summaries.
+## Tests and CI parity
+
+CI runs `uv sync --no-config --locked --extra dev`, installs Playwright browsers, then executes Ruff format, Ruff lint, and `pytest -q`. Run `uv run --no-config --locked --extra dev -- python -m playwright install --with-deps chromium` once locally before the browser tests. After that, mirror CI with `uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh` or `make check`.
+
+## Architecture overview
+
+- **Episode generation** – `dynamic.generator` assembles preflop-to-river node trees using sampled seat assignments and rival styles defined in `_STYLE_LIBRARY`.
+- **Range & equity modelling** – `dynamic.range_model`, `dynamic.hand_strength`, and `dynamic.preflop_mix` build playable ranges; `dynamic.equity` performs adaptive Monte Carlo and board runouts to price options.
+- **Decision policy** – `dynamic.policy` exposes `options_for` and `resolve_for`, combining range samples, equity results, and rival profile updates to score each action and track hand state.
+- **Session management** – `application.session_service.SessionManager` coordinates hand loops, formats options (`core.formatting`), aggregates results with `core.scoring`, and feeds the CLI (`cli.py`) and web adapters (`web/app.py`).
+- **Solver data** – `solver.oracle.CSVStrategyOracle` loads optional preflop charts and falls back to the dynamic policy when a lookup misses; `CompositeOptionProvider` swaps between them per node.
 
 ## License
 
