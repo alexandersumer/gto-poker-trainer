@@ -102,6 +102,35 @@ def _sample_cap_postflop(mc_trials: int) -> int:
     return max(30, min(120, int(mc_trials * 0.6)))
 
 
+def _villain_adapt_state(hand_state: dict[str, Any] | None) -> dict[str, int]:
+    if not isinstance(hand_state, dict):
+        return {"aggr": 0, "passive": 0}
+    adapt = hand_state.setdefault("villain_adapt", {"aggr": 0, "passive": 0})
+    if "aggr" not in adapt:
+        adapt["aggr"] = 0
+    if "passive" not in adapt:
+        adapt["passive"] = 0
+    return adapt
+
+
+def _record_villain_adapt(hand_state: dict[str, Any] | None, aggressive: bool) -> None:
+    if not isinstance(hand_state, dict):
+        return
+    adapt = _villain_adapt_state(hand_state)
+    key = "aggr" if aggressive else "passive"
+    adapt[key] = int(adapt.get(key, 0)) + 1
+
+
+def _decision_meta(base_meta: dict[str, Any] | None, hand_state: dict[str, Any] | None) -> dict[str, Any]:
+    meta_copy: dict[str, Any] = dict(base_meta or {})
+    adapt = _villain_adapt_state(hand_state)
+    meta_copy["villain_adapt"] = {
+        "aggr": int(adapt.get("aggr", 0)),
+        "passive": int(adapt.get("passive", 0)),
+    }
+    return meta_copy
+
+
 def _combo_category(combo: tuple[int, int]) -> str:
     a, b = combo
     if a // 4 == b // 4:
@@ -1224,6 +1253,7 @@ def _resolve_preflop(
 
     if action == "call":
         call_cost = float(option.meta.get("call_cost", max(0.0, rival_contrib - hero_contrib)))
+        _record_villain_adapt(hand_state, aggressive=False)
         invested = _apply_contribution(hand_state, "hero", call_cost)
         hand_state["street"] = "flop"
         hand_state["board_index"] = 3
@@ -1235,7 +1265,9 @@ def _resolve_preflop(
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
         precision = _precision_from_meta(option.meta, "preflop")
-        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
+        _record_villain_adapt(hand_state, aggressive=True)
+        decision_meta = _decision_meta(option.meta, hand_state)
+        decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
@@ -1264,7 +1296,9 @@ def _resolve_preflop(
         _apply_contribution(hand_state, "hero", hero_add)
         precision = _precision_from_meta(option.meta, "preflop")
         hand_state["hand_over"] = True
-        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
+        _record_villain_adapt(hand_state, aggressive=True)
+        decision_meta = _decision_meta(option.meta, hand_state)
+        decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             scoop = _state_value(hand_state, "pot")
@@ -1305,6 +1339,7 @@ def _resolve_flop(
     board = node.board
 
     if action == "check":
+        _record_villain_adapt(hand_state, aggressive=False)
         hand_state["board_index"] = 4
         _set_street_pot(hand_state, "turn", pot)
         _rebuild_turn_node(hand_state, pot)
@@ -1314,7 +1349,9 @@ def _resolve_flop(
         bet_size = float(option.meta.get("bet", 0.0))
         precision = _precision_from_meta(option.meta, "flop")
         _apply_contribution(hand_state, "hero", bet_size)
-        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
+        _record_villain_adapt(hand_state, aggressive=True)
+        decision_meta = _decision_meta(option.meta, hand_state)
+        decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
@@ -1344,7 +1381,9 @@ def _resolve_flop(
         precision = _precision_from_meta(option.meta, "flop")
         _apply_contribution(hand_state, "hero", risk)
         hand_state["hand_over"] = True
-        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
+        _record_villain_adapt(hand_state, aggressive=True)
+        decision_meta = _decision_meta(option.meta, hand_state)
+        decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             total_pot = _state_value(hand_state, "pot")
@@ -1402,6 +1441,7 @@ def _resolve_turn(
         _set_street_pot(hand_state, "river", _state_value(hand_state, "pot"))
         _rebuild_river_node(hand_state, _state_value(hand_state, "pot"))
         _update_rival_range(hand_state, option.meta, False)
+        _record_villain_adapt(hand_state, aggressive=False)
         return OptionResolution(
             note=f"You call {call_amount:.2f}bb. Pot {_state_value(hand_state, 'pot'):.2f}bb on river."
         )
@@ -1411,12 +1451,15 @@ def _resolve_turn(
         hand_state["board_index"] = 5
         _set_street_pot(hand_state, "river", _state_value(hand_state, "pot"))
         _rebuild_river_node(hand_state, _state_value(hand_state, "pot"))
+        _record_villain_adapt(hand_state, aggressive=False)
         return OptionResolution(note=f"You check back. Pot {_state_value(hand_state, 'pot'):.2f}bb.")
 
     if action == "bet":
         bet_size = float(option.meta.get("bet", 0.0))
         _apply_contribution(hand_state, "hero", bet_size)
-        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
+        _record_villain_adapt(hand_state, aggressive=True)
+        decision_meta = _decision_meta(option.meta, hand_state)
+        decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
@@ -1448,7 +1491,9 @@ def _resolve_turn(
         hero_contrib = _state_value(hand_state, "hero_contrib")
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
-        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
+        _record_villain_adapt(hand_state, aggressive=True)
+        decision_meta = _decision_meta(option.meta, hand_state)
+        decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
@@ -1504,6 +1549,7 @@ def _resolve_river(
     if action == "check":
         hand_state["hand_over"] = True
         hand_state.pop("rival_continue_range", None)
+        _record_villain_adapt(hand_state, aggressive=False)
         if rival_cards is None:
             return OptionResolution(hand_ended=True, note=f"Hand checks down. Pot {pot:.2f}bb.")
         outcome = _showdown_outcome(hero_cards, board, rival_cards)
@@ -1522,6 +1568,7 @@ def _resolve_river(
         _apply_contribution(hand_state, "hero", call_amount)
         hand_state["hand_over"] = True
         hand_state.pop("rival_continue_range", None)
+        _record_villain_adapt(hand_state, aggressive=False)
         if rival_cards is None:
             return OptionResolution(hand_ended=True, note=f"You call {call_amount:.2f}bb. Rival hand hidden.")
         outcome = _showdown_outcome(hero_cards, board, rival_cards)
@@ -1550,7 +1597,9 @@ def _resolve_river(
         hero_contrib = _state_value(hand_state, "hero_contrib")
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
-        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
+        _record_villain_adapt(hand_state, aggressive=True)
+        decision_meta = _decision_meta(option.meta, hand_state)
+        decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
@@ -1591,7 +1640,9 @@ def _resolve_river(
     if action == "bet":
         bet_size = float(option.meta.get("bet", 0.0))
         _apply_contribution(hand_state, "hero", bet_size)
-        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
+        _record_villain_adapt(hand_state, aggressive=True)
+        decision_meta = _decision_meta(option.meta, hand_state)
+        decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
@@ -1624,7 +1675,9 @@ def _resolve_river(
         risk = float(option.meta.get("risk", _state_value(hand_state, "hero_stack", node.effective_bb)))
         _apply_contribution(hand_state, "hero", risk)
         hand_state["hand_over"] = True
-        decision = rival_strategy.decide_action(option.meta, rival_cards, rng)
+        _record_villain_adapt(hand_state, aggressive=True)
+        decision_meta = _decision_meta(option.meta, hand_state)
+        decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             total_pot = _state_value(hand_state, "pot")

@@ -204,6 +204,22 @@ def decide_action(
     temperature = float(profile.get("temperature", 0.12))
     noise = min(0.08, max(0.0, 0.18 * (1.0 - continue_ratio)))
 
+    adapt = meta.get("villain_adapt") if isinstance(meta, Mapping) else None
+    adapt_scale = 0.0
+    if isinstance(adapt, Mapping):
+        try:
+            observed_aggr = float(adapt.get("aggr", 0.0))
+        except (TypeError, ValueError):
+            observed_aggr = 0.0
+        try:
+            observed_passive = float(adapt.get("passive", 0.0))
+        except (TypeError, ValueError):
+            observed_passive = 0.0
+        deviation = math.log((observed_aggr + 1.0) / (observed_passive + 1.0))
+        sample_total = observed_aggr + observed_passive
+        sample_weight = min(1.0, sample_total / 6.0)
+        adapt_scale = max(-0.35, min(0.35, 0.14 * deviation * sample_weight))
+
     strength = None
     if rival_cards is not None:
         strength = _strength_for_combo(profile, rival_cards)
@@ -220,6 +236,9 @@ def decide_action(
         slope = max(0.02, temperature)
         shift = math.tanh(delta / slope)
         fold_prob -= shift * bias_scale
+
+    if adapt_scale:
+        fold_prob -= adapt_scale
 
     if noise > 0:
         fold_prob += (rng.random() - 0.5) * 2.0 * noise

@@ -66,3 +66,29 @@ def test_decide_action_biases_toward_stronger_holdings() -> None:
 
     assert strong_decision.folds is False
     assert weak_decision.folds is True
+
+
+def test_decide_action_adapts_to_hero_aggression() -> None:
+    strong = _combo("As", "Ks")
+    weak = _combo("7h", "4c")
+    combos = [strong, weak]
+
+    profile = build_profile(
+        combos,
+        fold_probability=0.65,
+        continue_ratio=0.8,
+        strengths=[
+            (strong, 0.92),
+            (weak, 0.2),
+        ],
+    )
+
+    passive_meta = {"rival_profile": profile, "villain_adapt": {"aggr": 0, "passive": 6}}
+    aggressive_meta = {"rival_profile": profile, "villain_adapt": {"aggr": 6, "passive": 0}}
+
+    rng_value = 0.7
+    passive_decision = decide_action(passive_meta, weak, ConstantRandom(rng_value))
+    aggressive_decision = decide_action(aggressive_meta, weak, ConstantRandom(rng_value))
+
+    assert passive_decision.folds is True
+    assert aggressive_decision.folds is False
