@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import shlex
 import socket
 import subprocess
 import sys
@@ -24,11 +25,14 @@ def main() -> int:
         print(f"textual-serve is required for this check: {exc}", file=sys.stderr)
         return 3
 
+    python_cmd = shlex.quote(sys.executable)
+    command = f"{python_cmd} -m gto_trainer.ui.textual_main --hands 1 --mc 5"
+
     launcher = "\n".join(
         [
             "from textual_serve.server import Server",
             "server = Server(",
-            "    command='python -m gto_trainer.ui.textual_main --hands 1 --mc 5',",
+            f"    command={command!r},",
             "    host='127.0.0.1',",
             f"    port={port},",
             "    title='GTO Trainer',",

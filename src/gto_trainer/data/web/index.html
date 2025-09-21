@@ -234,6 +234,19 @@
       main .page-section > * + * {
         margin-top: calc(var(--space-1) * 0.5);
       }
+      #panel-play {
+        display: flex;
+        flex-direction: column;
+        flex: 1 0 auto;
+      }
+      #panel-play > * + * {
+        margin-top: calc(var(--space-1) * 0.75);
+      }
+      #panel-play .panel-soft,
+      #feedback-banner,
+      #primary-controls {
+        flex-shrink: 0;
+      }
       #progress-bar {
         position: fixed;
         top: 0;
@@ -1221,10 +1234,11 @@
         }
       }
       #feedback-banner {
-        margin-top: calc(var(--space-1) + 4px);
+        margin-top: calc(var(--space-1) * 0.75);
       }
       #primary-controls.primary-cta {
-        margin-top: 16px;
+        margin-top: auto;
+        padding-top: calc(var(--space-1) * 0.9);
       }
       .action-area.is-hidden {
         display: none;
@@ -1698,8 +1712,8 @@
       .info-card {
         display: flex;
         flex-direction: column;
-        gap: 16px;
-        padding: calc(var(--space-2) + 2px);
+        gap: calc(var(--space-1) * 0.75);
+        padding: calc(var(--space-2) * 0.9) var(--space-2);
         border: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
         border-radius: var(--radius-md);
         background: color-mix(in srgb, var(--surface-1) 94%, white 6%);
@@ -1711,15 +1725,6 @@
         background: color-mix(in srgb, var(--surface-2) 88%, var(--surface-3) 12%);
         border-color: color-mix(in srgb, var(--outline) 68%, transparent);
         box-shadow: none;
-      }
-      .info-card__eyebrow {
-        font-size: 0.68rem;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-        color: color-mix(in srgb, var(--text-tertiary) 78%, transparent);
-      }
-      :root[data-theme="dark"] .info-card__eyebrow {
-        color: color-mix(in srgb, var(--text-secondary) 68%, transparent);
       }
       .sr-only {
         position: absolute;
@@ -2112,7 +2117,6 @@
       <section id="panel-play" class="page-section hidden">
         <div class="rounded-lg panel-box panel-soft">
           <div id="card-summary" class="info-card">
-            <span class="info-card__eyebrow">Last hand</span>
             <div class="info-row">
               <span class="info-label">Hand</span>
               <div id="hand" class="info-cards"></div>
@@ -2124,16 +2128,6 @@
           </div>
           <div id="status-line" class="status-line" role="status" aria-live="polite"></div>
           <div id="action-area" class="action-area is-hidden" role="group" aria-label="Available actions"></div>
-        </div>
-
-        <div id="primary-controls" class="primary-cta">
-          <button id="btn-summary" class="hidden btn btn-primary primary-cta__button">
-            <span>View summary</span>
-            <span class="primary-cta__chevron" aria-hidden="true">›</span>
-          </button>
-          <button id="btn-end" class="primary-cta__link" type="button">
-            End session
-          </button>
         </div>
 
         <div id="feedback-banner" class="feedback-banner hidden" role="status" aria-live="polite">
@@ -2150,6 +2144,16 @@
                 <circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
               </svg>
             </span>
+          </button>
+        </div>
+
+        <div id="primary-controls" class="primary-cta">
+          <button id="btn-summary" class="hidden btn btn-primary primary-cta__button">
+            <span>View summary</span>
+            <span class="primary-cta__chevron" aria-hidden="true">›</span>
+          </button>
+          <button id="btn-end" class="primary-cta__link" type="button">
+            End session
           </button>
         </div>
       </section>

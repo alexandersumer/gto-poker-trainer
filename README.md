@@ -13,14 +13,14 @@ GTO Trainer is a heads-up no-limit hold’em practice environment with both a Te
 ## Quick start (uv)
 
 1. Install [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
-2. Sync dependencies: `uv sync --all-extras` (installs runtime + `dev` extras).
-3. Run everything in one go: `uv run scripts/run_ci_tests.sh`.
+2. Sync dependencies (app + dev extras): `uv sync --locked --extra dev`.
+3. Run everything in one go: `uv run --locked --extra dev -- scripts/run_ci_tests.sh`.
 
 Common commands:
 
-- `uv run python -m pytest -q`
-- `uv run ruff check .`
-- `uv run ruff format .`
+- `uv run --locked --extra dev -- pytest -q`
+- `uv run --locked --extra dev -- ruff check .`
+- `uv run --locked --extra dev -- ruff format .`
 
 ## Git hooks
 
@@ -30,23 +30,19 @@ Configure Git to use the repo-managed hooks so staged Python files are auto-form
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook runs `uv run ruff format` on staged files and re-adds any changes, ensuring local commits match CI formatting.
+The pre-commit hook formats staged Python files and then runs the same Ruff + pytest trio as CI via `uv run --locked --extra dev -- …`, so commits only land when the full suite passes locally.
 
 ## Install & run (CLI)
 
 ```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-
-# Play a handful of random hands
-gto-trainer --hands 5
+uv sync --locked
+uv run --locked -- gto-trainer --hands 5
 ```
 
 Run in-place without installing:
 
 ```bash
-PYTHONPATH=src python -m gto_trainer
+uv run --locked -- python -m gto_trainer
 ```
 
 ### CLI options
@@ -69,8 +65,8 @@ Controls inside the CLI: `1–9` choose an action, `h` opens contextual help, `?
 - **Local** – Install dev extras and launch FastAPI with reload enabled:
 
   ```bash
-  pip install -e .[dev]
-  uvicorn gto_trainer.web.app:app --reload
+  uv sync --locked --extra dev
+  uv run --locked --extra dev -- uvicorn gto_trainer.web.app:app --reload
   ```
 
 Environment overrides: `HANDS` and `MC` mirror the CLI flags when exported before launch.
@@ -84,10 +80,10 @@ Environment overrides: `HANDS` and `MC` mirror the CLI flags when exported befor
 
 ## Local development
 
-If you prefer Make targets / pip:
+If you prefer Make targets:
 
 ```bash
-make install-dev   # editable install with dev extras
+make install-dev   # uv sync with dev extras
 make check         # lint + tests (matches CI)
 make test          # pytest -q
 make lint          # Ruff lint
@@ -95,7 +91,7 @@ make format        # Ruff formatter
 make render-smoke  # build Docker image & hit /healthz (Render parity)
 ```
 
-CI runs the same trio as `uv run scripts/run_ci_tests.sh` / `make check` (`ruff check`, `pytest -q`).
+CI runs the same trio as `uv run --locked --extra dev -- scripts/run_ci_tests.sh` / `make check` (`ruff check`, `pytest -q`).
 
 ## Solver architecture (quick tour)
 

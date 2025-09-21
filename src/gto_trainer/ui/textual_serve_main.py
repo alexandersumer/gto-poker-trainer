@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import os
+import shlex
+import sys
 
 
 def main() -> None:
@@ -27,7 +29,8 @@ def main() -> None:
 
     # Serve the Textual app via shell command; one process per browser session
     # Avoid relying on console scripts (PATH issues in some containers)
-    cmd = f"python -m gto_trainer.ui.textual_main --hands {args.hands} --mc {args.mc}"
+    python_cmd = shlex.quote(sys.executable)
+    cmd = f"{python_cmd} -m gto_trainer.ui.textual_main --hands {args.hands} --mc {args.mc}"
     public_url = os.environ.get("RENDER_EXTERNAL_URL")
     if not public_url:
         host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")

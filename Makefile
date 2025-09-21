@@ -1,34 +1,35 @@
-# Enforce Python 3.12.11 exactly for all tasks.
-PYTHON := python3.12
+# Run project automation through uv for consistent environments.
+UV_RUN := uv run --locked --extra dev --
+UV_SYNC := uv sync --locked --extra dev
 
 .PHONY: ensure-python
 ensure-python:
-	@$(PYTHON) -c "import sys; assert sys.version_info[:3]==(3,12,11), 'Expected 3.12.11, got %s' % sys.version.split()[0]; print('Using Python %s' % sys.version.split()[0])"
+	@$(UV_RUN) python -c "import sys; version = sys.version.split()[0]; expected = '3.12.11'; assert version == expected, f'Expected {expected}, got {version}'; print(f'Using Python {version}')"
 
 .PHONY: venv install-dev test lint fix format check render-smoke clean
 
 venv:
-	$(PYTHON) -m venv .venv && . .venv/bin/activate && $(PYTHON) -m pip install -U pip
+	uv venv
 
 install-dev: ensure-python
-	$(PYTHON) -m pip install -e .[dev]
+	$(UV_SYNC)
 
 test: ensure-python
-	$(PYTHON) -m pytest -q
+	$(UV_RUN) pytest -q
 
 lint: ensure-python
-	$(PYTHON) -m ruff check .
+	$(UV_RUN) ruff check .
 
 fix: ensure-python
-	$(PYTHON) -m ruff check . --fix
+	$(UV_RUN) ruff check . --fix
 
 format: ensure-python
-	$(PYTHON) -m ruff format .
+	$(UV_RUN) ruff format .
 
 check: ensure-python lint test
 
 render-smoke: ensure-python
-	$(PYTHON) scripts/check_render.py
+	$(UV_RUN) python scripts/check_render.py
 
 clean:
 	find . -name "__pycache__" -type d -prune -exec rm -rf {} +

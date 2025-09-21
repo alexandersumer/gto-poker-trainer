@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if command -v uv >/dev/null 2>&1; then
-  PYTEST_CMD=(uv run pytest)
+  PYTEST_CMD=(uv run --locked --extra dev -- pytest)
 else
   PYTEST_CMD=(python -m pytest)
 fi
