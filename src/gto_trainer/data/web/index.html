@@ -117,6 +117,19 @@
         --placeholder-base: color-mix(in srgb, var(--muted-border) 70%, white 30%);
         --placeholder-highlight: color-mix(in srgb, var(--brand) 22%, white 78%);
         --placeholder-border: color-mix(in srgb, var(--outline) 70%, transparent);
+        --feedback-neutral-stripe: color-mix(in srgb, var(--outline) 82%, transparent);
+        --feedback-chip-fill: color-mix(in srgb, var(--surface-1) 96%, white 4%);
+        --feedback-success-stripe: #16A34A;
+        --feedback-success-ev: #15803D;
+        --feedback-success-outline: #16A34A;
+        --feedback-warning-stripe: #D97706;
+        --feedback-warning-ev: #92400E;
+        --feedback-warning-outline: #D97706;
+        --feedback-danger-stripe: #DC2626;
+        --feedback-danger-ev: #B91C1C;
+        --feedback-danger-outline: #DC2626;
+        --feedback-blunder-stripe: #991B1B;
+        --feedback-blunder-outline: #991B1B;
       }
 
       /* Dark palette overrides */
@@ -204,6 +217,19 @@
         --placeholder-base: color-mix(in srgb, var(--surface-2) 80%, var(--surface-1) 20%);
         --placeholder-highlight: color-mix(in srgb, var(--brand) 24%, var(--surface-1) 76%);
         --placeholder-border: color-mix(in srgb, var(--outline) 55%, transparent);
+        --feedback-neutral-stripe: color-mix(in srgb, var(--outline) 68%, transparent);
+        --feedback-chip-fill: color-mix(in srgb, var(--surface-2) 90%, var(--surface-3) 10%);
+        --feedback-success-stripe: #22C55E;
+        --feedback-success-ev: #86EFAC;
+        --feedback-success-outline: #22C55E;
+        --feedback-warning-stripe: #F59E0B;
+        --feedback-warning-ev: #FBBF24;
+        --feedback-warning-outline: #F59E0B;
+        --feedback-danger-stripe: #EF4444;
+        --feedback-danger-ev: #F87171;
+        --feedback-danger-outline: #EF4444;
+        --feedback-blunder-stripe: #F05252;
+        --feedback-blunder-outline: #F05252;
       }
 
       :root:not([data-theme]),
@@ -1719,7 +1745,7 @@
         padding: 12px 16px;
         border-radius: var(--radius-md);
         border: 1px solid color-mix(in srgb, var(--outline) 72%, transparent);
-        background: color-mix(in srgb, var(--surface-1) 97%, transparent);
+        background: var(--surface-1);
         color: var(--text-secondary);
         box-shadow: none;
         flex-wrap: wrap;
@@ -1730,18 +1756,22 @@
         top: 10px;
         bottom: 10px;
         left: -1px;
-        width: 3px;
+        width: 4px;
         border-radius: 999px;
-        background: color-mix(in srgb, var(--outline) 70%, transparent);
+        background: var(--feedback-neutral-stripe);
       }
-      .feedback-banner[data-variant="negative"]::before {
-        background: color-mix(in srgb, var(--error) 78%, transparent);
+      .feedback-banner[data-state="success"]::before,
+      .feedback-banner[data-state="gain"]::before {
+        background: var(--feedback-success-stripe);
       }
-      .feedback-banner[data-variant="positive"]::before {
-        background: color-mix(in srgb, var(--success) 70%, transparent);
+      .feedback-banner[data-state="warning"]::before {
+        background: var(--feedback-warning-stripe);
       }
-      .feedback-banner[data-variant="neutral"]::before {
-        background: color-mix(in srgb, var(--outline) 70%, transparent);
+      .feedback-banner[data-state="danger"]::before {
+        background: var(--feedback-danger-stripe);
+      }
+      .feedback-banner[data-state="blunder"]::before {
+        background: var(--feedback-blunder-stripe);
       }
       .feedback-text {
         display: flex;
@@ -1770,46 +1800,77 @@
         font-weight: 650;
         color: var(--text-primary);
       }
-      .ev-callout__value--negative {
-        color: color-mix(in srgb, var(--error) 72%, transparent);
+      .ev-callout__value--tinted {
+        color: var(--text-primary);
       }
-      .ev-callout__value--positive {
-        color: color-mix(in srgb, var(--success) 68%, transparent);
+      .feedback-banner[data-state="success"] .ev-callout__value--tinted,
+      .feedback-banner[data-state="gain"] .ev-callout__value--tinted {
+        color: var(--feedback-success-ev);
+      }
+      .feedback-banner[data-state="warning"] .ev-callout__value--tinted {
+        color: var(--feedback-warning-ev);
+      }
+      .feedback-banner[data-state="danger"] .ev-callout__value--tinted,
+      .feedback-banner[data-state="blunder"] .ev-callout__value--tinted {
+        color: var(--feedback-danger-ev);
       }
       .ev-callout__chip {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 3px 10px;
-        border-radius: 8px;
-        background: color-mix(in srgb, var(--brand) 12%, transparent);
-        color: color-mix(in srgb, var(--brand) 88%, transparent);
+        gap: 6px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--outline) 72%, transparent);
+        background: var(--feedback-chip-fill);
+        color: var(--text-primary);
         font-size: 0.8rem;
-        font-weight: 550;
+        font-weight: 600;
+        line-height: 1.15;
+        white-space: nowrap;
+      }
+      .ev-callout__chip[data-tone="success"],
+      .ev-callout__chip[data-tone="gain"] {
+        border-color: var(--feedback-success-outline);
+      }
+      .ev-callout__chip[data-tone="warning"] {
+        border-color: var(--feedback-warning-outline);
+      }
+      .ev-callout__chip[data-tone="danger"] {
+        border-color: var(--feedback-danger-outline);
+      }
+      .ev-callout__chip[data-tone="blunder"] {
+        border-color: var(--feedback-blunder-outline);
+      }
+      .ev-chip__symbol {
+        font-weight: 700;
+        font-size: 0.85em;
+        line-height: 1;
+      }
+      .ev-chip__text {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .ev-callout__chip[data-tone="success"] .ev-chip__symbol,
+      .ev-callout__chip[data-tone="gain"] .ev-chip__symbol {
+        color: var(--feedback-success-outline);
+      }
+      .ev-callout__chip[data-tone="warning"] .ev-chip__symbol {
+        color: var(--feedback-warning-outline);
+      }
+      .ev-callout__chip[data-tone="danger"] .ev-chip__symbol {
+        color: var(--feedback-danger-outline);
+      }
+      .ev-callout__chip[data-tone="blunder"] .ev-chip__symbol {
+        color: var(--feedback-blunder-outline);
       }
       .ev-callout__secondary {
         font-size: 0.84rem;
         color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
       }
       :root[data-theme="dark"] .feedback-banner {
-        border-color: color-mix(in srgb, var(--outline) 62%, transparent);
-        background: color-mix(in srgb, var(--surface-2) 92%, transparent);
-      }
-      :root[data-theme="dark"] .feedback-banner::before {
-        background: color-mix(in srgb, var(--outline) 60%, transparent);
-      }
-      :root[data-theme="dark"] .feedback-banner[data-variant="negative"]::before {
-        background: color-mix(in srgb, var(--error) 78%, transparent);
-      }
-      :root[data-theme="dark"] .feedback-banner[data-variant="positive"]::before {
-        background: color-mix(in srgb, var(--success) 70%, transparent);
-      }
-      :root[data-theme="dark"] .ev-callout__chip {
-        background: color-mix(in srgb, var(--brand) 26%, var(--surface-2) 74%);
-        color: color-mix(in srgb, var(--brand) 88%, transparent);
-      }
-      :root[data-theme="dark"] .ev-callout__value--negative {
-        color: color-mix(in srgb, var(--error) 78%, transparent);
+        border-color: color-mix(in srgb, var(--outline) 60%, transparent);
+        background: color-mix(in srgb, var(--surface-2) 94%, var(--surface-3) 6%);
       }
       .feedback-detail {
         display: inline-flex;
@@ -3576,6 +3637,110 @@
         feedbackDrawer.setAttribute('aria-hidden', 'false');
       };
 
+      const classifyFeedback = ({ feedback, node, evLossRaw, lossMagnitude }) => {
+        const thresholds = {
+          nearOptimalPct: 0.25,
+          inaccuracyPct: 1.0,
+          blunderPct: 3.0,
+          blunderBb: 2.0,
+          lowFreqPct: 3.5,
+        };
+        const pot = typeof node?.pot_bb === 'number' ? Math.max(node.pot_bb, 0) : null;
+        const effective = typeof node?.effective_bb === 'number' ? Math.max(node.effective_bb, 0) : null;
+        const baseForPct = pot && pot > 0 ? pot : effective && effective > 0 ? effective : null;
+        const evLossPct = typeof lossMagnitude === 'number' && baseForPct ? (lossMagnitude / baseForPct) * 100 : null;
+        const gtoFreqRaw = typeof feedback?.chosen?.gto_freq === 'number' ? feedback.chosen.gto_freq : null;
+        const gtoFreqPct = gtoFreqRaw != null ? Math.max(0, gtoFreqRaw) * 100 : null;
+
+        if(typeof evLossRaw !== 'number'){
+          return {
+            state: 'neutral',
+            tone: 'neutral',
+            symbol: '',
+            shouldTintValue: false,
+            evLossPct,
+            gtoFreqPct,
+            evLossBb: typeof lossMagnitude === 'number' ? lossMagnitude : 0,
+          };
+        }
+
+        const lossIsGain = evLossRaw < 0;
+        if(lossIsGain){
+          return {
+            state: 'gain',
+            tone: 'gain',
+            symbol: '✓',
+            shouldTintValue: Math.abs(evLossRaw) > 0,
+            evLossPct,
+            gtoFreqPct,
+            evLossBb: typeof lossMagnitude === 'number' ? Math.abs(evLossRaw) : 0,
+          };
+        }
+
+        const lossMagnitudeBb = typeof lossMagnitude === 'number' ? lossMagnitude : 0;
+        const freqZero = gtoFreqRaw === 0;
+        const freqSparse = gtoFreqPct != null && gtoFreqPct < thresholds.lowFreqPct;
+        const blunderByPct = evLossPct != null && evLossPct >= thresholds.blunderPct;
+        const blunderByBb = lossMagnitudeBb >= thresholds.blunderBb;
+        const hasPercent = evLossPct != null;
+
+        let state = 'neutral';
+        let tone = 'neutral';
+
+        if(freqZero || blunderByPct || blunderByBb){
+          state = blunderByPct || blunderByBb ? 'blunder' : 'danger';
+          tone = state === 'blunder' ? 'blunder' : 'danger';
+        } else if(hasPercent && evLossPct > thresholds.inaccuracyPct) {
+          state = 'danger';
+          tone = 'danger';
+        } else if(freqSparse || (hasPercent && evLossPct > thresholds.nearOptimalPct)) {
+          state = 'warning';
+          tone = 'warning';
+        } else {
+          state = 'success';
+          tone = 'success';
+        }
+
+        if(!hasPercent){
+          if(freqZero){
+            state = blunderByBb ? 'blunder' : 'danger';
+            tone = state;
+          } else if(lossMagnitudeBb >= thresholds.blunderBb){
+            state = 'blunder';
+            tone = 'blunder';
+          } else if(lossMagnitudeBb > 1.0){
+            state = 'danger';
+            tone = 'danger';
+          } else if(lossMagnitudeBb > 0.25 || freqSparse){
+            state = 'warning';
+            tone = 'warning';
+          } else {
+            state = 'success';
+            tone = 'success';
+          }
+        }
+
+        const shouldTintValue = lossMagnitudeBb > 0;
+        let symbol = '';
+        if(tone === 'warning'){
+          symbol = '!';
+        } else if(tone === 'danger' || tone === 'blunder'){
+          symbol = '×';
+        } else if(tone === 'success' || tone === 'gain'){
+          symbol = '✓';
+        }
+
+        return {
+          state,
+          tone,
+          symbol,
+          shouldTintValue,
+          evLossPct,
+          gtoFreqPct,
+          evLossBb: lossMagnitudeBb,
+        };
+      };
+
       const applyFeedback = (feedback) => {
         lastFeedback = feedback;
         if(!feedbackBanner || !feedbackRecommendation || !feedbackChoice){
@@ -3601,15 +3766,10 @@
           return normalized.length <= 110 ? normalized : `${normalized.slice(0, 107).trim()}…`;
         };
         const secondaryLine = summarizeResolution(resolutionNote);
-        const variant = evLossRaw == null
-          ? 'neutral'
-          : evLossRaw > 0
-            ? 'negative'
-            : evLossRaw < 0
-              ? 'positive'
-              : 'neutral';
-        feedbackBanner.dataset.variant = variant;
-        if('state' in feedbackBanner.dataset){
+        const classification = classifyFeedback({ feedback, node: activeNode, evLossRaw, lossMagnitude });
+        if(classification?.state && classification.state !== 'neutral'){
+          feedbackBanner.dataset.state = classification.state;
+        } else {
           delete feedbackBanner.dataset.state;
         }
         if(feedbackRecommendation){
@@ -3631,17 +3791,23 @@
           if(lossMagnitude !== null){
             const valueSpan = document.createElement('span');
             valueSpan.className = 'ev-callout__value';
-            if(evLossRaw && evLossRaw > 0){
-              valueSpan.classList.add('ev-callout__value--negative');
-            } else if(evLossRaw && evLossRaw < 0){
-              valueSpan.classList.add('ev-callout__value--positive');
+            if(classification?.shouldTintValue){
+              valueSpan.classList.add('ev-callout__value--tinted');
             }
             valueSpan.textContent = formatBb(lossMagnitude);
             headline.appendChild(valueSpan);
           }
           const chip = document.createElement('span');
           chip.className = 'ev-callout__chip';
-          chip.innerHTML = withCardMarkup(`Best ${bestLabel}`);
+          if(classification?.tone && classification.tone !== 'neutral'){
+            chip.dataset.tone = classification.tone;
+          } else {
+            delete chip.dataset.tone;
+          }
+          const chipLabel = withCardMarkup(`Best ${bestLabel}`);
+          const chipSymbol = classification?.symbol || '';
+          const symbolMarkup = chipSymbol ? `<span class="ev-chip__symbol" aria-hidden="true">${chipSymbol}</span>` : '';
+          chip.innerHTML = `${symbolMarkup}<span class="ev-chip__text">${chipLabel}</span>`;
           headline.appendChild(chip);
           feedbackRecommendation.appendChild(headline);
         }
@@ -3664,7 +3830,7 @@
       const resetFeedback = () => {
         if(feedbackBanner){
           feedbackBanner.classList.add('hidden');
-          delete feedbackBanner.dataset.variant;
+          delete feedbackBanner.dataset.state;
           if(feedbackRecommendation) setTextWithCards(feedbackRecommendation, '');
           if(feedbackChoice){
             setTextWithCards(feedbackChoice, '');
