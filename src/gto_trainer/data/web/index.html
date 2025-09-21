@@ -689,27 +689,30 @@
         transform: translateY(0.5px);
         opacity: 0.88;
       }
-      .primary-cta__link {
-        display: inline-flex;
+      .session-secondary-actions {
+        display: flex;
         justify-content: center;
-        font-size: 0.95rem;
-        color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+        padding: 4px 0;
+      }
+      .session-secondary-link {
+        appearance: none;
+        background: none;
         border: none;
-        background: transparent;
-        padding: 0;
-        margin: 0;
-        min-height: auto;
-        text-decoration: none;
-        transform: none;
+        color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+        font-size: 0.92rem;
+        font-weight: 550;
+        letter-spacing: 0.01em;
+        padding: 4px 8px;
+        border-radius: 999px;
+        transition: color 0.2s ease, background 0.2s ease;
       }
-      .primary-cta__link:hover {
+      .session-secondary-link:hover {
         color: var(--text-primary);
-        text-decoration: underline;
+        background: color-mix(in srgb, var(--ghost-hover) 72%, transparent);
       }
-      .primary-cta__link:active {
-        color: color-mix(in srgb, var(--text-primary) 90%, transparent);
-        text-decoration-color: currentColor;
-        transform: none;
+      .session-secondary-link:focus-visible {
+        outline: var(--focus-ring) solid var(--focus-color);
+        outline-offset: 2px;
       }
 
       .border-divider-soft {
@@ -1167,70 +1170,212 @@
       #panel-play .panel-soft > * + * {
         margin-top: calc(var(--space-1) + 1px);
       }
-      #panel-summary .summary__header {
+      .summary-page {
         display: flex;
         flex-direction: column;
-        gap: var(--summary-gap-tight);
+        gap: 16px;
+        flex: 1 0 auto;
       }
-      #panel-summary .summary__score {
-        margin-top: calc(var(--summary-gap-tight) * 0.9);
-        text-align: right;
+      .summary-page__header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0;
       }
-      #panel-summary .summary__quick {
+      .summary-page__back {
+        appearance: none;
+        border: none;
+        background: none;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-sm);
         display: inline-flex;
-        align-items: baseline;
-        gap: 0;
-        margin-top: calc(var(--summary-gap-tight) * 0.45);
-        font-size: 0.82rem;
-        color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
-        font-weight: 500;
+        align-items: center;
+        justify-content: center;
+        color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
+        font-size: 1.35rem;
+        line-height: 1;
+        transition: color 0.2s ease, background 0.2s ease;
       }
-      #panel-summary .summary__quick-item {
-        display: inline-flex;
-        align-items: baseline;
-        gap: 0.42rem;
-        padding: 0 0.75rem;
-        position: relative;
-        white-space: nowrap;
+      .summary-page__back:hover {
+        background: var(--ghost-hover);
+        color: var(--text-primary);
       }
-      #panel-summary .summary__quick-item:first-child {
-        padding-left: 0;
+      .summary-page__back:focus-visible {
+        outline: var(--focus-ring) solid var(--focus-color);
+        outline-offset: 2px;
       }
-      #panel-summary .summary__quick-item + .summary__quick-item::before {
-        content: '·';
-        position: absolute;
-        left: -0.38rem;
-        color: color-mix(in srgb, var(--text-secondary) 54%, transparent);
+      .summary-page__title {
+        margin: 0;
+        font-size: clamp(1.28rem, 2.6vw, 1.52rem);
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
       }
-      #panel-summary .summary__quick-label {
-        font-size: 0.76rem;
+      .summary-page__body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .summary-hero {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+      .summary-hero__metric {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 12px;
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+        background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+      }
+      .summary-hero__label {
+        font-size: 0.72rem;
         text-transform: uppercase;
         letter-spacing: 0.16em;
-        color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+        color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
       }
-      #panel-summary .summary__quick-value {
-        color: color-mix(in srgb, var(--text-primary) 96%, transparent);
-        font-weight: 650;
+      .summary-hero__value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text-primary);
         font-variant-numeric: tabular-nums;
       }
-      #panel-summary .summary__stats {
-        margin-top: var(--summary-gap-base);
-        gap: var(--summary-gap-base);
+      .summary-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
-      #panel-summary .summary__card {
-        padding-block: 0.62rem;
+      .summary-section__title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 650;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
       }
-      #panel-summary .summary__card dd + dd {
-        margin-top: 0.35rem;
+      .summary-card {
+        border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--surface-1) 96%, transparent);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .summary-card__label {
+        font-size: 0.85rem;
+        font-weight: 550;
+        color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
+      }
+      .summary-card__value {
+        font-size: 1.2rem;
+        font-weight: 680;
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+      }
+      .summary-card__value.is-negative {
+        color: color-mix(in srgb, var(--error) 68%, transparent);
+      }
+      .summary-card__meta {
+        font-size: 0.85rem;
+        color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
+      }
+      .summary-last-hand__grid {
+        display: grid;
+        gap: 8px;
+      }
+      .summary-last-hand__row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+      }
+      .summary-last-hand__label {
+        font-size: 0.7rem;
+        font-weight: 550;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-secondary) 76%, transparent);
+      }
+      .summary-last-hand__value {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        font-weight: 600;
+      }
+      .summary-last-hand__delta {
+        font-size: 0.85rem;
+        color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+      }
+      .summary-last-hand__delta.is-negative {
+        color: color-mix(in srgb, var(--error) 68%, transparent);
+      }
+      .summary-collapse {
+        appearance: none;
+        border: none;
+        background: color-mix(in srgb, var(--surface-1) 96%, transparent);
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+      .summary-collapse:hover {
+        background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+      }
+      .summary-collapse:focus-visible {
+        outline: var(--focus-ring) solid var(--focus-color);
+        outline-offset: 2px;
+      }
+      .summary-collapse__chevron {
+        font-size: 1.2rem;
+        transform: rotate(0deg);
+        transition: transform 0.2s ease;
+      }
+      .summary-collapse[aria-expanded="true"] .summary-collapse__chevron {
+        transform: rotate(90deg);
+      }
+      .summary-card--collapsible {
+        margin-top: -4px;
+      }
+      .summary-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .summary-list__item {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+      }
+      .summary-list__label {
+        color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
+      }
+      .summary-page__footer {
+        margin-top: auto;
+        padding-top: 16px;
+        display: flex;
+        justify-content: center;
+      }
+      .summary-primary {
+        width: min(320px, 100%);
       }
       @media (min-width: 640px) {
-        #panel-summary .summary__header {
-          flex-direction: row;
-          align-items: flex-start;
-          justify-content: space-between;
-        }
-        #panel-summary .summary__score {
-          margin-top: 0;
+        .summary-last-hand__grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
       #feedback-banner {
@@ -2152,58 +2297,79 @@
             <span>View summary</span>
             <span class="primary-cta__chevron" aria-hidden="true">›</span>
           </button>
-          <button id="btn-end" class="primary-cta__link" type="button">
+        </div>
+        <div id="secondary-controls" class="session-secondary-actions">
+          <button id="btn-end" class="session-secondary-link" type="button">
             End session
           </button>
         </div>
       </section>
 
-      <section id="panel-summary" class="page-section hidden space-y-4">
-        <div class="rounded-lg panel-box panel-soft p-6 text-secondary" id="summary"></div>
-        <template id="summary-template">
-          <div class="summary">
-            <div class="summary__header">
-              <h2 class="text-lg font-semibold text-primary">Session summary</h2>
-              <div class="summary__score">
-                <div class="text-xs uppercase tracking-wide text-muted">Score (0–100)</div>
-                <div class="text-2xl font-bold text-primary" data-summary-score></div>
-              </div>
+      <section id="panel-summary" class="summary-page hidden">
+        <header class="summary-page__header">
+          <button id="btn-summary-back" class="summary-page__back" type="button" aria-label="Back to training">
+            <span aria-hidden="true">‹</span>
+          </button>
+          <h1 class="summary-page__title">Session summary</h1>
+        </header>
+        <div class="summary-page__body">
+          <div class="summary-hero">
+            <div class="summary-hero__metric">
+              <span class="summary-hero__label">Score</span>
+              <span class="summary-hero__value" data-summary-hero-score data-summary-score>—</span>
             </div>
-            <div class="summary__quick" aria-hidden="true">
-              <span class="summary__quick-item">
-                <span class="summary__quick-label">Score</span>
-                <span class="summary__quick-value" data-summary-quick-score></span>
-              </span>
-              <span class="summary__quick-item">
-                <span class="summary__quick-label">ΔEV</span>
-                <span class="summary__quick-value" data-summary-quick-ev></span>
-              </span>
-              <span class="summary__quick-item">
-                <span class="summary__quick-label">Accuracy</span>
-                <span class="summary__quick-value" data-summary-quick-accuracy></span>
-              </span>
+            <div class="summary-hero__metric">
+              <span class="summary-hero__label">ΔEV</span>
+              <span class="summary-hero__value" data-summary-hero-ev>—</span>
             </div>
-            <dl class="summary__stats grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div class="surface-card px-4 summary__card">
-                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">EV lost</dt>
-                <dd class="text-lg font-semibold text-primary" data-summary-ev-lost></dd>
-                <dd class="text-xs text-muted" data-summary-avg-ev></dd>
-              </div>
-              <div class="surface-card px-4 summary__card">
-                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Hands answered</dt>
-                <dd class="text-lg font-semibold text-primary" data-summary-hands></dd>
-              </div>
-              <div class="surface-card px-4 summary__card">
-                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Best choices hit</dt>
-                <dd class="text-lg font-semibold text-primary" data-summary-hits></dd>
-                <dd class="text-xs text-muted" data-summary-accuracy></dd>
-              </div>
-            </dl>
+            <div class="summary-hero__metric">
+              <span class="summary-hero__label">Accuracy</span>
+              <span class="summary-hero__value" data-summary-hero-accuracy>—</span>
+            </div>
           </div>
-        </template>
-        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <button id="btn-new" class="w-full sm:w-auto rounded-md px-4 py-2 font-semibold transition-colors duration-200 focus-visible:outline-none btn btn-primary">Start new session</button>
-          <button id="btn-summary-close" class="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline-none btn btn-ghost">Review last hand</button>
+
+          <section class="summary-section" id="summary-key-outcomes">
+            <h2 class="summary-section__title">Key outcomes</h2>
+            <div class="summary-card summary-card--ev">
+              <div class="summary-card__label">Total EV delta</div>
+              <div class="summary-card__value" id="summary-ev-delta">—</div>
+              <div class="summary-card__meta" id="summary-ev-meta"></div>
+            </div>
+          </section>
+
+          <section class="summary-section hidden" id="summary-last-hand">
+            <h2 class="summary-section__title">Last hand</h2>
+            <div class="summary-card">
+              <div class="summary-last-hand__grid">
+                <div class="summary-last-hand__row">
+                  <div>
+                    <div class="summary-last-hand__label">Your play</div>
+                    <div class="summary-last-hand__value" id="summary-last-hand-choice">—</div>
+                  </div>
+                  <div class="summary-last-hand__delta" id="summary-last-hand-delta">—</div>
+                </div>
+                <div class="summary-last-hand__row">
+                  <div>
+                    <div class="summary-last-hand__label">Best line</div>
+                    <div class="summary-last-hand__value" id="summary-last-hand-best">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="summary-section" id="summary-history">
+            <button id="summary-history-toggle" class="summary-collapse" type="button" aria-expanded="false">
+              <span>Hand list &amp; mistakes</span>
+              <span class="summary-collapse__chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="summary-card summary-card--collapsible hidden" id="summary-history-body">
+              <div class="summary-list" id="summary-history-list"></div>
+            </div>
+          </section>
+        </div>
+        <div class="summary-page__footer">
+          <button id="btn-new" class="summary-primary btn btn-primary">New session</button>
         </div>
       </section>
     </main>
@@ -2377,8 +2543,21 @@
       const startBtn = $('#btn-start');
       const summaryBtn = $('#btn-summary');
       const endBtn = $('#btn-end');
-      const summaryCloseBtn = $('#btn-summary-close');
+      const secondaryControls = document.getElementById('secondary-controls');
+      const summaryBackBtn = $('#btn-summary-back');
       const newBtn = $('#btn-new');
+      const summaryHeroScore = document.querySelector('[data-summary-hero-score]');
+      const summaryHeroEv = document.querySelector('[data-summary-hero-ev]');
+      const summaryHeroAccuracy = document.querySelector('[data-summary-hero-accuracy]');
+      const summaryEvDeltaEl = document.getElementById('summary-ev-delta');
+      const summaryEvMetaEl = document.getElementById('summary-ev-meta');
+      const summaryLastHandSection = document.getElementById('summary-last-hand');
+      const summaryLastHandChoice = document.getElementById('summary-last-hand-choice');
+      const summaryLastHandBest = document.getElementById('summary-last-hand-best');
+      const summaryLastHandDelta = document.getElementById('summary-last-hand-delta');
+      const summaryHistoryToggle = document.getElementById('summary-history-toggle');
+      const summaryHistoryBody = document.getElementById('summary-history-body');
+      const summaryHistoryList = document.getElementById('summary-history-list');
       const actionAnnouncer = $('#action-announcer');
       let lastFeedback = null;
       let lastActionSignature = '';
@@ -2613,6 +2792,13 @@
       };
 
       const formatBb = (value) => `${fmt(value, Math.abs(value) < 10 ? 1 : 0)}bb`;
+      const formatSignedBb = (value) => {
+        if(!Number.isFinite(value) || value === 0){
+          return '0bb';
+        }
+        const sign = value < 0 ? '-' : '+';
+        return `${sign}${formatBb(Math.abs(value))}`;
+      };
 
       const renderStatusLine = (items) => {
         if(!statusLineEl) return;
@@ -3597,9 +3783,17 @@
       };
 
       const setSummaryAvailability = (enabled) => {
-        if(!summaryBtn) return;
-        summaryBtn.disabled = !enabled;
-        summaryBtn.classList.toggle('hidden', !enabled);
+        if(summaryBtn){
+          summaryBtn.disabled = !enabled;
+          summaryBtn.classList.toggle('hidden', !enabled);
+        }
+        if(endBtn){
+          const hideEnd = Boolean(enabled);
+          endBtn.classList.toggle('hidden', hideEnd);
+          if(secondaryControls){
+            secondaryControls.classList.toggle('hidden', hideEnd);
+          }
+        }
       };
 
       const setStartButtonState = (busy) => {
@@ -3914,50 +4108,96 @@
 
       const showSummary = async (prefetched) => {
         const s = prefetched || await api(`/api/session/${sid}/summary`);
-        const sum = $('#summary');
-        if(sum){
-          const decisions = s.decisions ?? answered;
-          const totalDecisions = typeof decisions === 'number' ? decisions : 0;
-          const accuracy = totalDecisions ? Math.round((s.hits / totalDecisions) * 100) : 0;
-          const hitsDisplay = `${s.hits}/${totalDecisions || 0}`;
-          const summaryEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
-          const avgEvLoss = s.hands ? summaryEvLost / s.hands : summaryEvLost;
-          const template = document.getElementById('summary-template');
-          if(template?.content){
-            const fragment = template.content.cloneNode(true);
-            const setText = (selector, value) => {
-              const el = fragment.querySelector(selector);
-              if(el){
-                el.textContent = value;
-              }
-            };
-            const scoreQuick = `${Math.round(s.score)} pts`;
-            const evQuick = summaryEvLost
-              ? `${summaryEvLost > 0 ? '-' : '+'}${formatBb(Math.abs(summaryEvLost))}`
-              : '0bb';
-            const accuracyQuick = `${accuracy}%`;
-            setText('[data-summary-score]', String(Math.round(s.score)));
-            setText('[data-summary-quick-score]', scoreQuick);
-            setText('[data-summary-quick-ev]', evQuick);
-            setText('[data-summary-quick-accuracy]', accuracyQuick);
-            setText('[data-summary-ev-lost]', formatBb(summaryEvLost));
-            setText('[data-summary-avg-ev]', `Avg / hand: ${formatBb(avgEvLoss)}`);
-            setText('[data-summary-hands]', String(s.hands));
-            setText('[data-summary-hits]', hitsDisplay);
-            setText('[data-summary-accuracy]', `Accuracy per decision: ${accuracy}%`);
-            if(sum){
-              sum.replaceChildren(fragment);
+        const decisions = s.decisions ?? answered;
+        const totalDecisions = typeof decisions === 'number' ? decisions : 0;
+        const accuracyPct = totalDecisions ? Math.round((s.hits / totalDecisions) * 100) : 0;
+        const hitsDisplay = `${s.hits || 0}/${totalDecisions || 0}`;
+        const summaryEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
+        const deltaEv = -summaryEvLost;
+        const avgDelta = s.hands ? deltaEv / s.hands : deltaEv;
+
+        if(summaryHeroScore){
+          const scoreValue = Number.isFinite(s.score) ? Math.round(s.score) : 0;
+          summaryHeroScore.textContent = `${scoreValue}`;
+        }
+        if(summaryHeroEv){
+          summaryHeroEv.textContent = formatSignedBb(deltaEv);
+        }
+        if(summaryHeroAccuracy){
+          summaryHeroAccuracy.textContent = totalDecisions ? `${accuracyPct}%` : '—';
+        }
+
+        if(summaryEvDeltaEl){
+          summaryEvDeltaEl.textContent = formatSignedBb(deltaEv);
+          summaryEvDeltaEl.classList.toggle('is-negative', deltaEv < 0);
+        }
+        if(summaryEvMetaEl){
+          const parts = [];
+          if(s.hands){
+            parts.push(`${s.hands} ${s.hands === 1 ? 'hand' : 'hands'}`);
+          }
+          if(summaryEvLost !== 0 || s.hands){
+            parts.push(`Avg / hand ${formatSignedBb(avgDelta)}`);
+          }
+          if(totalDecisions){
+            parts.push(`${hitsDisplay} best choices`);
+          }
+          summaryEvMetaEl.textContent = parts.join(' · ');
+        }
+
+        if(summaryLastHandSection){
+          const lastDelta = typeof lastFeedback?.ev_loss === 'number' ? -lastFeedback.ev_loss : null;
+          if(lastFeedback && (lastFeedback?.chosen?.label || lastFeedback?.best?.label)){
+            summaryLastHandSection.classList.remove('hidden');
+            if(summaryLastHandChoice){
+              summaryLastHandChoice.innerHTML = withCardMarkup(lastFeedback?.chosen?.label || '—');
             }
-          } else if(sum){
-            sum.textContent = 'Summary unavailable (template missing).';
+            if(summaryLastHandBest){
+              summaryLastHandBest.innerHTML = withCardMarkup(lastFeedback?.best?.label || '—');
+            }
+            if(summaryLastHandDelta){
+              if(lastDelta === null){
+                summaryLastHandDelta.textContent = '—';
+                summaryLastHandDelta.classList.remove('is-negative');
+              } else {
+                summaryLastHandDelta.textContent = formatSignedBb(lastDelta);
+                summaryLastHandDelta.classList.toggle('is-negative', lastDelta < 0);
+              }
+            }
+          } else {
+            summaryLastHandSection.classList.add('hidden');
           }
         }
+
+        if(summaryHistoryList){
+          const historyItems = [];
+          historyItems.push({ label: 'Hands played', value: String(s.hands || 0) });
+          historyItems.push({ label: 'Decisions reviewed', value: String(totalDecisions || 0) });
+          historyItems.push({ label: 'Correct decisions', value: hitsDisplay });
+          if(totalDecisions){
+            historyItems.push({ label: 'Accuracy', value: `${accuracyPct}%` });
+          }
+          historyItems.push({ label: 'Total EV delta', value: formatSignedBb(deltaEv) });
+          summaryHistoryList.innerHTML = historyItems.map(({ label, value }) => `
+            <div class="summary-list__item">
+              <span class="summary-list__label">${escapeHtml(label)}</span>
+              <span>${escapeHtml(value)}</span>
+            </div>
+          `).join('');
+        }
+        if(summaryHistoryBody){
+          summaryHistoryBody.classList.add('hidden');
+        }
+        if(summaryHistoryToggle){
+          summaryHistoryToggle.setAttribute('aria-expanded', 'false');
+        }
+
         pendingSummary = s;
         answered = s.decisions ?? answered;
         setSummaryAvailability(false);
         show('#panel-summary');
         updateHeaderStatus(null, { state: 'Summary' });
-      }
+      };
 
       const endSession = async () => {
         if(!sid || pending) return;
@@ -4009,13 +4249,29 @@
         });
       }
 
-      if(summaryCloseBtn){
-        summaryCloseBtn.addEventListener('click', (event)=>{
+      if(summaryBackBtn){
+        summaryBackBtn.addEventListener('click', (event)=>{
           event.preventDefault();
           show('#panel-play');
+          if(summaryHistoryToggle){
+            summaryHistoryToggle.setAttribute('aria-expanded', 'false');
+          }
+          if(summaryHistoryBody){
+            summaryHistoryBody.classList.add('hidden');
+          }
           if(pendingSummary){
             setSummaryAvailability(true);
           }
+        });
+      }
+
+      if(summaryHistoryToggle && summaryHistoryBody){
+        summaryHistoryToggle.addEventListener('click', (event)=>{
+          event.preventDefault();
+          const expanded = summaryHistoryToggle.getAttribute('aria-expanded') === 'true';
+          const next = !expanded;
+          summaryHistoryToggle.setAttribute('aria-expanded', String(next));
+          summaryHistoryBody.classList.toggle('hidden', !next);
         });
       }
 
