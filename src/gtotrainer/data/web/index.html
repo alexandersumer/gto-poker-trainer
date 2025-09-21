@@ -2105,7 +2105,6 @@
         gap: 12px;
         font-size: 0.92rem;
         color: var(--text-secondary);
-        position: relative;
       }
       .drawer-row {
         display: flex;
@@ -2161,22 +2160,6 @@
         background: color-mix(in srgb, var(--muted-bg) 70%, transparent);
         color: var(--text-secondary);
         border: 1px solid color-mix(in srgb, var(--muted-border) 80%, transparent);
-      }
-      .drawer-body[data-tone="warning"] .drawer-value,
-      .drawer-body[data-tone="warning"] .drawer-ev {
-        color: color-mix(in srgb, var(--feedback-warning-ev) 82%, var(--text-primary) 18%);
-      }
-      .drawer-body[data-tone="warning"] .drawer-chip {
-        border-color: color-mix(in srgb, var(--feedback-warning-outline) 58%, transparent);
-        color: color-mix(in srgb, var(--feedback-warning-outline) 32%, var(--text-primary) 68%);
-      }
-      :root[data-theme="dark"] .drawer-body[data-tone="warning"] .drawer-value,
-      :root[data-theme="dark"] .drawer-body[data-tone="warning"] .drawer-ev {
-        color: color-mix(in srgb, var(--feedback-warning-ev) 88%, var(--text-primary) 12%);
-      }
-      :root[data-theme="dark"] .drawer-body[data-tone="warning"] .drawer-chip {
-        border-color: color-mix(in srgb, var(--feedback-warning-outline) 65%, rgba(255, 255, 255, 0.12));
-        color: color-mix(in srgb, var(--feedback-warning-outline) 44%, var(--text-primary) 56%);
       }
 
       .density-compact .page-section {
@@ -3631,23 +3614,10 @@
         if(!feedbackDrawer) return;
         feedbackDrawer.classList.add('hidden');
         feedbackDrawer.setAttribute('aria-hidden', 'true');
-        if(feedbackDrawerBody){
-          delete feedbackDrawerBody.dataset.tone;
-        }
       };
 
       const showFeedbackDrawer = () => {
         if(!feedbackDrawer || !feedbackDrawerBody || !lastFeedback) return;
-        const classification = classifyFeedback({
-          feedback: lastFeedback,
-          node: activeNode,
-          evLossRaw: typeof lastFeedback?.ev_loss === 'number' ? lastFeedback.ev_loss : null,
-        });
-        if(classification?.tone && classification.tone !== 'neutral'){
-          feedbackDrawerBody.dataset.tone = classification.tone;
-        } else {
-          delete feedbackDrawerBody.dataset.tone;
-        }
         const rows = [];
         const makeRow = (variant, label, opt) => {
           if(!opt) return;
