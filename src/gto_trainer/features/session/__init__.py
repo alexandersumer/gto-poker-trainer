@@ -1,6 +1,7 @@
-"""Service-layer utilities and transport schemas."""
+"""Session feature: service layer, schemas, and API router."""
 
-from .session_v1 import (
+from .router import create_session_routers
+from .schemas import (
     ActionSnapshot,
     ChoiceResult,
     FeedbackPayload,
@@ -9,6 +10,7 @@ from .session_v1 import (
     OptionPayload,
     SummaryPayload,
 )
+from .service import SessionConfig, SessionManager
 
 __all__ = [
     "ActionSnapshot",
@@ -17,5 +19,8 @@ __all__ = [
     "NodePayload",
     "NodeResponse",
     "OptionPayload",
+    "SessionConfig",
+    "SessionManager",
     "SummaryPayload",
+    "create_session_routers",
 ]

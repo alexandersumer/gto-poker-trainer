@@ -4,10 +4,18 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+__all__ = [
+    "ActionSnapshot",
+    "ChoiceResult",
+    "FeedbackPayload",
+    "NodePayload",
+    "NodeResponse",
+    "OptionPayload",
+    "SummaryPayload",
+]
+
 
 class _APIModel(BaseModel):
-    """Base class that provides consistent JSON dumping for API responses."""
-
     model_config = ConfigDict(populate_by_name=True)
 
     def to_dict(self) -> dict[str, Any]:

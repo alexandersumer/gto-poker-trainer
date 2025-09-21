@@ -1,8 +1,0 @@
-[app.trainer]
-command = "gto-trainer-textual --hands 1 --mc 200"
-title = "GTO Trainer"
-restart = true
-
-# Usage:
-#   pip install textual-serve
-#   textual-serve --config deploy/serve.example.toml --host 0.0.0.0 --port 8000

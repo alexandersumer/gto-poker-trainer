@@ -7,14 +7,15 @@ import threading
 from dataclasses import dataclass, field, replace
 from typing import Any
 
-from ..core.formatting import format_option_label
-from ..core.models import Option
-from ..core.scoring import SummaryStats, summarize_records
-from ..dynamic.cards import format_card_ascii
-from ..dynamic.generator import Episode, Node, available_rival_styles
-from ..dynamic.policy import options_for, resolve_for
-from ..dynamic.seating import SeatRotation
-from ..services.session_v1 import (
+from ...core.formatting import format_option_label
+from ...core.models import Option
+from ...core.scoring import SummaryStats, summarize_records
+from ...dynamic.cards import format_card_ascii
+from ...dynamic.generator import Episode, Node, available_rival_styles
+from ...dynamic.policy import options_for, resolve_for
+from ...dynamic.seating import SeatRotation
+from .engine import SessionEngine
+from .schemas import (
     ActionSnapshot,
     ChoiceResult,
     FeedbackPayload,
@@ -23,7 +24,15 @@ from ..services.session_v1 import (
     OptionPayload,
     SummaryPayload,
 )
-from .session_engine import SessionEngine
+
+__all__ = [
+    "SessionConfig",
+    "SessionManager",
+    "SessionState",
+    "_ensure_active_node",
+    "_ensure_options",
+    "_summary_payload",
+]
 
 
 def _card_strings(cards: list[int]) -> list[str]:
@@ -52,7 +61,7 @@ class SessionState:
 
 
 class SessionManager:
-    """Orchestrates session lifecycle independent of any particular UI."""
+    """Owns session lifecycle independent of the presentation layer."""
 
     def __init__(self) -> None:
         self._sessions: dict[str, SessionState] = {}
@@ -192,7 +201,6 @@ def _ensure_options(state: SessionState, node: Node) -> list[Option]:
         options = options_for(node, state.engine.rng, state.config.mc_trials)
         state.cached_options[cache_key] = options
         cached = options
-    # Return defensive copies so downstream consumers cannot mutate cached entries.
     return [replace(opt) for opt in cached]
 
 

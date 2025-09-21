@@ -85,7 +85,7 @@ CI runs `uv sync --no-config --locked --extra dev`, installs Playwright browsers
 - **Episode generation** – `dynamic.generator` assembles preflop-to-river node trees using sampled seat assignments and rival styles defined in `_STYLE_LIBRARY`.
 - **Range & equity modelling** – `dynamic.range_model`, `dynamic.hand_strength`, and `dynamic.preflop_mix` build playable ranges; `dynamic.equity` performs adaptive Monte Carlo and board runouts to price options.
 - **Decision policy** – `dynamic.policy` exposes `options_for` and `resolve_for`, combining range samples, equity results, and rival profile updates to score each action and track hand state.
-- **Session management** – `application.session_service.SessionManager` coordinates hand loops, formats options (`core.formatting`), aggregates results with `core.scoring`, and serves both the web adapters (`web/app.py`) and internal test harnesses.
+- **Session management** – `features.session.service.SessionManager` coordinates hand loops, formats options (`core.formatting`), aggregates results with `core.scoring`, and powers the session API routers used by the web/UI layers.
 - **Solver data** – `solver.oracle.CSVStrategyOracle` loads optional preflop charts and falls back to the dynamic policy when a lookup misses; `CompositeOptionProvider` swaps between them per node.
 
 ## License

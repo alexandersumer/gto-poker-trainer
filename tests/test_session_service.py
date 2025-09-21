@@ -2,9 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from gto_trainer.application import ChoiceResult, NodeResponse, SessionConfig, SessionManager
-from gto_trainer.application.session_service import _ensure_active_node, _ensure_options
 from gto_trainer.core.models import Option
+from gto_trainer.features.session import (
+    ChoiceResult,
+    NodeResponse,
+    SessionConfig,
+    SessionManager,
+    service as session_service,
+)
+from gto_trainer.features.session.service import _ensure_active_node, _ensure_options
 
 
 def test_session_manager_basic_flow():
@@ -91,8 +97,8 @@ def test_invalid_session_errors():
 
 
 def test_summary_scoring_matches_decision_scores():
-    from gto_trainer.application.session_service import _summary_payload
     from gto_trainer.core.scoring import decision_score
+    from gto_trainer.features.session.service import _summary_payload
 
     records = [
         {
@@ -138,7 +144,7 @@ def test_summary_scoring_matches_decision_scores():
 
 
 def test_summary_counts_unique_hands():
-    from gto_trainer.application.session_service import _summary_payload
+    from gto_trainer.features.session.service import _summary_payload
 
     records = [
         {
@@ -189,10 +195,7 @@ def test_option_cache_returns_defensive_copies(monkeypatch: pytest.MonkeyPatch):
     def fake_options_for(_node, _rng, _mc_trials):
         return shared_options
 
-    monkeypatch.setattr(
-        "gto_trainer.application.session_service.options_for",
-        fake_options_for,
-    )
+    monkeypatch.setattr(session_service, "options_for", fake_options_for)
 
     first = _ensure_options(state, node)
     assert first[0].why == "orig"

@@ -3,6 +3,8 @@ services:
     name: gto-trainer
     runtime: docker
     dockerfilePath: ./Dockerfile
+    dockerContext: .
+    rootDir: .
     plan: free
     autoDeploy: true
     envVars:

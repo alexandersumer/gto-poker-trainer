@@ -10,8 +10,8 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from ..dynamic.generator import Episode, generate_episode
-from ..dynamic.seating import SeatAssignment, SeatRotation
+from ...dynamic.generator import Episode, generate_episode
+from ...dynamic.seating import SeatAssignment, SeatRotation
 
 
 @dataclass
