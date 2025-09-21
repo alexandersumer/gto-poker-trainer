@@ -10,10 +10,8 @@ aligned so that every subsystem reasons about combo quality the same way.
 
 from __future__ import annotations
 
-from typing import Tuple
 
-
-def combo_playability_score(combo: Tuple[int, int]) -> float:
+def combo_playability_score(combo: tuple[int, int]) -> float:
     """Return a deterministic strength metric for two hole cards.
 
     The base formulation follows classic rank ordering used across the

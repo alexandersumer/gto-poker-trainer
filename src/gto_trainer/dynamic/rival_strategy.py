@@ -15,7 +15,6 @@ from dataclasses import dataclass
 
 # The profile dictionary stored on Option.meta uses only standard Python
 # container types (lists/dicts) so it can be copied or serialised in tests.
-
 from .hand_strength import combo_playability_score
 
 

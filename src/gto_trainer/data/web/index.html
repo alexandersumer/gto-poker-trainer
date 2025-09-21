@@ -76,10 +76,16 @@
         --progress: #1D4ED8;
         --card-face: #FAFBFE;
         --card-edge: #DEE4EE;
-        --suit-spade: #1F2737;
-        --suit-heart: #c33f55;
-        --suit-club: #2d8f62;
-        --suit-diamond: #2d6fe0;
+        --card-surface: color-mix(in srgb, var(--surface-1) 94%, white 6%);
+        --card-outline: color-mix(in srgb, var(--card-edge) 80%, transparent);
+        --card-elevation: 0 14px 32px -18px rgba(15, 23, 42, 0.38), 0 6px 14px -8px rgba(15, 23, 42, 0.18);
+        --card-rank: color-mix(in srgb, var(--text-primary) 94%, white 6%);
+        --card-placeholder-surface: color-mix(in srgb, var(--surface-1) 92%, var(--muted-bg) 8%);
+        --card-placeholder-outline: color-mix(in srgb, var(--outline) 78%, transparent);
+        --suit-spade: color-mix(in srgb, var(--card-rank) 72%, #243049 28%);
+        --suit-heart: color-mix(in srgb, #E65578 66%, var(--card-rank) 34%);
+        --suit-club: color-mix(in srgb, #2F9B6D 62%, var(--card-rank) 38%);
+        --suit-diamond: color-mix(in srgb, #2F7AE0 62%, var(--card-rank) 38%);
         --action-neutral-text: #33415d;
         --action-neutral-bg: #edf2fb;
         --action-neutral-border: #d7e1f4;
@@ -157,10 +163,16 @@
         --progress: #1D4ED8;
         --card-face: #E9EDF5;
         --card-edge: #D1DAE6;
-        --suit-spade: #273347;
-        --suit-heart: #d24a5f;
-        --suit-club: #2c9a6d;
-        --suit-diamond: #2d6fe6;
+        --card-surface: color-mix(in srgb, var(--surface-3) 60%, var(--surface-2) 40%);
+        --card-outline: color-mix(in srgb, var(--outline) 86%, transparent);
+        --card-elevation: 0 20px 40px -24px rgba(7, 11, 16, 0.6), 0 10px 22px -14px rgba(7, 11, 16, 0.32);
+        --card-rank: color-mix(in srgb, #F8FAFC 94%, var(--text-primary) 6%);
+        --card-placeholder-surface: color-mix(in srgb, var(--surface-2) 68%, var(--surface-3) 32%);
+        --card-placeholder-outline: color-mix(in srgb, var(--outline) 65%, transparent);
+        --suit-spade: color-mix(in srgb, var(--card-rank) 68%, #4C5C78 32%);
+        --suit-heart: color-mix(in srgb, var(--card-rank) 42%, #FF7A94 58%);
+        --suit-club: color-mix(in srgb, var(--card-rank) 44%, #4AC690 56%);
+        --suit-diamond: color-mix(in srgb, var(--card-rank) 44%, #6FA8FF 56%);
         --action-neutral-text: #E5E7EB;
         --action-neutral-bg: #374151;
         --action-neutral-border: #4B5563;
@@ -247,29 +259,42 @@
         align-items: baseline;
         justify-content: center;
         border-radius: var(--radius-md);
-        border: 1px solid var(--card-edge);
+        border: 1px solid var(--card-outline);
         padding: 0.42rem 0.7rem;
         font-size: clamp(1.3rem, 3.6vw, 1.66rem);
         font-weight: 700;
         letter-spacing: 0.18px;
         margin: 0 0.2rem 0.2rem 0;
-        background: color-mix(in srgb, var(--surface-1) 92%, white 8%);
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        background: var(--card-surface);
+        color: var(--card-rank);
+        box-shadow: var(--card-elevation);
+        transition: box-shadow 0.25s ease, transform 0.25s ease;
         line-height: 1.02;
+        --card-accent: var(--card-rank);
       }
       .poker-card {
         width: clamp(38px, 6.8vw, 56px);
         height: clamp(50px, 9.2vw, 64px);
         flex: 0 0 clamp(38px, 6.8vw, 56px);
       }
+      .card__rank {
+        color: inherit;
+      }
+      .card__suit {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 0.18em;
+        color: var(--card-accent);
+      }
       .card.placeholder {
-        color: color-mix(in srgb, var(--text-tertiary) 55%, transparent);
-        background: linear-gradient(135deg, var(--placeholder-base) 0%, color-mix(in srgb, var(--placeholder-base) 70%, white 30%) 100%);
-        border: 1px solid color-mix(in srgb, var(--placeholder-border) 85%, transparent);
+        color: color-mix(in srgb, var(--text-tertiary) 58%, transparent);
+        background: linear-gradient(135deg, var(--card-placeholder-surface) 0%, color-mix(in srgb, var(--card-placeholder-surface) 68%, var(--surface-1) 32%) 100%);
+        border: 1px solid var(--card-placeholder-outline);
         box-shadow: none;
         opacity: 0.95;
         position: relative;
         overflow: hidden;
+        --card-accent: color-mix(in srgb, var(--text-tertiary) 56%, transparent);
       }
       .card.placeholder.placeholder-loading::after {
         content: '';
@@ -303,18 +328,19 @@
       .density-compact .card.placeholder.placeholder-wide {
         padding-inline: 0.8rem;
       }
-      .card.s { color: var(--suit-spade); }
-      .card.c { color: var(--suit-club); }
-      .card.h { color: var(--suit-heart); }
-      .card.d { color: var(--suit-diamond); }
+      .card.s { --card-accent: var(--suit-spade); }
+      .card.c { --card-accent: var(--suit-club); }
+      .card.h { --card-accent: var(--suit-heart); }
+      .card.d { --card-accent: var(--suit-diamond); }
       :root[data-theme="dark"] .card {
-        background: color-mix(in srgb, var(--surface-2) 88%, transparent 12%);
-        border-color: color-mix(in srgb, var(--border) 85%, transparent);
-        box-shadow: none;
+        background: var(--card-surface);
+        border-color: var(--card-outline);
+        box-shadow: var(--card-elevation);
       }
       :root[data-theme="dark"] .card.placeholder {
-        background: color-mix(in srgb, var(--surface-2) 75%, transparent 25%);
-        border-color: color-mix(in srgb, var(--placeholder-border) 65%, transparent);
+        background: var(--card-placeholder-surface);
+        border-color: var(--card-placeholder-outline);
+        color: color-mix(in srgb, var(--text-secondary) 52%, transparent);
       }
 .glass {
         backdrop-filter: blur(18px);
@@ -1502,8 +1528,8 @@
       }
       .info-row {
         display: flex;
-        align-items: baseline;
-        gap: 12px;
+        align-items: center;
+        gap: 14px;
       }
       .info-label {
         font-size: 0.64rem;
@@ -1522,6 +1548,7 @@
         color: var(--text-primary);
         flex: 1 1 auto;
         min-width: 0;
+        align-items: center;
       }
       .info-cards .card {
         margin: 0;
@@ -1529,12 +1556,18 @@
       #hand,
       #board {
         flex-wrap: nowrap;
+        align-items: center;
+        gap: clamp(6px, 1.1vw, 14px);
+        padding: 4px 6px;
       }
       #board {
         overflow-x: auto;
+        overflow-y: visible;
         scrollbar-width: thin;
         -webkit-overflow-scrolling: touch;
-        padding-bottom: 2px;
+        padding-bottom: 8px;
+        scroll-padding-left: 6px;
+        scroll-padding-right: 6px;
       }
       #board::-webkit-scrollbar {
         height: 4px;
@@ -1546,7 +1579,7 @@
       @media (max-width: 480px) {
         .info-row {
           gap: 6px;
-          align-items: flex-start;
+          align-items: center;
         }
         .info-label {
           font-size: 0.66rem;
@@ -1559,6 +1592,7 @@
         #hand,
         #board {
           gap: 4px;
+          padding: 4px;
         }
         #hand .card,
         #board .card {
@@ -2288,7 +2322,7 @@
             if(!parsed) return '';
             const { rank, suit: suitCode } = parsed;
             const css = suit(suitCode);
-            return `<span class="card poker-card ${css}">${rank}${suitIcon(suitCode)}</span>`;
+            return `<span class="card poker-card ${css}"><span class="card__rank">${rank}</span><span class="card__suit">${suitIcon(suitCode)}</span></span>`;
           })
           .filter(Boolean)
           .join(' ');

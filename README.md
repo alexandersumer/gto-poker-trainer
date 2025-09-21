@@ -22,6 +22,16 @@ Common commands:
 - `uv run ruff check .`
 - `uv run ruff format .`
 
+## Git hooks
+
+Configure Git to use the repo-managed hooks so staged Python files are auto-formatted before every commit:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The pre-commit hook runs `uv run ruff format` on staged files and re-adds any changes, ensuring local commits match CI formatting.
+
 ## Install & run (CLI)
 
 ```bash

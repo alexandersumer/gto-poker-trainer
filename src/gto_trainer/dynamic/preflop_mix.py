@@ -8,9 +8,9 @@ professional-grade charts without requiring bundled proprietary solves.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Iterable, Mapping
 
 from .cards import fresh_deck
 from .hand_strength import combo_playability_score
@@ -121,7 +121,11 @@ def _blend_profiles(low: DefenseProfile, high: DefenseProfile, t: float) -> Defe
 def _profile_for_open(open_size: float) -> DefenseProfile:
     if open_size <= _PROFILE_ANCHORS[0][0]:
         return _PROFILE_ANCHORS[0][1]
-    for (lo_x, lo_prof), (hi_x, hi_prof) in zip(_PROFILE_ANCHORS, _PROFILE_ANCHORS[1:]):
+    for (lo_x, lo_prof), (hi_x, hi_prof) in zip(
+        _PROFILE_ANCHORS,
+        _PROFILE_ANCHORS[1:],
+        strict=False,
+    ):
         if open_size <= hi_x:
             span = hi_x - lo_x
             t = 0.0 if span <= 0 else (open_size - lo_x) / span

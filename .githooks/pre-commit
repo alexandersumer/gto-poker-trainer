@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if ! command -v uv >/dev/null 2>&1; then
+  echo "[pre-commit] Missing 'uv'. Install via 'pip install uv' or see https://docs.astral.sh/uv/" >&2
+  exit 1
+fi
+
+# Collect staged Python files.
+files=()
+while IFS= read -r -d '' path; do
+  files+=("$path")
+done < <(git diff --cached --name-only --diff-filter=ACM -z -- '*.py')
+
+if (( ${#files[@]} == 0 )); then
+  exit 0
+fi
+
+echo "[pre-commit] Running Ruff formatter via uv on staged Python files..."
+uv run -- ruff format "${files[@]}"
+
+# Re-stage potentially updated files so they are included in the commit.
+git add -- "${files[@]}"
+
+echo "[pre-commit] Ruff formatting applied and staged."

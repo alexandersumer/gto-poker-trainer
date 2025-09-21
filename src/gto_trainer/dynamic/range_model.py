@@ -82,7 +82,11 @@ def _interpolate_profile(value: float, profiles: list[tuple[float, RangeProfile]
         return RangeProfile(percent=0.5)
     if value <= profiles[0][0]:
         return profiles[0][1]
-    for (lo_x, lo_prof), (hi_x, hi_prof) in zip(profiles, profiles[1:]):
+    for (lo_x, lo_prof), (hi_x, hi_prof) in zip(
+        profiles,
+        profiles[1:],
+        strict=False,
+    ):
         if value <= hi_x:
             span = hi_x - lo_x
             if span <= 0:
