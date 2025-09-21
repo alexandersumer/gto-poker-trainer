@@ -7,13 +7,13 @@ name = "gto-trainer"
 version = "0.1.0"
 description = "GTO Trainer (multi-street trainer with web UI)"
 readme = "README.md"
-requires-python = "==3.12.11"
+requires-python = "==3.13.5"
 authors = [{ name = "Your Name" }]
 license = { text = "Proprietary" }
 keywords = ["poker", "gto", "trainer", "web"]
 classifiers = [
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "License :: Other/Proprietary License",
   "Environment :: Web Environment",
   "Topic :: Games/Entertainment",
@@ -41,7 +41,12 @@ dev = [
   "httpx>=0.27",
   "uvicorn>=0.35.0",
   "playwright>=1.55.0",
+  "Cython>=3.0",
+  "setuptools>=70",
 ]
+
+[tool.uv.extra-build-dependencies]
+eval7 = ["Cython>=3.0"]
 
 
 

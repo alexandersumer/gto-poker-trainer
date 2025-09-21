@@ -1,10 +1,10 @@
 # Run project automation through uv for consistent environments.
 UV_RUN := uv run --no-config --locked --extra dev --
-UV_SYNC := uv sync --no-config --locked --extra dev
+UV_SYNC := uv sync --no-config --locked --extra dev --no-build-isolation-package eval7
 
 .PHONY: ensure-python
 ensure-python:
-	@$(UV_RUN) python -c "import sys; version = sys.version.split()[0]; expected = '3.12.11'; assert version == expected, f'Expected {expected}, got {version}'; print(f'Using Python {version}')"
+	@$(UV_RUN) python -c "import sys; version = sys.version.split()[0]; expected = '3.13.5'; assert version == expected, f'Expected {expected}, got {version}'; print(f'Using Python {version}')"
 
 .PHONY: venv install-dev test lint fix format check render-smoke clean
 

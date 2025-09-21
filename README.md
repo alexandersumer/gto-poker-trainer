@@ -14,7 +14,7 @@ Heads-up no-limit hold’em trainer delivered through a FastAPI web UI. The engi
 
 ## Requirements
 
-- Python 3.12.11 (matches CI; managed via `pyenv` or similar).
+- Python 3.13.5 (matches CI; managed via `pyenv` or similar).
 - [uv](https://docs.astral.sh/uv/) for dependency management.
 
 ## Quick Start
@@ -25,7 +25,7 @@ Heads-up no-limit hold’em trainer delivered through a FastAPI web UI. The engi
    ```
 2. Sync dependencies with dev extras.
    ```bash
-   uv sync --no-config --locked --extra dev
+   uv sync --no-config --locked --extra dev --no-build-isolation-package eval7
    ```
 3. Run the full CI-equivalent suite.
    ```bash
