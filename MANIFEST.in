@@ -1,2 +1,2 @@
-recursive-include src/gto_trainer/data *
-recursive-include src/gto_trainer/web/templates *
+recursive-include src/gtotrainer/data *
+recursive-include src/gtotrainer/web/templates *

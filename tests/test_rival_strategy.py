@@ -4,7 +4,7 @@ import random
 
 import pytest
 
-from gto_trainer.dynamic import rival_strategy as vs
+from gtotrainer.dynamic import rival_strategy as vs
 
 
 def _sample_profile() -> dict:

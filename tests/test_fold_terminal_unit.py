@@ -3,10 +3,10 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from gto_trainer.core.engine_core import run_core
-from gto_trainer.core.interfaces import EpisodeGenerator, OptionProvider, Presenter
-from gto_trainer.core.models import Option, OptionResolution
-from gto_trainer.dynamic.generator import Episode, Node
+from gtotrainer.core.engine_core import run_core
+from gtotrainer.core.interfaces import EpisodeGenerator, OptionProvider, Presenter
+from gtotrainer.core.models import Option, OptionResolution
+from gtotrainer.dynamic.generator import Episode, Node
 
 
 @dataclass

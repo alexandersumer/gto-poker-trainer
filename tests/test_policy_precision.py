@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from gto_trainer.dynamic import policy as pol
+from gtotrainer.dynamic import policy as pol
 
 
 def test_precision_for_street_scales_trials():

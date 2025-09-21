@@ -4,7 +4,7 @@ import json
 
 from fastapi.testclient import TestClient
 
-from gto_trainer.web.app import app
+from gtotrainer.web.app import app
 
 
 def test_web_endpoints_session_flow():
@@ -13,7 +13,7 @@ def test_web_endpoints_session_flow():
     assert r.status_code == 200
     r = client.get("/")
     assert r.status_code == 200
-    assert "GTO Trainer" in r.text
+    assert "gtotrainer" in r.text
     assert "card poker-card placeholder" in r.text
     assert "width: clamp(38px, 6.8vw, 56px)" in r.text
     assert "data-summary-score" in r.text

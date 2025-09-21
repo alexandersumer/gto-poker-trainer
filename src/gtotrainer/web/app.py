@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from ..features.session import SessionManager
 from ..features.session.router import create_session_routers
 
-app = FastAPI(title="GTO Trainer")
+app = FastAPI(title="gtotrainer")
 _templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 _manager = SessionManager()
 
@@ -28,10 +28,10 @@ def healthz() -> dict[str, str]:
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
     try:
-        data_dir = resources.files("gto_trainer.data")
+        data_dir = resources.files("gtotrainer.data")
         return (data_dir / "web" / "index.html").read_text(encoding="utf-8")
     except Exception as exc:  # pragma: no cover - packaging edge
-        return f"<html><body><h1>GTO Trainer</h1><p>Failed to load UI: {exc}</p></body></html>"
+        return f"<html><body><h1>gtotrainer</h1><p>Failed to load UI: {exc}</p></body></html>"
 
 
 def main() -> None:  # pragma: no cover - runner

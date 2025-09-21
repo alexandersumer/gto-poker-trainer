@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-WEB_INDEX = REPO_ROOT / "src" / "gto_trainer" / "data" / "web" / "index.html"
+WEB_INDEX = REPO_ROOT / "src" / "gtotrainer" / "data" / "web" / "index.html"
 
 
 def _extract_classifier() -> str:

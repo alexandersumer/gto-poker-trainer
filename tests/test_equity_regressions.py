@@ -5,8 +5,8 @@ from itertools import combinations
 import eval7
 import pytest
 
-from gto_trainer.dynamic.cards import card_int_to_str, str_to_int
-from gto_trainer.dynamic.equity import hero_equity_vs_combo, hero_equity_vs_range
+from gtotrainer.dynamic.cards import card_int_to_str, str_to_int
+from gtotrainer.dynamic.equity import hero_equity_vs_combo, hero_equity_vs_range
 
 
 def _eval7_exact(hero: list[int], board: list[int], rival: tuple[int, int]) -> float:

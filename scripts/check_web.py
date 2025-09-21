@@ -26,7 +26,7 @@ def main() -> int:
         return 3
 
     python_cmd = shlex.quote(sys.executable)
-    command = f"{python_cmd} -m gto_trainer.ui.textual_main --hands 1 --mc 5"
+    command = f"{python_cmd} -m gtotrainer.ui.textual_main --hands 1 --mc 5"
 
     launcher = "\n".join(
         [
@@ -35,7 +35,7 @@ def main() -> int:
             f"    command={command!r},",
             "    host='127.0.0.1',",
             f"    port={port},",
-            "    title='GTO Trainer',",
+            "    title='gtotrainer',",
             "    public_url=None,",
             ")",
             "server.serve()",

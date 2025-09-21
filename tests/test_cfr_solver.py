@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from gto_trainer.core.models import Option
-from gto_trainer.dynamic.cfr import LocalCFRBackend, LocalCFRConfig
+from gtotrainer.core.models import Option
+from gtotrainer.dynamic.cfr import LocalCFRBackend, LocalCFRConfig
 
 
 def _option(key: str, fold_ev: float, continue_ev: float) -> Option:

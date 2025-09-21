@@ -4,9 +4,9 @@ import random
 
 import pytest
 
-from gto_trainer.dynamic.generator import EpisodeBuilder
-from gto_trainer.dynamic.policy import resolve_for, river_options, turn_options
-from gto_trainer.dynamic.seating import BB, SB, SeatAssignment
+from gtotrainer.dynamic.generator import EpisodeBuilder
+from gtotrainer.dynamic.policy import resolve_for, river_options, turn_options
+from gtotrainer.dynamic.seating import BB, SB, SeatAssignment
 
 
 def _build_episode(seed: int, style: str = "balanced") -> tuple[EpisodeBuilder, object]:

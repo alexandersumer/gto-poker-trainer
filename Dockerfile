@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.13.5-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -14,4 +14,4 @@ RUN python -m pip install -U pip \
 EXPOSE 8000
 
 # Run FastAPI web app (no Textual dependency for serving).
-CMD ["python","-m","gto_trainer.web.app"]
+CMD ["python","-m","gtotrainer.web.app"]

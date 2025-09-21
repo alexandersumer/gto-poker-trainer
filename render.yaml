@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: gto-trainer
+    name: gtotrainer
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .

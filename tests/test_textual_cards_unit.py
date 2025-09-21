@@ -6,8 +6,8 @@ import pytest
 
 pytest.importorskip("textual")
 
-from gto_trainer.dynamic.episode import Node
-from gto_trainer.ui.textual_app import TrainerApp
+from gtotrainer.dynamic.episode import Node
+from gtotrainer.ui.textual_app import TrainerApp
 
 
 def _split_rows(board_markup: str) -> tuple[str, str]:

@@ -3,11 +3,11 @@ from __future__ import annotations
 import random
 from time import perf_counter
 
-from gto_trainer.core.engine_core import run_core
-from gto_trainer.core.interfaces import EpisodeGenerator, OptionProvider, Presenter
-from gto_trainer.core.models import Option, OptionResolution
-from gto_trainer.dynamic.generator import Episode, Node, generate_episode
-from gto_trainer.dynamic.policy import options_for, resolve_for
+from gtotrainer.core.engine_core import run_core
+from gtotrainer.core.interfaces import EpisodeGenerator, OptionProvider, Presenter
+from gtotrainer.core.models import Option, OptionResolution
+from gtotrainer.dynamic.generator import Episode, Node, generate_episode
+from gtotrainer.dynamic.policy import options_for, resolve_for
 
 
 class _QuickGenerator(EpisodeGenerator):

@@ -24,7 +24,7 @@ def _run_server() -> Iterator[str]:
     env["PYTHONPATH"] = f"{src_path}{os.pathsep}{existing}" if existing else str(src_path)
 
     proc = subprocess.Popen(  # noqa: S603 - trusted command
-        [sys.executable, "-m", "uvicorn", "gto_trainer.web.app:app"],
+        [sys.executable, "-m", "uvicorn", "gtotrainer.web.app:app"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

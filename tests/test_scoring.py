@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from gto_trainer.core import scoring
+from gtotrainer.core import scoring
 
 
 def test_decision_score_respects_dynamic_noise_floor():

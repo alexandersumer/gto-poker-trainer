@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import random
 
-from gto_trainer.dynamic import equity as eq
-from gto_trainer.dynamic.cards import str_to_int
-from gto_trainer.dynamic.equity import estimate_equity, hero_equity_vs_combo
+from gtotrainer.dynamic import equity as eq
+from gtotrainer.dynamic.cards import str_to_int
+from gtotrainer.dynamic.equity import estimate_equity, hero_equity_vs_combo
 
 
 def test_equity_royal_flush_with_hero_cards_is_certain_win():

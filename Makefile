@@ -4,7 +4,7 @@ UV_SYNC := uv sync --no-config --locked --extra dev --no-build-isolation-package
 
 .PHONY: ensure-python
 ensure-python:
-	@$(UV_RUN) python -c "import sys; major, minor, patch = sys.version_info[:3]; assert (major, minor) == (3, 13) and patch >= 5, 'Expected Python 3.13.5+, got %s' % sys.version.split()[0]; print(f'Using Python {sys.version.split()[0]}')"
+	@$(UV_RUN) python -c "import sys; version = sys.version.split()[0]; expected = '3.13.5'; assert version == expected, f'Expected {expected}, got {version}'; print(f'Using Python {version}')"
 
 .PHONY: venv install-dev test lint fix format check render-smoke clean
 

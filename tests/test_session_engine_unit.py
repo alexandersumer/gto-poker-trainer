@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import random
 
-from gto_trainer.dynamic.seating import SeatRotation
-from gto_trainer.features.session.engine import SessionEngine
+from gtotrainer.dynamic.seating import SeatRotation
+from gtotrainer.features.session.engine import SessionEngine
 
 
 def test_session_engine_alternates_seats():

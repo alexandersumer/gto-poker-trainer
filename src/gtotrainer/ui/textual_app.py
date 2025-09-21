@@ -291,7 +291,7 @@ class _TextualPresenter(Presenter):
 
 
 class TrainerApp(App[None]):
-    TITLE = "GTO Trainer"
+    TITLE = "gtotrainer"
     SUB_TITLE = "Solver-calibrated drills for every street"
     BINDINGS = [
         ("ctrl+n", "new_session", "Start Fresh Hand"),
@@ -427,7 +427,7 @@ class TrainerApp(App[None]):
         if stats:
             fragments.append(stats)
         if not fragments:
-            return "[b #1b2d55]GTO Trainer[/]"
+            return "[b #1b2d55]gtotrainer[/]"
         return "  [dim]•[/]  ".join(fragments)
 
     def _build_headline(self, node: Node) -> str:
@@ -437,7 +437,7 @@ class TrainerApp(App[None]):
     def compose(self) -> ComposeResult:  # type: ignore[override]
         yield Header(show_clock=False)
         with Container(classes="section", id="info"):
-            yield Label("GTO Trainer", id="title")
+            yield Label("gtotrainer", id="title")
             yield Static("Sharpen your instincts with solver-backed drills.", id="tagline")
             yield Static("We're dealing your first scenario…", id="session-status")
             with Horizontal(id="headline-row"):
@@ -477,7 +477,7 @@ class TrainerApp(App[None]):
         self._feedback_panel = self.query_one("#feedback", Static)
 
         if self._title_label:
-            self._title_label.update("[b #111a33]GTO Trainer[/]")
+            self._title_label.update("[b #111a33]gtotrainer[/]")
         if self._tagline_panel:
             self._tagline_panel.update("[#3c4f86]Sharpen your instincts with solver-backed drills.[/]")
         if self._status_panel:

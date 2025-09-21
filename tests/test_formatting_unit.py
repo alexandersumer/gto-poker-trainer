@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from gto_trainer.core.formatting import _fmt_pct, format_option_label
-from gto_trainer.core.models import Option
-from gto_trainer.dynamic.generator import Node
+from gtotrainer.core.formatting import _fmt_pct, format_option_label
+from gtotrainer.core.models import Option
+from gtotrainer.dynamic.generator import Node
 
 
 def _node(*, pot: float = 8.0, street: str = "flop") -> Node:

@@ -6,7 +6,7 @@ from .textual_app import run_textual
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(prog="gto-trainer-textual", description="Textual UI for GTO Trainer")
+    p = argparse.ArgumentParser(prog="gtotrainer-textual", description="Textual UI for gtotrainer")
     p.add_argument("--hands", type=int, default=1, help="Hands per session")
     p.add_argument(
         "--mc",

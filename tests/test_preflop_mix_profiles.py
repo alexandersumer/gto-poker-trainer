@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import pytest
 
-from gto_trainer.dynamic import cards, preflop_mix
+from gtotrainer.dynamic import cards, preflop_mix
 
 
 def _combo(hand: str) -> tuple[int, int]:

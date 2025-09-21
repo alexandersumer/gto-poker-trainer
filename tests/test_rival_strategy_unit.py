@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 
-from gto_trainer.dynamic import rival_strategy as vs
+from gtotrainer.dynamic import rival_strategy as vs
 
 
 def test_build_profile_returns_expected_structure() -> None:

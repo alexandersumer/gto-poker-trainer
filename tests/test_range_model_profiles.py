@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from gto_trainer.dynamic import cards, hand_strength, range_model
+from gtotrainer.dynamic import cards, hand_strength, range_model
 
 
 def _combo(hand: str) -> tuple[int, int]:

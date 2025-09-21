@@ -4,10 +4,10 @@ import random
 
 import pytest
 
-from gto_trainer.core.models import Option
-from gto_trainer.dynamic.cards import str_to_int
-from gto_trainer.dynamic.generator import Node, generate_episode
-from gto_trainer.dynamic.policy import (
+from gtotrainer.core.models import Option
+from gtotrainer.dynamic.cards import str_to_int
+from gtotrainer.dynamic.generator import Node, generate_episode
+from gtotrainer.dynamic.policy import (
     flop_options,
     options_for,
     preflop_options,

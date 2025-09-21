@@ -18,6 +18,11 @@ if [[ "${SKIP_PRECOMMIT_CI:-}" == "1" ]]; then
   exit 0
 fi
 
+# Ensure the lockfile matches the current pyproject before running heavier checks.
+UV_DEFAULT_INDEX=${UV_DEFAULT_INDEX:-https://pypi.org/simple}
+export UV_DEFAULT_INDEX
+uv sync --no-config --locked --extra dev --preview-features extra-build-dependencies
+
 # Helper to ensure we always execute within the uv-managed environment using the
 # dev dependency group. --locked keeps the lockfile unchanged for reproducible runs.
 uv_exec() {

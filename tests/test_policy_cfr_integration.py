@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import random
 
-from gto_trainer.dynamic.cards import str_to_int
-from gto_trainer.dynamic.generator import Node
-from gto_trainer.dynamic.policy import options_for
+from gtotrainer.dynamic.cards import str_to_int
+from gtotrainer.dynamic.generator import Node
+from gtotrainer.dynamic.policy import options_for
 
 
 def _sample_node() -> Node:

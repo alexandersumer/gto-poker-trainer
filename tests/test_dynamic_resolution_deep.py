@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import random
 
-import gto_trainer.dynamic.policy as pol
-from gto_trainer.dynamic.cards import str_to_int
-from gto_trainer.dynamic.generator import Node
-from gto_trainer.dynamic.policy import preflop_options, resolve_for, river_options, turn_options
-from gto_trainer.dynamic.rival_strategy import RivalDecision
+import gtotrainer.dynamic.policy as pol
+from gtotrainer.dynamic.cards import str_to_int
+from gtotrainer.dynamic.generator import Node
+from gtotrainer.dynamic.policy import preflop_options, resolve_for, river_options, turn_options
+from gtotrainer.dynamic.rival_strategy import RivalDecision
 
 
 def _make_hand_state(

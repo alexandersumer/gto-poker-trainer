@@ -1,4 +1,4 @@
-# GTO Trainer
+# gtotrainer
 
 Heads-up no-limit hold’em trainer delivered through a FastAPI web UI. The engine plays out full hands, evaluates every decision against the best available action, and reports EV loss so you can review mistakes.
 
@@ -14,7 +14,7 @@ Heads-up no-limit hold’em trainer delivered through a FastAPI web UI. The engi
 
 ## Requirements
 
-- Python 3.13.5+ (within the Python 3.13 line; managed via `pyenv` or similar).
+- Python 3.13.5 exactly (matches CI and container images; managed via `pyenv` or similar).
 - [uv](https://docs.astral.sh/uv/) for dependency management.
 
 ## Quick Start
@@ -73,7 +73,7 @@ Local development server:
 
 ```bash
 uv sync --no-config --locked --extra dev
-uv run --no-config --locked --extra dev -- uvicorn gto_trainer.web.app:app --reload
+uv run --no-config --locked --extra dev -- uvicorn gtotrainer.web.app:app --reload
 ```
 
 Environment variables:
@@ -81,7 +81,7 @@ Environment variables:
 - `HANDS` — default session size.
 - `MC` — Monte Carlo sample count.
 
-Live demo: [gto-trainer.onrender.com](https://gto-trainer.onrender.com/)
+Live demo: [gtotrainer.onrender.com](https://gtotrainer.onrender.com/)
 
 ### HTTP API
 
