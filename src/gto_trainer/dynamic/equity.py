@@ -8,7 +8,7 @@ from itertools import combinations
 
 from treys import Card, Evaluator
 
-from .cards import card_int_to_str
+from .cards import canonicalize_cards, card_int_to_str
 
 
 def estimate_equity(
@@ -63,10 +63,6 @@ def estimate_equity(
             ties += 1
 
     return (wins + 0.5 * ties) / max(1, trials)
-
-
-def _sorted_tuple(cards: Iterable[int]) -> tuple[int, ...]:
-    return tuple(sorted(cards))
 
 
 _EVALUATOR = Evaluator()
@@ -246,11 +242,9 @@ def hero_equity_vs_combo(
     *,
     target_std_error: float | None = None,
 ) -> float:
-    hero_t = _sorted_tuple(hero)
-    board_t = _sorted_tuple(board)
-    rival_t = _sorted_tuple(combo)
+    hero_canon, board_canon, rival_canon = canonicalize_cards(hero, board, combo)
     target = target_std_error if target_std_error and target_std_error > 0 else None
-    return _cached_equity(hero_t, board_t, rival_t, trials, target)
+    return _cached_equity(hero_canon, board_canon, rival_canon, trials, target)
 
 
 def hero_equity_vs_range(

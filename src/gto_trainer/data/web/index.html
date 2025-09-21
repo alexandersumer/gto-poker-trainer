@@ -1200,7 +1200,7 @@
       .summary-page {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
         flex: 1 0 auto;
       }
       .summary-page__header {
@@ -1243,18 +1243,18 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
       }
       .summary-hero {
         display: grid;
-        gap: 12px;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       }
       .summary-hero__metric {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        padding: 12px;
+        gap: 4px;
+        padding: 10px;
         border-radius: var(--radius-md);
         border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
         background: color-mix(in srgb, var(--surface-1) 92%, transparent);
@@ -1274,7 +1274,7 @@
       .summary-section {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
       }
       .summary-section__title {
         margin: 0;
@@ -1288,10 +1288,10 @@
         border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
         border-radius: var(--radius-md);
         background: color-mix(in srgb, var(--surface-1) 96%, transparent);
-        padding: 12px;
+        padding: 10px;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
       }
       .summary-card__label {
         font-size: 0.85rem;
@@ -1313,7 +1313,7 @@
       }
       .summary-last-hand__grid {
         display: grid;
-        gap: 8px;
+        gap: 6px;
       }
       .summary-last-hand__row {
         display: flex;
@@ -1393,7 +1393,7 @@
       }
       .summary-page__footer {
         margin-top: auto;
-        padding-top: 16px;
+        padding-top: 12px;
         display: flex;
         justify-content: center;
       }
@@ -1403,6 +1403,9 @@
       @media (min-width: 640px) {
         .summary-last-hand__grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .summary-hero {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
       #feedback-banner {
@@ -3638,7 +3641,7 @@
       };
 
       const classifyFeedback = ({ feedback, node, evLossRaw, lossMagnitude }) => {
-        const thresholds = {
+        const defaults = {
           nearOptimalPct: 0.25,
           inaccuracyPct: 1.0,
           blunderPct: 3.0,
@@ -3647,10 +3650,34 @@
         };
         const pot = typeof node?.pot_bb === 'number' ? Math.max(node.pot_bb, 0) : null;
         const effective = typeof node?.effective_bb === 'number' ? Math.max(node.effective_bb, 0) : null;
-        const baseForPct = pot && pot > 0 ? pot : effective && effective > 0 ? effective : null;
+        const bestEv = typeof feedback?.best?.ev === 'number' ? Math.abs(feedback.best.ev) : null;
+        const chosenEv = typeof feedback?.chosen?.ev === 'number' ? Math.abs(feedback.chosen.ev) : null;
+        let baseForPct = pot && pot > 0 ? pot : effective && effective > 0 ? effective : null;
+        if(!baseForPct){
+          baseForPct = Math.max(bestEv || 0, chosenEv || 0) || null;
+        }
+        let nearOptimalPct = defaults.nearOptimalPct;
+        let inaccuracyPct = defaults.inaccuracyPct;
         const evLossPct = typeof lossMagnitude === 'number' && baseForPct ? (lossMagnitude / baseForPct) * 100 : null;
         const gtoFreqRaw = typeof feedback?.chosen?.gto_freq === 'number' ? feedback.chosen.gto_freq : null;
         const gtoFreqPct = gtoFreqRaw != null ? Math.max(0, gtoFreqRaw) * 100 : null;
+
+        if(baseForPct){
+          const noiseFloorEv = Math.max(0.02, 0.0025 * baseForPct);
+          const noiseFloorPct = (noiseFloorEv / baseForPct) * 100;
+          if(Number.isFinite(noiseFloorPct)){
+            nearOptimalPct = Math.max(nearOptimalPct, noiseFloorPct);
+            inaccuracyPct = Math.max(inaccuracyPct, nearOptimalPct + 0.5);
+          }
+        }
+
+        const thresholds = {
+          nearOptimalPct,
+          inaccuracyPct,
+          blunderPct: defaults.blunderPct,
+          blunderBb: defaults.blunderBb,
+          lowFreqPct: defaults.lowFreqPct,
+        };
 
         if(typeof evLossRaw !== 'number'){
           return {

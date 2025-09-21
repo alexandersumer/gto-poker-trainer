@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 RANKS = "23456789TJQKA"
@@ -88,3 +89,54 @@ def canonical_hand_abbrev(cards: list[int]) -> str:
         return r1 + r2
     suited = s1 == s2
     return f"{r1}{r2}{'s' if suited else 'o'}"
+
+
+def _canonical_suit_order(cards: Sequence[int]) -> list[int]:
+    """Return suits in deterministic priority for canonical remapping."""
+
+    ordered: list[int] = []
+    # Highest rank first; break ties by suit index to keep ordering stable.
+    indices = sorted(range(len(cards)), key=lambda i: (cards[i] // 4, cards[i] % 4), reverse=True)
+    for idx in indices:
+        suit = cards[idx] % 4
+        if suit not in ordered:
+            ordered.append(suit)
+    return ordered
+
+
+def canonicalize_cards(
+    hero: Iterable[int],
+    board: Iterable[int],
+    extra: Iterable[int] | None = None,
+) -> tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]]:
+    """Canonicalise suits across hero + board (+ optional extra) for caching.
+
+    Cards that are suit-isomorphic map to the same canonical tuples, letting
+    downstream caching reuse expensive equity evaluations.
+    Returns canonicalised `(hero, board, extra)` tuples sorted ascending.
+    """
+
+    hero_list = list(hero)
+    board_list = list(board)
+    extra_list = list(extra or [])
+
+    combined = hero_list + board_list + extra_list
+    if not combined:
+        return (), (), ()
+
+    suit_order = _canonical_suit_order(combined)
+    suit_map = {suit: idx for idx, suit in enumerate(suit_order)}
+
+    def _remap(card: int) -> int:
+        rank = card // 4
+        suit = card % 4
+        mapped = suit_map.setdefault(suit, len(suit_map))
+        if mapped >= 4:
+            raise ValueError("Canonicalisation assigned invalid suit index")
+        return rank * 4 + mapped
+
+    hero_canon = tuple(sorted(_remap(card) for card in hero_list))
+    board_canon = tuple(sorted(_remap(card) for card in board_list))
+    extra_canon = tuple(sorted(_remap(card) for card in extra_list))
+
+    return hero_canon, board_canon, extra_canon

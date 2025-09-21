@@ -66,3 +66,28 @@ def test_adaptive_monte_carlo_is_deterministic():
     first = hero_equity_vs_combo(hero, [], rival, trials=150)
     second = hero_equity_vs_combo(hero, [], rival, trials=150)
     assert first == second
+
+
+def test_canonical_equity_cache_hits_on_isomorphic_inputs():
+    hero_a = [str_to_int("As"), str_to_int("Kd")]
+    board_a = [str_to_int(x) for x in ["Qs", "Jh", "2d", "7c"]]
+    rival_a = (str_to_int("9c"), str_to_int("8s"))
+
+    suit_rot = {"s": "h", "h": "d", "d": "c", "c": "s"}
+
+    def _map(card: str) -> str:
+        return card[0] + suit_rot[card[1]]
+
+    hero_b = [str_to_int(_map("As")), str_to_int(_map("Kd"))]
+    board_b = [str_to_int(_map(x)) for x in ["Qs", "Jh", "2d", "7c"]]
+    rival_b = (str_to_int(_map("9c")), str_to_int(_map("8s")))
+
+    eq._cached_equity.cache_clear()
+    first = hero_equity_vs_combo(hero_a, board_a, rival_a, trials=120)
+    info_after_first = eq._cached_equity.cache_info()
+
+    second = hero_equity_vs_combo(hero_b, board_b, rival_b, trials=120)
+    info_after_second = eq._cached_equity.cache_info()
+
+    assert abs(first - second) < 1e-9
+    assert info_after_second.hits >= info_after_first.hits + 1

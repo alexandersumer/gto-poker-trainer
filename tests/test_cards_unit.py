@@ -6,6 +6,7 @@ from gto_trainer.dynamic.cards import (
     RANKS,
     SUITS,
     canonical_hand_abbrev,
+    canonicalize_cards,
     card_int_to_str,
     deal_hand_and_board,
     deal_unique,
@@ -63,3 +64,34 @@ def test_deal_unique_and_deal_hand_and_board_no_collisions():
     all_cards = d.hero + d.rival + d.board
     assert len(all_cards) == 2 + 2 + 5
     assert len(set(all_cards)) == len(all_cards)
+
+
+def test_canonicalize_cards_matches_suit_isomorphisms():
+    hero_a = [str_to_int("As"), str_to_int("Kd")]
+    board_a = [str_to_int(x) for x in ["Qs", "Jh", "2d"]]
+
+    suit_rot = {"s": "h", "h": "d", "d": "c", "c": "s"}
+
+    def _map(card: str) -> str:
+        return card[0] + suit_rot[card[1]]
+
+    hero_b = [str_to_int(_map("As")), str_to_int(_map("Kd"))]
+    board_b = [str_to_int(_map(x)) for x in ["Qs", "Jh", "2d"]]
+
+    canon_a = canonicalize_cards(hero_a, board_a)
+    canon_b = canonicalize_cards(hero_b, board_b)
+
+    assert canon_a[0] == canon_b[0]
+    assert canon_a[1] == canon_b[1]
+
+
+def test_canonicalize_cards_rejects_duplicates():
+    hero = [str_to_int("As"), str_to_int("Kd")]
+    board = [str_to_int("Qs"), str_to_int("Jh"), str_to_int("2d")]
+
+    # Construct extra that would collide if canonicalisation reused suits incorrectly.
+    extra = [str_to_int("Ad"), str_to_int("Kc")]
+
+    hero_c, board_c, extra_c = canonicalize_cards(hero, board, extra)
+    combined = set(hero_c + board_c + extra_c)
+    assert len(combined) == len(hero_c) + len(board_c) + len(extra_c)
