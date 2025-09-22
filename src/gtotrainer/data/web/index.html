@@ -3419,7 +3419,15 @@
 
         const facingState = (node?.context?.facing || '').toString().toLowerCase();
         const contextBet = typeof node?.context?.bet === 'number' ? node.context.bet : null;
-        const isFacingBet = facingState === 'bet' || (contextBet !== null && Number.isFinite(contextBet) && contextBet > 0);
+        const contextSignalsBet = contextBet !== null && Number.isFinite(contextBet) && contextBet > 0;
+        const hasCall = Boolean(callOpt);
+        const hasCheck = Boolean(checkOpt);
+        let isFacingBet = facingState === 'bet' || contextSignalsBet;
+        if(hasCheck){
+          isFacingBet = false;
+        } else if(hasCall){
+          isFacingBet = true;
+        }
         const passiveOpt = isFacingBet ? (callOpt || null) : (checkOpt || callOpt);
 
         const used = new Set([foldOpt, passiveOpt, jamOpt].filter(Boolean));

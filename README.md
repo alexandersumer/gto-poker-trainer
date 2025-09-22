@@ -113,4 +113,4 @@ uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh
 
 ## License
 
-Proprietary (see `pyproject.toml`).
+Distributed under the terms of the [GNU Affero General Public License v3.0](LICENSE).
