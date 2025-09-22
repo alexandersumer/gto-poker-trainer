@@ -40,6 +40,7 @@
         --layout-bet-jam-offset: 10px;
         --layout-size-chip-gap: 12px;
         --layout-size-chip-padding: 12px;
+        --status-label-width: clamp(3.6rem, 22vw, 5.1rem);
       }
 
       /* Light palette (default) */
@@ -1109,7 +1110,9 @@
       .status-line .status-label {
         color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
         font-weight: 600;
-        min-width: 2.6rem;
+        flex: 0 0 var(--status-label-width);
+        min-width: var(--status-label-width);
+        max-width: var(--status-label-width);
         text-transform: uppercase;
         letter-spacing: 0.08em;
         font-size: 0.75rem;
