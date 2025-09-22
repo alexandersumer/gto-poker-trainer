@@ -3380,7 +3380,7 @@
           btn.type = 'button';
           btn.className = `action-button ${variant}`;
           btn.dataset.slot = slotKey;
-          if(descriptor?.action === 'call'){
+          if(descriptor?.action === 'call' || descriptor?.action === 'check'){
             btn.classList.add('action-call');
           }
           const { label, meta } = makeLabelMeta(descriptor, override);
