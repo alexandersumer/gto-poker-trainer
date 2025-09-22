@@ -4499,17 +4499,7 @@
           summaryEvDeltaEl.classList.toggle('is-negative', deltaEv < 0);
         }
         if(summaryEvMetaEl){
-          const parts = [];
-          if(s.hands){
-            parts.push(`${s.hands} ${s.hands === 1 ? 'hand' : 'hands'}`);
-          }
-          if(summaryEvLost !== 0 || s.hands){
-            parts.push(`Avg / hand ${formatSignedBb(avgDelta)}`);
-          }
-          if(totalDecisions){
-            parts.push(`${hitsDisplay} best choices`);
-          }
-          summaryEvMetaEl.textContent = parts.join(' · ');
+          summaryEvMetaEl.textContent = summaryEvLost !== 0 || s.hands ? `Avg / hand ${formatSignedBb(avgDelta)}` : '';
         }
 
         if(summaryHistoryList){
