@@ -493,6 +493,7 @@ def _rebuild_turn_node(hand_state: dict[str, Any], pot: float) -> None:
     turn_node.effective_bb = _state_value(hand_state, "effective_stack", turn_node.effective_bb)
     bet_turn = round(0.5 * pot, 2)
     turn_node.context["bet"] = bet_turn
+    turn_node.context["facing"] = "bet"
     board_turn = turn_node.board
     board_str = " ".join(format_card_ascii(c, upper=True) for c in board_turn)
     rival_seat = str(hand_state.get("rival_seat", "SB"))

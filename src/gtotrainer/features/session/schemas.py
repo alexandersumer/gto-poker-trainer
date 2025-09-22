@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
     "ActionSnapshot",
+    "DecisionContract",
     "ChoiceResult",
     "FeedbackPayload",
     "NodePayload",
@@ -31,6 +32,19 @@ class OptionPayload(_APIModel):
     gto_freq: float | None = None
 
 
+class DecisionContract(_APIModel):
+    state: Literal["your_turn_no_bet", "your_turn_facing_bet", "opponent_turn", "locked"]
+    status_label: str
+    status_detail: str | None = None
+    acting: str
+    opponent: str | None = None
+    facing_bet: float | None = None
+    pot_before: float | None = None
+    pot_after_call: float | None = None
+    size_prompt: str | None = None
+    legal_actions: list[str] = Field(default_factory=list)
+
+
 class ActionSnapshot(_APIModel):
     key: str
     label: str
@@ -50,6 +64,7 @@ class NodePayload(_APIModel):
     actor: str
     hand_no: int
     total_hands: int
+    contract: DecisionContract | None = None
 
 
 class SummaryPayload(_APIModel):
