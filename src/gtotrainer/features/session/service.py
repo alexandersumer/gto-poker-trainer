@@ -40,6 +40,41 @@ def _card_strings(cards: list[int]) -> list[str]:
     return [format_card_ascii(card, upper=True) for card in cards]
 
 
+def _view_context(node: Node) -> dict[str, Any]:
+    """Expose a sanitised subset of the engine context for the UI."""
+
+    raw = getattr(node, "context", {}) or {}
+    context: dict[str, Any] = {}
+
+    facing = raw.get("facing")
+    if isinstance(facing, str) and facing.strip():
+        context["facing"] = facing.strip().lower()
+
+    bet = raw.get("bet")
+    if isinstance(bet, (int, float)):
+        context["bet"] = float(bet)
+
+    open_size = raw.get("open_size")
+    if isinstance(open_size, (int, float)):
+        context["open_size"] = float(open_size)
+
+    hero_seat = raw.get("hero_seat")
+    if isinstance(hero_seat, str) and hero_seat.strip():
+        context["hero_seat"] = hero_seat.strip().upper()
+
+    rival_seat = raw.get("rival_seat")
+    if isinstance(rival_seat, str) and rival_seat.strip():
+        context["rival_seat"] = rival_seat.strip().upper()
+
+    actor_seat = node.actor.strip().upper() if isinstance(node.actor, str) else ""
+    if actor_seat:
+        context["actor_seat"] = actor_seat
+    if actor_seat and "hero_seat" in context:
+        context["actor_role"] = "hero" if actor_seat == context["hero_seat"] else "rival"
+
+    return context
+
+
 @dataclass(frozen=True)
 class SessionConfig:
     """Configuration for a training session."""
@@ -218,6 +253,7 @@ def _ensure_options(state: SessionState, node: Node) -> list[Option]:
 
 
 def _node_payload(state: SessionState, node: Node) -> NodePayload:
+    context = _view_context(node)
     return NodePayload(
         street=node.street,
         description=node.description,
@@ -228,6 +264,7 @@ def _node_payload(state: SessionState, node: Node) -> NodePayload:
         actor=node.actor,
         hand_no=state.hand_index + 1,
         total_hands=state.config.hands,
+        context=context or None,
     )
 
 

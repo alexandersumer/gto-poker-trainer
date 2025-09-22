@@ -50,6 +50,7 @@ class NodePayload(_APIModel):
     actor: str
     hand_no: int
     total_hands: int
+    context: dict[str, Any] | None = None
 
 
 class SummaryPayload(_APIModel):

@@ -146,6 +146,7 @@ class _SessionController:
             actor="",
             hand_no=0,
             total_hands=0,
+            context=None,
         )
         options = payload.options or []
         trigger = {"sessionCreated": session_id} if session_id else None

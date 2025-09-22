@@ -10,7 +10,13 @@ from gtotrainer.features.session import (
     SessionManager,
     service as session_service,
 )
-from gtotrainer.features.session.service import _ensure_active_node, _ensure_options
+from gtotrainer.features.session.service import (
+    _ensure_active_node,
+    _ensure_options,
+    _node_payload,
+    _view_context,
+)
+from gtotrainer.dynamic.episode import Node
 
 
 def test_session_manager_basic_flow():
@@ -55,6 +61,77 @@ def test_session_manager_basic_flow():
     # Summary endpoint mirrors the same content
     summary_direct = manager.summary(session_id).to_dict()
     assert summary_direct == summary
+
+
+def test_view_context_normalizes_core_fields():
+    node = Node(
+        street="turn",
+        description="Board; Rival (SB) bets 5.60bb into 11.20bb.",
+        pot_bb=11.2,
+        effective_bb=88.4,
+        hero_cards=[1, 2],
+        board=[3, 4, 5, 6],
+        actor="BB",
+        context={
+            "facing": "Bet",
+            "bet": 5.6,
+            "open_size": 2.5,
+            "hero_seat": "bb",
+            "rival_seat": "sb",
+        },
+    )
+
+    view = _view_context(node)
+
+    assert view["facing"] == "bet"
+    assert view["bet"] == pytest.approx(5.6)
+    assert view["open_size"] == pytest.approx(2.5)
+    assert view["hero_seat"] == "BB"
+    assert view["rival_seat"] == "SB"
+    assert view["actor_seat"] == "BB"
+    assert view["actor_role"] == "hero"
+
+
+def test_node_payload_includes_sanitized_context():
+    node = Node(
+        street="river",
+        description="Board; Rival checks.",
+        pot_bb=12.0,
+        effective_bb=74.0,
+        hero_cards=[7, 8],
+        board=[9, 10, 11, 12, 13],
+        actor="SB",
+        context={
+            "facing": "check",
+            "hero_seat": "bb",
+            "rival_seat": "sb",
+        },
+    )
+    manager = SessionManager()
+    session_id = manager.create_session(SessionConfig(hands=1, mc_trials=40, seed=123))
+    state = manager._sessions[session_id]
+
+    payload = _node_payload(state, node)
+
+    assert payload.context is not None
+    assert payload.context["facing"] == "check"
+    assert payload.context["actor_role"] == "rival"
+    assert payload.context["actor_seat"] == "SB"
+
+
+def test_view_context_omits_unknown_fields():
+    node = Node(
+        street="flop",
+        description="Board; Rival checks.",
+        pot_bb=6.0,
+        effective_bb=90.0,
+        hero_cards=[14, 15],
+        board=[16, 17, 18],
+        actor="BB",
+        context={},
+    )
+
+    assert _view_context(node) == {"actor_seat": "BB"}
 
 
 def test_session_manager_alternates_blinds():

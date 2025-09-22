@@ -3107,33 +3107,87 @@
         }
       };
 
+      const seatToken = (value) => {
+        const seat = (value || '').toString().trim();
+        return seat ? seat.toUpperCase() : '';
+      };
+
+      const cleanDescriptor = (descriptor) => {
+        if(!descriptor) return '';
+        return descriptor
+          .replace(/Rival\s+/i, '')
+          .replace(/\s+/g, ' ')
+          .replace(/[.]+$/g, '')
+          .trim();
+      };
+
       const formatStatusLine = (node, descriptor) => {
         if(!node){
           return [{ label: 'Status', value: descriptor || 'Ready for a new hand' }];
         }
+
         const context = node?.context || {};
-        const facing = (context?.facing || '').toString().toLowerCase();
-        const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
-        const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
-        const rivalSeat = (context?.rival_seat || context?.rivalSeat || '').toString().toUpperCase();
-        const seatToken = rivalSeat ? `(${rivalSeat})` : '';
-        let actionText = '';
-        if(facing === 'check'){
-          actionText = 'checks';
+        const heroSeat = seatToken(context.hero_seat || context.heroSeat);
+        const rivalSeat = seatToken(context.rival_seat || context.rivalSeat);
+        const actorSeat = seatToken(context.actor_seat || node.actor);
+        const actorRole = (context.actor_role || '').toString().toLowerCase();
+        const actorIsHero = actorRole === 'hero' || (!!heroSeat && actorSeat === heroSeat);
+
+        const facing = (context.facing || '').toString().toLowerCase();
+        const betSize = typeof context.bet === 'number' && Number.isFinite(context.bet) && context.bet > 0
+          ? formatBb(context.bet)
+          : '';
+        const openSize = typeof context.open_size === 'number' && Number.isFinite(context.open_size) && context.open_size > 0
+          ? formatBb(context.open_size)
+          : '';
+        const descriptorClean = cleanDescriptor(descriptor);
+
+        const rivalLabel = rivalSeat ? `Rival (${rivalSeat})` : 'Rival';
+        const heroLabel = heroSeat ? `You (${heroSeat})` : 'You';
+
+        let rivalAction = '';
+        if(facing === 'bet'){
+          rivalAction = betSize ? `bets ${betSize}` : 'bets';
+        } else if(facing === 'check'){
+          rivalAction = 'checks';
         } else if(facing === 'oop-check'){
-          actionText = 'checks to hero';
-        } else if(facing === 'bet'){
-          actionText = betSize ? `bets ${betSize}` : 'bets';
+          rivalAction = 'checks to you';
         } else if(openSize){
-          actionText = `opened ${openSize}`;
-        } else if(descriptor){
-          const cleaned = descriptor.replace(/Rival\s+/i, '').replace(/\s+/g, ' ').trim().replace(/[.]+$/g, '');
-          actionText = cleaned || 'to act';
+          rivalAction = `opens ${openSize}`;
+        } else if(descriptorClean && descriptorClean.toLowerCase() !== 'choose your bet'){
+          rivalAction = descriptorClean;
         } else {
-          actionText = 'to act';
+          rivalAction = 'to act';
         }
-        const value = `${seatToken ? seatToken + ' ' : ''}${actionText}`.trim();
-        return [{ label: 'Rival', value }];
+
+        let heroAction = '';
+        if(actorIsHero){
+          if(facing === 'bet'){
+            heroAction = betSize ? `Facing ${betSize} bet` : 'Facing a bet';
+          } else if(facing === 'check' || facing === 'oop-check'){
+            heroAction = descriptorClean || 'Choose your bet';
+          } else if(openSize){
+            heroAction = descriptorClean || `Facing ${openSize} open`;
+          } else {
+            heroAction = descriptorClean || 'Your turn';
+          }
+        } else {
+          heroAction = descriptorClean || 'Waiting';
+        }
+
+        const items = [];
+        if(rivalAction){
+          items.push({ label: rivalLabel, value: rivalAction });
+        }
+        if(actorIsHero){
+          items.push({ label: heroLabel, value: heroAction });
+        } else if(actorSeat){
+          const actorLabel = actorSeat ? `Rival (${actorSeat})` : 'Rival';
+          const actorValue = descriptorClean || (facing === 'bet' ? (betSize ? `bets ${betSize}` : 'bets') : 'to act');
+          items.push({ label: actorLabel, value: actorValue });
+        }
+
+        return items.length ? items : [{ label: 'Status', value: descriptorClean || 'Ready' }];
       };
 
 
@@ -3344,7 +3398,9 @@
         const jamOpt = described.find((d) => d.action === 'all-in');
         let raiseOpts = described.filter((d) => ['raise', 'bet', '3bet'].includes(d.action) && d !== jamOpt);
 
-        const isFacingBet = typeof node?.context?.bet === 'number' && node.context.bet > 0;
+        const facingState = (node?.context?.facing || '').toString().toLowerCase();
+        const contextBet = typeof node?.context?.bet === 'number' ? node.context.bet : null;
+        const isFacingBet = facingState === 'bet' || (contextBet !== null && Number.isFinite(contextBet) && contextBet > 0);
         const passiveOpt = isFacingBet ? (callOpt || checkOpt) : (checkOpt || callOpt);
 
         const used = new Set([foldOpt, passiveOpt, jamOpt].filter(Boolean));
