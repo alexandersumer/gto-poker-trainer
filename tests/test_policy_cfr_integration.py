@@ -33,8 +33,8 @@ def test_options_for_attaches_cfr_metadata() -> None:
         assert opt.meta.get("cfr_backend") == "local_cfr_v1"
         assert "hero_ev_fold" in opt.meta
         assert "hero_ev_continue" in opt.meta
-        assert "rival_ev_fold" in opt.meta
-        assert "rival_ev_continue" in opt.meta
+        assert "villain_ev_fold" in opt.meta
+        assert "villain_ev_continue" in opt.meta
 
     passive = [opt for opt in options if not (opt.meta and opt.meta.get("supports_cfr"))]
     for opt in passive:

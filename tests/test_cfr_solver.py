@@ -9,8 +9,8 @@ def _option(key: str, fold_ev: float, continue_ev: float) -> Option:
         "supports_cfr": True,
         "hero_ev_fold": fold_ev,
         "hero_ev_continue": continue_ev,
-        "rival_ev_fold": -fold_ev,
-        "rival_ev_continue": -continue_ev,
+        "villain_ev_fold": -fold_ev,
+        "villain_ev_continue": -continue_ev,
     }
     return Option(key=key, ev=fold_ev, why="", meta=meta)
 
