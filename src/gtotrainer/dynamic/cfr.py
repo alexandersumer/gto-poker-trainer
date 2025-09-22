@@ -41,8 +41,8 @@ class LocalCFRBackend:
         num_actions = payoff_matrix.shape[0]
         hero_regret = np.zeros(num_actions, dtype=np.float64)
         hero_strategy_sum = np.zeros(num_actions, dtype=np.float64)
-        villain_regret = np.zeros(2, dtype=np.float64)
-        villain_strategy_sum = np.zeros(2, dtype=np.float64)
+        rival_regret = np.zeros(2, dtype=np.float64)
+        rival_strategy_sum = np.zeros(2, dtype=np.float64)
 
         extra_actions = max(0, num_actions - self.config.minimum_actions)
         iterations = max(
@@ -52,31 +52,31 @@ class LocalCFRBackend:
 
         for _ in range(iterations):
             hero_strategy = _regret_matching(hero_regret)
-            villain_strategy = _regret_matching(villain_regret)
+            rival_strategy = _regret_matching(rival_regret)
 
             hero_strategy_sum += hero_strategy
-            villain_strategy_sum += villain_strategy
+            rival_strategy_sum += rival_strategy
 
-            hero_util = payoff_matrix @ villain_strategy
+            hero_util = payoff_matrix @ rival_strategy
             hero_expected = float(hero_strategy @ hero_util)
             hero_regret += hero_util - hero_expected
 
-            villain_payoff = (-(payoff_matrix.T)) @ hero_strategy
-            villain_expected = float(villain_strategy @ villain_payoff)
-            villain_regret += villain_payoff - villain_expected
+            rival_payoff = (-(payoff_matrix.T)) @ hero_strategy
+            rival_expected = float(rival_strategy @ rival_payoff)
+            rival_regret += rival_payoff - rival_expected
 
         hero_avg = _normalise_strategy(hero_strategy_sum)
-        villain_avg = _normalise_strategy(villain_strategy_sum)
-        adjusted_values = payoff_matrix @ villain_avg
+        rival_avg = _normalise_strategy(rival_strategy_sum)
+        adjusted_values = payoff_matrix @ rival_avg
 
         for (idx, option), action_value, hero_prob in zip(eligible, adjusted_values, hero_avg, strict=False):
             meta = option.meta or {}
             meta.setdefault("baseline_ev", option.ev)
             meta["cfr_backend"] = self.name
             meta["cfr_probability"] = float(hero_prob)
-            meta["cfr_villain_mix"] = {
-                "fold": float(villain_avg[0]),
-                "continue": float(villain_avg[1]),
+            meta["cfr_rival_mix"] = {
+                "fold": float(rival_avg[0]),
+                "continue": float(rival_avg[1]),
             }
             option.meta = meta
             option.gto_freq = float(hero_prob)

@@ -83,8 +83,8 @@ def test_decide_action_adapts_to_hero_aggression() -> None:
         ],
     )
 
-    passive_meta = {"rival_profile": profile, "villain_adapt": {"aggr": 0, "passive": 6}}
-    aggressive_meta = {"rival_profile": profile, "villain_adapt": {"aggr": 6, "passive": 0}}
+    passive_meta = {"rival_profile": profile, "rival_adapt": {"aggr": 0, "passive": 6}}
+    aggressive_meta = {"rival_profile": profile, "rival_adapt": {"aggr": 6, "passive": 0}}
 
     rng_value = 0.7
     passive_decision = decide_action(passive_meta, weak, ConstantRandom(rng_value))

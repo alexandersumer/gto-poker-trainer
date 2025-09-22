@@ -204,7 +204,7 @@ def decide_action(
     temperature = float(profile.get("temperature", 0.12))
     noise = min(0.08, max(0.0, 0.18 * (1.0 - continue_ratio)))
 
-    adapt = meta.get("villain_adapt") if isinstance(meta, Mapping) else None
+    adapt = meta.get("rival_adapt") if isinstance(meta, Mapping) else None
     adapt_scale = 0.0
     if isinstance(adapt, Mapping):
         try:
