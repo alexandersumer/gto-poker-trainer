@@ -3124,6 +3124,11 @@
         return text.trim();
       };
 
+      const asActionText = (value) => {
+        const text = (value || '').toString().trim();
+        return text ? text.toLowerCase() : '';
+      };
+
       const formatStatusLine = (node, descriptor) => {
         if(!node){
           return [{ label: 'Status', value: descriptor || 'Ready for a new hand' }];
@@ -3144,6 +3149,7 @@
           ? formatBb(context.open_size)
           : '';
         const descriptorClean = cleanDescriptor(descriptor);
+        const descriptorLower = descriptorClean ? descriptorClean.toLowerCase() : '';
 
         const rivalLabel = rivalSeat ? `Rival (${rivalSeat})` : 'Rival';
         const heroLabel = heroSeat ? `You (${heroSeat})` : 'You';
@@ -3157,8 +3163,8 @@
           rivalAction = 'checks to you';
         } else if(openSize){
           rivalAction = `opens ${openSize}`;
-        } else if(descriptorClean && descriptorClean.toLowerCase() !== 'choose your bet'){
-          rivalAction = descriptorClean;
+        } else if(descriptorLower && descriptorLower !== 'choose your bet'){
+          rivalAction = descriptorLower;
         } else {
           rivalAction = 'to act';
         }
@@ -3166,31 +3172,38 @@
         let heroAction = '';
         if(actorIsHero){
           if(facing === 'bet'){
-            heroAction = betSize ? `Facing ${betSize} bet` : 'Facing a bet';
+            heroAction = betSize ? `facing ${betSize} bet` : 'facing a bet';
           } else if(facing === 'check' || facing === 'oop-check'){
-            heroAction = 'Action on you';
+            heroAction = 'action on you';
           } else if(openSize){
-            heroAction = `Facing ${openSize} open`;
+            heroAction = `facing ${openSize} open`;
           } else {
-            heroAction = 'Action on you';
+            heroAction = 'action on you';
           }
         } else {
-          heroAction = descriptorClean || 'Waiting';
+          heroAction = descriptorLower || 'waiting';
         }
 
         const items = [];
-        if(rivalAction){
-          items.push({ label: rivalLabel, value: rivalAction });
+        const rivalValue = asActionText(rivalAction);
+        if(rivalValue){
+          items.push({ label: rivalLabel, value: rivalValue });
         }
         if(actorIsHero){
-          items.push({ label: heroLabel, value: heroAction });
+          const heroValue = asActionText(heroAction);
+          if(heroValue){
+            items.push({ label: heroLabel, value: heroValue });
+          }
         } else if(actorSeat){
           const actorLabel = actorSeat ? `Rival (${actorSeat})` : 'Rival';
-          const actorValue = descriptorClean || (facing === 'bet' ? (betSize ? `bets ${betSize}` : 'bets') : 'to act');
-          items.push({ label: actorLabel, value: actorValue });
+          const actorValueRaw = descriptorLower || (facing === 'bet' ? (betSize ? `bets ${betSize}` : 'bets') : 'to act');
+          const actorValue = asActionText(actorValueRaw);
+          if(actorValue){
+            items.push({ label: actorLabel, value: actorValue });
+          }
         }
 
-        return items.length ? items : [{ label: 'Status', value: descriptorClean || 'Ready' }];
+        return items.length ? items : [{ label: 'Status', value: descriptorLower || 'ready' }];
       };
 
 
