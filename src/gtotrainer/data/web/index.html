@@ -3026,7 +3026,7 @@
 
         if(node){
           const street = streetLabel(node.street);
-          if(street) contextSegments.push(street);
+          if(street) contextSegments.push(`Street ${street}`);
           if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
             contextSegments.push(`Hand ${node.hand_no}/${node.total_hands}`);
             sessionHands = node.total_hands;
