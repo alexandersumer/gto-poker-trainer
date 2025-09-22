@@ -39,18 +39,7 @@ def test_web_endpoints_session_flow():
         assert all(isinstance(card, str) and len(card) == 2 for card in hero_cards)
         board_cards = node["board_cards"]
         assert all(isinstance(card, str) and len(card) == 2 for card in board_cards)
-        contract = node.get("contract")
-        assert contract is not None
         assert data["options"], "options list should not be empty"
-        option_keys = [opt["key"].lower() for opt in data["options"]]
-        if contract["state"] == "your_turn_no_bet":
-            assert any(key.startswith("check") for key in option_keys)
-            assert all(not key.startswith("fold") for key in option_keys)
-            assert all(not key.startswith("call") for key in option_keys)
-        elif contract["state"] == "your_turn_facing_bet":
-            assert any(key.startswith("call") for key in option_keys)
-            assert any(key.startswith("fold") for key in option_keys)
-            assert all(not key.startswith("check") for key in option_keys)
         for option in data["options"]:
             assert isinstance(option, dict), "options should be dict payloads"
             assert "label" in option and isinstance(option["label"], str)
@@ -92,7 +81,6 @@ def test_create_session_with_missing_or_invalid_inputs():
     assert node.status_code == 200
     node_body = node.json()
     assert node_body.get("node", {}).get("total_hands", 0) >= 1
-    assert "contract" in node_body.get("node", {})
 
     summary = client.get(f"{base}/{sid}/summary")
     assert summary.status_code == 200

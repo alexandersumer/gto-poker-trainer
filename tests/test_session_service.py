@@ -26,16 +26,9 @@ def test_session_manager_basic_flow():
     assert node["total_hands"] == 2
     assert len(node["hero_cards"]) == 2
     assert all(len(card) == 2 for card in node["hero_cards"])
-    contract = node.get("contract")
-    assert contract is not None
-    assert contract["state"] == "your_turn_facing_bet"
-    assert contract["facing_bet"] and contract["facing_bet"] > 0
-    assert contract["legal_actions"] == ["fold", "call", "raise", "jam"]
     assert data["options"], "options should be available"
     first_option = data["options"][0]
     assert {"key", "label", "ev", "why", "ends_hand"}.issubset(first_option)
-    option_verbs = {opt["key"].split()[0].lower(): opt for opt in data["options"]}
-    assert "check" not in option_verbs
 
     # choose first option for a couple of nodes to ensure caching works
     choice = manager.choose(session_id, 0)
@@ -62,37 +55,6 @@ def test_session_manager_basic_flow():
     # Summary endpoint mirrors the same content
     summary_direct = manager.summary(session_id).to_dict()
     assert summary_direct == summary
-
-
-def test_contract_reflects_betting_state():
-    manager = SessionManager()
-    sid = manager.create_session(SessionConfig(hands=1, mc_trials=80, seed=1234))
-
-    first = manager.get_node(sid).to_dict()
-    preflop_contract = first["node"]["contract"]
-    assert preflop_contract["state"] == "your_turn_facing_bet"
-    preflop_options = first["options"]
-    assert all("check" not in opt["key"].lower() for opt in preflop_options)
-
-    call_index = next(i for i, opt in enumerate(preflop_options) if opt["key"].lower().startswith("call"))
-    flop_choice = manager.choose(sid, call_index).to_dict()["next"]
-    assert not flop_choice["done"]
-    flop_node = flop_choice["node"]
-    flop_contract = flop_node["contract"]
-    assert flop_contract["state"] == "your_turn_no_bet"
-    flop_option_keys = [opt["key"].lower() for opt in flop_choice["options"]]
-    assert any(key.startswith("check") for key in flop_option_keys)
-    assert all(not key.startswith("fold") for key in flop_option_keys)
-    assert all(not key.startswith("call") for key in flop_option_keys)
-
-    check_index = next(i for i, key in enumerate(flop_option_keys) if key.startswith("check"))
-    turn_choice = manager.choose(sid, check_index).to_dict()["next"]
-    assert not turn_choice["done"]
-    turn_contract = turn_choice["node"]["contract"]
-    assert turn_contract["state"] == "your_turn_facing_bet"
-    turn_option_keys = [opt["key"].lower() for opt in turn_choice["options"]]
-    assert any(key.startswith("call") for key in turn_option_keys)
-    assert all(not key.startswith("check") for key in turn_option_keys)
 
 
 def test_session_manager_alternates_blinds():

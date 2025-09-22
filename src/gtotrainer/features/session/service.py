@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import math
 import random
 import secrets
 import string
 import threading
 from dataclasses import dataclass, field, replace
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from ...core.formatting import format_option_label
 from ...core.models import Option
@@ -20,7 +19,6 @@ from .engine import SessionEngine
 from .schemas import (
     ActionSnapshot,
     ChoiceResult,
-    DecisionContract,
     FeedbackPayload,
     NodePayload,
     NodeResponse,
@@ -40,164 +38,6 @@ __all__ = [
 
 def _card_strings(cards: list[int]) -> list[str]:
     return [format_card_ascii(card, upper=True) for card in cards]
-
-
-_STATE_HERO_NO_BET = "your_turn_no_bet"
-_STATE_HERO_FACING_BET = "your_turn_facing_bet"
-_STATE_OPPONENT = "opponent_turn"
-_STATE_LOCKED = "locked"
-
-_ACTION_ORDER: dict[str, list[str]] = {
-    _STATE_HERO_NO_BET: ["check", "bet", "raise", "jam"],
-    _STATE_HERO_FACING_BET: ["fold", "call", "raise", "jam"],
-    _STATE_OPPONENT: [],
-    _STATE_LOCKED: [],
-}
-
-_SIZE_PROMPTS: dict[str, str | None] = {
-    _STATE_HERO_NO_BET: "Bet size",
-    _STATE_HERO_FACING_BET: "Raise to",
-    _STATE_OPPONENT: None,
-    _STATE_LOCKED: None,
-}
-
-
-def _normalize_action_token(raw: str) -> str:
-    token = (raw or "").strip().lower()
-    if not token:
-        return ""
-    token = token.replace("3-bet", "3bet")
-    if token in {"all-in", "allin", "jam", "shove"}:
-        return "jam"
-    if token.startswith("allin") or token.startswith("shove") or token.startswith("jam"):
-        return "jam"
-    if token.startswith("3bet"):
-        return "raise"
-    if token.startswith("raise"):
-        return "raise"
-    if token.startswith("bet"):
-        return "bet"
-    if token.startswith("call"):
-        return "call"
-    if token.startswith("check"):
-        return "check"
-    if token.startswith("fold"):
-        return "fold"
-    return token.split(" ", 1)[0]
-
-
-def _canonical_action(option: Option) -> str:
-    meta = option.meta or {}
-    meta_action = _normalize_action_token(str(meta.get("action", "")))
-    if meta_action:
-        return meta_action
-    return _normalize_action_token(option.key or option.why or "")
-
-
-def _extract_numeric(meta: dict[str, Any], keys: Iterable[str]) -> float | None:
-    for key in keys:
-        value = meta.get(key)
-        if isinstance(value, (int, float)) and math.isfinite(value):
-            if value > 0:
-                return float(value)
-    return None
-
-
-def _detect_facing_bet(node: Node, options: Sequence[Option]) -> float:
-    context = getattr(node, "context", {}) or {}
-    bet_value = context.get("bet")
-    if isinstance(bet_value, (int, float)) and bet_value > 0:
-        return float(bet_value)
-
-    candidates: list[float] = []
-    for option in options:
-        action = _canonical_action(option)
-        meta = option.meta or {}
-        if action in {"call", "fold", "raise", "jam"}:
-            amount = _extract_numeric(meta, ("call_cost", "rival_bet", "rival_raise"))
-            if amount is not None:
-                candidates.append(amount)
-    if candidates:
-        return max(candidates)
-
-    hand_state = context.get("hand_state") or {}
-    hero_contrib = hand_state.get("hero_contrib")
-    rival_contrib = hand_state.get("rival_contrib")
-    try:
-        hero_val = float(hero_contrib)
-        rival_val = float(rival_contrib)
-        diff = rival_val - hero_val
-        if diff > 0:
-            return diff
-    except (TypeError, ValueError):
-        pass
-    return 0.0
-
-
-def _resolve_betting_state(node: Node, options: Sequence[Option]) -> tuple[str, float]:
-    if not options:
-        return _STATE_LOCKED, 0.0
-    context = getattr(node, "context", {}) or {}
-    facing_token = str(context.get("facing") or "").strip().lower()
-    facing_amount = _detect_facing_bet(node, options)
-    if facing_token in {"bet", "lead"} or facing_amount > 0.0:
-        return _STATE_HERO_FACING_BET, facing_amount
-    if facing_token == "opponent" or node.actor != context.get("hero_seat", node.actor):
-        return _STATE_OPPONENT, 0.0
-    return _STATE_HERO_NO_BET, 0.0
-
-
-def _filter_options_for_state(options: Sequence[Option], state: str) -> list[Option]:
-    allowed_order = _ACTION_ORDER.get(state)
-    if not allowed_order:
-        return list(options)
-    allowed = set(allowed_order)
-    filtered = [opt for opt in options if _canonical_action(opt) in allowed]
-    return filtered if filtered else list(options)
-
-
-def _format_bb(value: float | None) -> str:
-    if value is None or not math.isfinite(value):
-        return "0.00bb"
-    return f"{value:.2f}bb"
-
-
-def _derive_contract(state: SessionState, node: Node, options: Sequence[Option]) -> DecisionContract:
-    betting_state, facing_amount = _resolve_betting_state(node, options)
-    options = options or []
-    pot_before = float(node.pot_bb) if isinstance(node.pot_bb, (int, float)) else 0.0
-    pot_after_call = pot_before + facing_amount if facing_amount > 0 else pot_before
-    opponent_seat = state.episodes[state.hand_index].rival_seat if state.episodes else ""
-
-    if betting_state == _STATE_HERO_FACING_BET and facing_amount > 0:
-        status_label = f"Your turn — facing {_format_bb(facing_amount)} into {_format_bb(pot_after_call)}"
-        status_detail = f"Pot before action {_format_bb(pot_before)}"
-    elif betting_state == _STATE_HERO_NO_BET:
-        status_label = "Your turn — no bet"
-        status_detail = f"Pot {_format_bb(pot_before)}"
-    elif betting_state == _STATE_OPPONENT:
-        status_label = f"{opponent_seat or 'Opponent'} to act"
-        status_detail = f"Pot {_format_bb(pot_before)}"
-    else:
-        status_label = "Decision locked"
-        status_detail = f"Pot {_format_bb(pot_before)}"
-
-    size_prompt = _SIZE_PROMPTS.get(betting_state)
-    legal_actions = list(_ACTION_ORDER.get(betting_state, []))
-
-    contract = DecisionContract(
-        state=betting_state,
-        status_label=status_label,
-        status_detail=status_detail,
-        acting=node.actor,
-        opponent=str(opponent_seat) if opponent_seat else None,
-        facing_bet=facing_amount or None,
-        pot_before=pot_before,
-        pot_after_call=pot_after_call,
-        size_prompt=size_prompt,
-        legal_actions=legal_actions,
-    )
-    return contract
 
 
 @dataclass(frozen=True)
@@ -262,8 +102,8 @@ class SessionManager:
             node = _ensure_active_node(state)
             if node is None:
                 return NodeResponse(done=True, summary=_summary_payload(state.records))
+            payload = _node_payload(state, node)
             options = _ensure_options(state, node)
-            payload = _node_payload(state, node, options)
             return NodeResponse(done=False, node=payload, options=_option_payloads(node, options))
 
     async def get_node_async(self, session_id: str) -> NodeResponse:
@@ -307,15 +147,15 @@ class SessionManager:
             state.current_index = len(episode.nodes) if ends else state.current_index + 1
             state.cached_options.clear()
             next_node = _ensure_active_node(state)
-            if next_node is None:
-                next_payload = NodeResponse(done=True, summary=_summary_payload(state.records))
-            else:
-                next_options = _ensure_options(state, next_node)
-                next_payload = NodeResponse(
+            next_payload = (
+                NodeResponse(done=True, summary=_summary_payload(state.records))
+                if next_node is None
+                else NodeResponse(
                     done=False,
-                    node=_node_payload(state, next_node, next_options),
-                    options=_option_payloads(next_node, next_options),
+                    node=_node_payload(state, next_node),
+                    options=_option_payloads(next_node, _ensure_options(state, next_node)),
                 )
+            )
 
         feedback = FeedbackPayload(
             correct=chosen.key == best.key,
@@ -371,16 +211,13 @@ def _ensure_options(state: SessionState, node: Node) -> list[Option]:
     cache_key = id(node)
     cached = state.cached_options.get(cache_key)
     if cached is None:
-        raw_options = options_for(node, state.engine.rng, state.config.mc_trials)
-        betting_state, _ = _resolve_betting_state(node, raw_options)
-        filtered = _filter_options_for_state(raw_options, betting_state)
-        state.cached_options[cache_key] = filtered
-        cached = filtered
+        options = options_for(node, state.engine.rng, state.config.mc_trials)
+        state.cached_options[cache_key] = options
+        cached = options
     return [replace(opt) for opt in cached]
 
 
-def _node_payload(state: SessionState, node: Node, options: Sequence[Option]) -> NodePayload:
-    contract = _derive_contract(state, node, options)
+def _node_payload(state: SessionState, node: Node) -> NodePayload:
     return NodePayload(
         street=node.street,
         description=node.description,
@@ -391,7 +228,6 @@ def _node_payload(state: SessionState, node: Node, options: Sequence[Option]) ->
         actor=node.actor,
         hand_no=state.hand_index + 1,
         total_hands=state.config.hands,
-        contract=contract,
     )
 
 

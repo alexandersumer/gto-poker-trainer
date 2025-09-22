@@ -2579,7 +2579,6 @@
       let hideProgressTimer = null;
       let sid = null;
       let pending = false;
-      let activeContract = null;
       let answered = 0;
       let startBusy = false;
       let pendingSummary = null;
@@ -3108,34 +3107,33 @@
         }
       };
 
-      const formatStatusLine = (node, descriptor, contract) => {
+      const formatStatusLine = (node, descriptor) => {
         if(!node){
           return [{ label: 'Status', value: descriptor || 'Ready for a new hand' }];
         }
-        const items = [];
-        const statusText = contract?.status_label || descriptor || 'Decision live';
-        if(statusText){
-          items.push({ label: 'Status', value: statusText });
-        }
-        if(contract?.facing_bet){
-          const facingAmount = contract.facing_bet;
-          const potAfterRaw = contract.pot_after_call;
-          const potAfter = typeof potAfterRaw === 'number' && Number.isFinite(potAfterRaw)
-            ? potAfterRaw
-            : (Number(node.pot_bb) + facingAmount);
-          const facingValue = `${formatBb(facingAmount)} into ${formatBb(potAfter)}`;
-          items.push({ label: 'Facing', value: facingValue });
+        const context = node?.context || {};
+        const facing = (context?.facing || '').toString().toLowerCase();
+        const betSize = typeof node?.context?.bet === 'number' ? formatBb(node.context.bet) : '';
+        const openSize = typeof node?.context?.open_size === 'number' ? formatBb(node.context.open_size) : '';
+        const rivalSeat = (context?.rival_seat || context?.rivalSeat || '').toString().toUpperCase();
+        const seatToken = rivalSeat ? `(${rivalSeat})` : '';
+        let actionText = '';
+        if(facing === 'check'){
+          actionText = 'checks';
+        } else if(facing === 'oop-check'){
+          actionText = 'checks to hero';
+        } else if(facing === 'bet'){
+          actionText = betSize ? `bets ${betSize}` : 'bets';
+        } else if(openSize){
+          actionText = `opened ${openSize}`;
+        } else if(descriptor){
+          const cleaned = descriptor.replace(/Rival\s+/i, '').replace(/\s+/g, ' ').trim().replace(/[.]+$/g, '');
+          actionText = cleaned || 'to act';
         } else {
-          const potValue = Number(node.pot_bb);
-          if(Number.isFinite(potValue)){
-            items.push({ label: 'Pot', value: formatBb(potValue) });
-          }
+          actionText = 'to act';
         }
-        const opponentRaw = contract?.opponent || node?.context?.rival_seat || node?.context?.rivalSeat || '';
-        if(opponentRaw){
-          items.push({ label: 'Opponent', value: opponentRaw.toString().toUpperCase() });
-        }
-        return items.length ? items : [{ label: 'Status', value: statusText || 'Decision live' }];
+        const value = `${seatToken ? seatToken + ' ' : ''}${actionText}`.trim();
+        return [{ label: 'Rival', value }];
       };
 
 
@@ -3181,35 +3179,34 @@
         return descriptor.trim();
       };
 
-      const normalizeActionToken = (value) => {
-        const raw = (value || '').toString().trim().toLowerCase();
-        if(!raw) return '';
-        const token = raw.replace(/3-bet/g, '3bet');
-        if(token === 'jam' || token === 'shove' || /^all[- ]?in$/.test(token)) return 'jam';
-        if(token.startsWith('allin') || token.startsWith('shove') || token.startsWith('jam')) return 'jam';
-        if(token.startsWith('3bet')) return 'raise';
-        if(token.startsWith('raise')) return 'raise';
-        if(token.startsWith('bet')) return 'bet';
-        if(token.startsWith('call')) return 'call';
-        if(token.startsWith('check')) return 'check';
-        if(token.startsWith('fold')) return 'fold';
-        return token.split(' ')[0];
-      };
-
       const canonicalAction = (option) => {
+        const normalize = (value) => (value || "").toString().toLowerCase();
         if(typeof option === 'string'){
-          const token = normalizeActionToken(option);
-          return token || 'action';
+          const lower = normalize(option);
+          if(lower.includes('all-in') || lower.includes('jam') || lower.includes('shove')) return 'all-in';
+          if(lower.startsWith('fold')) return 'fold';
+          if(lower.startsWith('check')) return 'check';
+          if(lower.startsWith('call')) return 'call';
+          if(lower.startsWith('3-bet') || lower.startsWith('3bet')) return '3bet';
+          if(lower.startsWith('bet')) return 'bet';
+          if(lower.startsWith('raise')) return 'raise';
+          return lower.split(' ')[0];
         }
-        const metaAction = normalizeActionToken(option?.meta?.action);
+        const metaAction = normalize(option?.meta?.action);
         if(metaAction){
+          if(metaAction === "allin" || metaAction === "jam") return "all-in";
+          if(metaAction === "3bet") return "3bet";
           return metaAction;
         }
-        const keyToken = normalizeActionToken(option?.key || option?.label || option?.why || '');
-        if(keyToken){
-          return keyToken;
-        }
-        return 'action';
+        const key = normalize(option?.key || option?.label || "");
+        if(key.includes("all-in") || key.includes("jam") || key.includes("shove")) return "all-in";
+        if(key.startsWith("fold")) return "fold";
+        if(key.startsWith("check")) return "check";
+        if(key.startsWith("call")) return "call";
+        if(key.startsWith("3-bet") || key.startsWith("3bet")) return "3bet";
+        if(key.startsWith("bet")) return "bet";
+        if(key.startsWith("raise")) return "raise";
+        return metaAction || key.split(' ')[0];
       };
 
       const numericFromOption = (option) => {
@@ -3257,8 +3254,9 @@
       const raiseVerb = (descriptor, { isFacingBet }) => {
         if(!descriptor) return isFacingBet ? 'Raise' : 'Bet';
         if(descriptor.action === 'bet') return 'Bet';
+        if(descriptor.action === '3bet') return '3-bet';
         if(descriptor.action === 'raise') return isFacingBet ? 'Raise' : 'Bet';
-        if(descriptor.action === 'jam') return 'All-in';
+        if(descriptor.action === 'all-in') return 'All-in';
         return descriptor.primary || (isFacingBet ? 'Raise' : 'Bet');
       };
 
@@ -3295,7 +3293,7 @@
         return a.index - b.index;
       };
 
-      const renderActions = (options, node, contract) => {
+      const renderActions = (options, node) => {
         if(!actionArea) return;
         if(jamConfirmTimeout){
           clearTimeout(jamConfirmTimeout);
@@ -3320,15 +3318,7 @@
           delete actionArea.dataset.pending;
         }
         const previousHeight = actionArea.offsetHeight;
-        const contractState = contract?.state || null;
-        let described = describeOptions(options);
-        const allowedActions = new Set((contract?.legal_actions || []).map((name) => normalizeActionToken(name)));
-        if(allowedActions.size){
-          const filtered = described.filter((entry) => allowedActions.has(normalizeActionToken(entry.action)));
-          if(filtered.length){
-            described = filtered;
-          }
-        }
+        const described = describeOptions(options);
         const signature = described.map((d) => `${d.index}:${d.action}`).join('|');
         if(signature !== lastActionSignature){
           lastActionSignature = signature;
@@ -3339,12 +3329,6 @@
           actionArea.style.minHeight = `${previousHeight}px`;
         }
         actionArea.innerHTML = '';
-        if(contractState === 'opponent_turn' || contractState === 'locked'){
-          actionArea.classList.remove('is-hidden');
-          actionArea.classList.add('is-disabled');
-          actionArea.style.minHeight = '';
-          return;
-        }
         if(described.length === 0){
           actionArea.classList.add('is-hidden');
           actionArea.classList.remove('is-disabled');
@@ -3357,16 +3341,16 @@
         const foldOpt = described.find((d) => d.action === 'fold');
         const callOpt = described.find((d) => d.action === 'call');
         const checkOpt = described.find((d) => d.action === 'check');
-        const jamOpt = described.find((d) => d.action === 'jam');
-        let raiseOpts = described.filter((d) => ['raise', 'bet'].includes(d.action) && d !== jamOpt);
+        const jamOpt = described.find((d) => d.action === 'all-in');
+        let raiseOpts = described.filter((d) => ['raise', 'bet', '3bet'].includes(d.action) && d !== jamOpt);
 
-        const isFacingBet = contractState === 'your_turn_facing_bet';
+        const isFacingBet = typeof node?.context?.bet === 'number' && node.context.bet > 0;
         const passiveOpt = isFacingBet ? (callOpt || checkOpt) : (checkOpt || callOpt);
 
         const used = new Set([foldOpt, passiveOpt, jamOpt].filter(Boolean));
         if(raiseOpts.length === 0){
           described.forEach((d) => {
-            if(!used.has(d) && ['fold', 'call', 'check', 'jam'].indexOf(d.action) === -1){
+            if(!used.has(d) && ['fold', 'call', 'check', 'all-in'].indexOf(d.action) === -1){
               raiseOpts.push(d);
               used.add(d);
             }
@@ -3475,14 +3459,13 @@
 
         if(raiseOpts.length || jamOpt){
           sizeRow.setAttribute('role', 'group');
-          const sizeLabelText = contract?.size_prompt || (isFacingBet ? 'Raise to' : 'Bet size');
-          sizeRow.setAttribute('aria-label', sizeLabelText);
+          sizeRow.setAttribute('aria-label', isFacingBet ? 'Raise sizes' : 'Bet sizes');
           betGroup = document.createElement('div');
           betGroup.className = 'bet-group';
           betGroup.setAttribute('role', 'group');
           const betLabel = document.createElement('div');
           betLabel.className = 'bet-group__label';
-          betLabel.textContent = sizeLabelText;
+          betLabel.textContent = isFacingBet ? 'Raise' : 'Bet';
           const labelId = `bet-label-${++betGroupCounter}`;
           betLabel.id = labelId;
           betGroup.setAttribute('aria-labelledby', labelId);
@@ -4201,18 +4184,22 @@
         setSummaryAvailability(false);
         const node = payload.node;
         activeNode = node;
-        activeContract = node?.contract || null;
         const descriptor = parseDescriptor(node);
-        updateHeaderStatus(node, { state: activeContract?.status_label });
+        updateHeaderStatus(node);
         const streetName = streetLabel(node.street);
-        const statusLabel = activeContract?.status_label
-          || (streetName && streetName.toLowerCase() !== 'ready' ? streetName : 'Decision live');
+        const statusBits = [];
+        if(streetName && streetName.toLowerCase() != 'ready'){
+          statusBits.push(streetName);
+        }
+        if(!statusBits.length){
+          statusBits.push('Decision live');
+        }
         if(statusLineEl){
           statusLineEl.dataset.active = 'node';
         }
-        setStatusMessage(statusLabel);
+        setStatusMessage(statusBits.join(' — '));
         if(statusLineEl){
-          renderStatusLine(formatStatusLine(node, descriptor, activeContract));
+          renderStatusLine(formatStatusLine(node, descriptor));
         }
         const heroEl = $('#hand');
         const heroCardsHtml = renderCards(node.hero_cards);
@@ -4224,7 +4211,7 @@
           boardEl.innerHTML = renderBoardWithPlaceholders(node.board_cards || []);
         }
         const optionList = Array.isArray(payload.options) ? payload.options : [];
-        renderActions(optionList, node, activeContract);
+        renderActions(optionList, node);
         if(optionList.length === 0 && actionArea){
           actionArea.classList.add('is-disabled');
         }
@@ -4449,7 +4436,7 @@
       });
 
       setStatusMessage('Ready for a new hand');
-      renderActions([], null, null);
+      renderActions([], null);
     </script>
   </body>
   </html>
