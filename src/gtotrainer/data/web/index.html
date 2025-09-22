@@ -3032,7 +3032,7 @@
             sessionHands = node.total_hands;
           }
           if(typeof node.effective_bb === 'number' && Number.isFinite(node.effective_bb) && node.effective_bb > 0){
-            contextSegments.push(`Stk ${formatBb(node.effective_bb)}`);
+            contextSegments.push(`Stack ${formatBb(node.effective_bb)}`);
           }
         }
 
@@ -3052,7 +3052,7 @@
         const accPct = answered > 0
           ? Math.round((correctDecisions / Math.max(1, answered)) * 100)
           : null;
-        metricSegments.push(`Acc ${accPct !== null ? `${accPct}%` : '--'}`);
+        metricSegments.push(`Accuracy ${accPct !== null ? `${accPct}%` : '--'}`);
 
         const formatSegment = (segment) => {
           const raw = (segment || '').trim();
