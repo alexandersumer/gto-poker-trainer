@@ -440,10 +440,9 @@ def _rival_base_range(node: Node, blocked: Iterable[int]) -> list[tuple[int, int
 
     tag = _rival_range_tag(node)
     open_size = _default_open_size(node)
-    stack_depth = float(getattr(node, "effective_bb", 0.0) or 0.0)
     if tag == "bb_defend":
-        return rival_bb_defend_range(open_size, blocked, stack_depth=stack_depth)
-    return rival_sb_open_range(open_size, blocked, stack_depth=stack_depth)
+        return rival_bb_defend_range(open_size, blocked)
+    return rival_sb_open_range(open_size, blocked)
 
 
 def _set_node_pot_from_state(node: Node, hand_state: dict[str, Any] | None) -> float:
@@ -570,10 +569,6 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
                     "street": "preflop",
                     "action": "call",
                     "call_cost": call_cost,
-                    "pot_before": pot,
-                    "pot_if_called": final_pot_call,
-                    "hero_invest": call_cost,
-                    "hero_eq_continue": avg_range_eq,
                 },
             )
         )
@@ -626,10 +621,6 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_call": rival_call,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
-            "pot_if_called": final_pot,
-            "hero_invest": hero_add,
-            "villain_invest": rival_call,
-            "hero_eq_continue": avg_eq_when_called,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -668,10 +659,6 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_call_cost": rival_call_to,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
-            "pot_if_called": final_pot,
-            "hero_invest": hero_add,
-            "villain_invest": rival_call,
-            "hero_eq_continue": avg_eq_when_called,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -741,10 +728,6 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             "rival_threshold": be_threshold,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
-            "pot_if_called": final_pot,
-            "hero_invest": bet,
-            "villain_invest": bet,
-            "hero_eq_continue": eq_call,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -773,10 +756,6 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             "pot_before": pot,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
-            "pot_if_called": final_pot,
-            "hero_invest": risk,
-            "villain_invest": risk,
-            "hero_eq_continue": eq_call,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -849,10 +828,6 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "rival_threshold": be_threshold,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
-            "pot_if_called": final_pot,
-            "hero_invest": bet,
-            "villain_invest": bet,
-            "hero_eq_continue": eq_call,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -882,10 +857,6 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "pot_before": pot,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
-            "pot_if_called": final_pot,
-            "hero_invest": risk,
-            "villain_invest": risk,
-            "hero_eq_continue": eq_call,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -937,10 +908,6 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         "street": "river",
         "action": "call",
         "rival_bet": rival_bet,
-        "pot_before": pot_after_bet,
-        "pot_if_called": pot_after_bet + rival_bet,
-        "hero_invest": rival_bet,
-        "hero_eq_continue": avg_eq,
         **precision.to_meta(),
     }
     call_ev = avg_eq * pot_after_bet - (1 - avg_eq) * rival_bet
@@ -978,10 +945,6 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         "pot_before": pot_after_bet,
         "rival_fe": fe,
         "rival_continue_ratio": continue_ratio,
-        "pot_if_called": final_pot,
-        "hero_invest": risk,
-        "villain_invest": rival_call_cost,
-        "hero_eq_continue": eq_call,
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, raise_profile, continue_range)
@@ -1017,10 +980,6 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
             "pot_before": pot_after_bet,
             "rival_fe": fe_ai,
             "rival_continue_ratio": continue_ratio_ai,
-            "pot_if_called": final_pot_allin,
-            "hero_invest": risk_allin,
-            "villain_invest": risk_allin,
-            "hero_eq_continue": eq_call_ai,
         }
         jam_meta.update(precision.to_meta())
         _apply_profile_meta(jam_meta, profile_ai, continue_range_ai)
@@ -1080,10 +1039,6 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         "street": "turn",
         "action": "call",
         "rival_bet": rival_bet,
-        "pot_before": pot_before_action,
-        "pot_if_called": final_pot_call,
-        "hero_invest": rival_bet,
-        "hero_eq_continue": avg_eq,
     }
     call_meta.update(precision.to_meta())
     options.append(
@@ -1126,13 +1081,9 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         "raise_to": raise_to,
         "rival_threshold": be_threshold,
         "rival_bet": rival_bet,
-        "pot_before": pot_before_action,
+        "pot_before": pot_start,
         "rival_fe": fe,
         "rival_continue_ratio": continue_ratio,
-        "pot_if_called": final_pot,
-        "hero_invest": risk,
-        "villain_invest": rival_call_cost,
-        "hero_eq_continue": eq_call,
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, profile, continue_range)
@@ -1200,10 +1151,6 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "rival_threshold": be_threshold,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
-            "pot_if_called": final_pot,
-            "hero_invest": bet,
-            "villain_invest": bet,
-            "hero_eq_continue": eq_call,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1232,10 +1179,6 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "pot_before": pot,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
-            "pot_if_called": final_pot,
-            "hero_invest": risk,
-            "villain_invest": risk,
-            "hero_eq_continue": eq_call,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)

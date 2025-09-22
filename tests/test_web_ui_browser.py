@@ -79,9 +79,6 @@ def test_browser_flow_shows_initial_hand() -> None:
 
         # Ensure an action is presented so the drill can continue.
         page.wait_for_selector("#action-area .action-button", timeout=15_000)
-        page.wait_for_selector("#action-analysis:not(.hidden)", timeout=15_000)
-        card_count = page.eval_on_selector_all(".analysis-card", "cards => cards.length")
-        assert card_count and card_count >= 1
 
         status = page.inner_text("#header-status").strip().lower()
         assert "preparing" not in status
@@ -187,7 +184,6 @@ def test_feedback_drawer_after_action() -> None:
         page.click("#btn-start")
         page.wait_for_selector("#hand .card:not(.placeholder)", timeout=15_000)
         page.wait_for_selector("#action-area .action-button", timeout=15_000)
-        page.wait_for_selector("#action-analysis:not(.hidden)", timeout=15_000)
         page.click("#action-area .action-button")
 
         page.wait_for_function(

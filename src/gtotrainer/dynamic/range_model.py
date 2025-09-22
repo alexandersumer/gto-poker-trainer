@@ -8,12 +8,9 @@ keeping the training loop fast while still producing reasonable ranges.
 
 from __future__ import annotations
 
-import json
-import math
 from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import lru_cache
-from importlib import resources
 
 from .cards import fresh_deck
 from .hand_strength import combo_playability_score
@@ -62,12 +59,6 @@ class RangeProfile:
     percent: float
 
 
-@dataclass(frozen=True)
-class RangeTable:
-    sb_open: list[tuple[float, RangeProfile]]
-    bb_defend: list[tuple[float, RangeProfile]]
-
-
 _SB_OPEN_PROFILES: list[tuple[float, RangeProfile]] = [
     (2.0, RangeProfile(percent=0.9)),
     (2.2, RangeProfile(percent=0.87)),
@@ -84,64 +75,6 @@ _BB_DEFEND_PROFILES: list[tuple[float, RangeProfile]] = [
     (2.8, RangeProfile(percent=0.45)),
     (3.2, RangeProfile(percent=0.36)),
 ]
-
-
-_DEFAULT_TABLE = RangeTable(sb_open=_SB_OPEN_PROFILES, bb_defend=_BB_DEFEND_PROFILES)
-
-
-def _parse_entries(
-    entries: Iterable[dict[str, float]] | None,
-    fallback: list[tuple[float, RangeProfile]],
-) -> list[tuple[float, RangeProfile]]:
-    parsed: list[tuple[float, RangeProfile]] = []
-    if entries:
-        for item in entries:
-            try:
-                size = float(item["size"])
-                percent = float(item["percent"])
-            except (KeyError, TypeError, ValueError):
-                continue
-            parsed.append((size, RangeProfile(percent=percent)))
-    if not parsed:
-        return fallback
-    parsed.sort(key=lambda pair: pair[0])
-    return parsed
-
-
-@lru_cache(maxsize=1)
-def _load_range_tables() -> dict[str, RangeTable]:
-    try:
-        config_path = resources.files("gtotrainer.data").joinpath("ranges", "config.json")
-        raw_text = config_path.read_text(encoding="utf-8")
-        loaded = json.loads(raw_text)
-    except Exception:
-        return {"default": _DEFAULT_TABLE}
-
-    default_raw = loaded.get("default", {})
-    default_table = RangeTable(
-        sb_open=_parse_entries(default_raw.get("sb_open"), _SB_OPEN_PROFILES),
-        bb_defend=_parse_entries(default_raw.get("bb_defend"), _BB_DEFEND_PROFILES),
-    )
-    tables: dict[str, RangeTable] = {"default": default_table}
-    stacks = loaded.get("stacks", {})
-    if isinstance(stacks, dict):
-        for key, value in stacks.items():
-            if not isinstance(value, dict):
-                continue
-            table = RangeTable(
-                sb_open=_parse_entries(value.get("sb_open"), default_table.sb_open),
-                bb_defend=_parse_entries(value.get("bb_defend"), default_table.bb_defend),
-            )
-            tables[str(key)] = table
-    return tables
-
-
-def _table_for_stack(stack_depth: float | None) -> RangeTable:
-    tables = _load_range_tables()
-    if stack_depth is None or not math.isfinite(stack_depth):
-        return tables["default"]
-    key = str(int(round(stack_depth)))
-    return tables.get(key, tables["default"])
 
 
 def _interpolate_profile(value: float, profiles: list[tuple[float, RangeProfile]]) -> RangeProfile:
@@ -164,29 +97,17 @@ def _interpolate_profile(value: float, profiles: list[tuple[float, RangeProfile]
     return profiles[-1][1]
 
 
-def rival_sb_open_range(
-    open_size: float,
-    blocked_cards: Iterable[int] | None = None,
-    *,
-    stack_depth: float | None = None,
-) -> list[tuple[int, int]]:
+def rival_sb_open_range(open_size: float, blocked_cards: Iterable[int] | None = None) -> list[tuple[int, int]]:
     """Solver-aligned SB open-raise model by sizing."""
 
-    table = _table_for_stack(stack_depth)
-    profile = _interpolate_profile(open_size, table.sb_open)
+    profile = _interpolate_profile(open_size, _SB_OPEN_PROFILES)
     return top_percent(profile.percent, blocked_cards)
 
 
-def rival_bb_defend_range(
-    open_size: float,
-    blocked_cards: Iterable[int] | None = None,
-    *,
-    stack_depth: float | None = None,
-) -> list[tuple[int, int]]:
+def rival_bb_defend_range(open_size: float, blocked_cards: Iterable[int] | None = None) -> list[tuple[int, int]]:
     """Solver-aligned BB defend range versus SB open sizing."""
 
-    table = _table_for_stack(stack_depth)
-    profile = _interpolate_profile(open_size, table.bb_defend)
+    profile = _interpolate_profile(open_size, _BB_DEFEND_PROFILES)
     return top_percent(profile.percent, blocked_cards)
 
 

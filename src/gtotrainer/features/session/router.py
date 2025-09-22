@@ -157,7 +157,6 @@ class _SessionController:
                 "options": options,
                 "hero_cards": self._card_tokens(list(node.hero_cards)),
                 "board_cards": self._card_tokens(list(node.board_cards)),
-                "analysis": payload.analysis,
             },
             trigger=trigger,
         )
@@ -172,7 +171,6 @@ class _SessionController:
             "hero_cards": self._card_tokens(list(node.hero_cards)) if node else [],
             "board_cards": self._card_tokens(list(node.board_cards)) if node else [],
             "summary": payload.summary,
-            "analysis": payload.analysis,
         }
         return self._template_response(request, "session/choice.html", context, trigger={"sessionUpdated": sid})
 

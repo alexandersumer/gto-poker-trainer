@@ -4,12 +4,6 @@ Heads-up no-limit hold’em training built on FastAPI with a responsive web UI. 
 
 Hosted app: [gto.alexandersumer.com](https://gto.alexandersumer.com/)
 
-Recent updates:
-
-- Dark-mode action panel now shows a dedicated EV breakdown for each choice (fold/call mix, equity when called, villain continue range).
-- Stack-aware range configuration lives in `src/gtotrainer/data/ranges/config.json`, tightening SB opens / BB defends around 93bb scenarios.
-- Added a repeatable health check (`scripts/check_health.py`) that estimates NashConv across canonical spots.
-
 ## Contents
 
 - [Requirements](#requirements)
@@ -97,14 +91,6 @@ The `pre-commit` hook formats staged Python files, runs Ruff format and lint, th
 | `make format` | Run the Ruff formatter. |
 | `make render-smoke` | Build the Render image and call `/healthz`. |
 
-### Health Checks
-
-Run the blueprint health script to estimate NashConv (multi-seed) for canonical spots:
-
-```bash
-uv run --no-config --locked --extra dev -- python scripts/check_health.py --verbose
-```
-
 ## Tests
 
 CI installs Playwright browsers after syncing deps, then runs Ruff format, Ruff lint, and `pytest -q`. To mirror the pipeline locally:
@@ -120,7 +106,6 @@ uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh
 
 - **Episode generation** – `dynamic.generator` assembles preflop-to-river node trees using sampled seat assignments and rival profiles from `_STYLE_LIBRARY`.
 - **Ranges & equities** – `dynamic.range_model`, `dynamic.hand_strength`, and `dynamic.preflop_mix` shape ranges; `dynamic.equity` batches Monte Carlo trials through `eval7`, NumPy, and Numba with deterministic caching.
-- **Range configuration** – `src/gtotrainer/data/ranges/config.json` provides stack-aware SB open / BB defend tables. `range_model.rival_*` lookups fall back to defaults when a stack-specific profile is missing.
 - **Decision policy** – `dynamic.policy` exposes `options_for` / `resolve_for`, combining stratified range samples, equity outputs, and rival updates. The CFR backend (`dynamic.cfr.LocalCFRBackend`) scales iteration counts by spot complexity.
 - **Rival modelling** – `dynamic.rival_strategy` builds strength-aware responses, weighting fold/continue decisions by combo quality and adapting to repeated hero aggression without peeking at hero cards.
 - **Session flow** – `features.session.service.SessionManager` drives the hand loop, formats options, aggregates results, and serves both JSON and HTML fragments via FastAPI routers. Blocking work runs in an async-aware worker pool (`features.session.concurrency`).

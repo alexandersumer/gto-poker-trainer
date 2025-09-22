@@ -42,18 +42,6 @@ def test_bb_defend_range_percentages(open_size: float, target: float, tolerance:
     assert math.isclose(ratio, target, rel_tol=tolerance, abs_tol=tolerance)
 
 
-def test_stack_specific_range_tightens_profiles() -> None:
-    default_ratio = _ratio(range_model.rival_sb_open_range(2.5))
-    stacked_ratio = _ratio(range_model.rival_sb_open_range(2.5, stack_depth=93))
-    assert stacked_ratio < default_ratio
-
-
-def test_unknown_stack_uses_default_profiles() -> None:
-    default_ratio = _ratio(range_model.rival_bb_defend_range(2.3))
-    unknown_ratio = _ratio(range_model.rival_bb_defend_range(2.3, stack_depth=180))
-    assert math.isclose(default_ratio, unknown_ratio, rel_tol=1e-6, abs_tol=1e-6)
-
-
 def test_playability_score_orders_connectivity() -> None:
     q4o = _combo("Qs4h")
     q9s = _combo("Qh9h")

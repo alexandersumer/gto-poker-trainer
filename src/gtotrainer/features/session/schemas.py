@@ -7,15 +7,11 @@ from pydantic import BaseModel, ConfigDict, Field
 __all__ = [
     "ActionSnapshot",
     "ChoiceResult",
-    "ActionEVBreakdown",
-    "NodeAnalysisPayload",
     "FeedbackPayload",
     "NodePayload",
     "NodeResponse",
-    "OptionAnalysisPayload",
     "OptionPayload",
     "SummaryPayload",
-    "VillainRangeEntry",
 ]
 
 
@@ -42,39 +38,6 @@ class ActionSnapshot(_APIModel):
     why: str
     gto_freq: float | None = None
     resolution_note: str | None = None
-
-
-class VillainRangeEntry(_APIModel):
-    combo: str
-    weight: float | None = None
-
-
-class ActionEVBreakdown(_APIModel):
-    fold_pct: float | None = None
-    continue_pct: float | None = None
-    fold_term: float | None = None
-    continue_term: float | None = None
-    hero_equity_vs_continue: float | None = None
-    pot_before: float | None = None
-    pot_if_called: float | None = None
-    hero_invest: float | None = None
-    villain_invest: float | None = None
-    villain_continue_total: int | None = None
-    villain_continue_sample: list[VillainRangeEntry] | None = None
-
-
-class OptionAnalysisPayload(_APIModel):
-    key: str
-    label: str
-    ev: float
-    ev_delta: float
-    is_best: bool
-    breakdown: ActionEVBreakdown | None = None
-
-
-class NodeAnalysisPayload(_APIModel):
-    best_key: str | None
-    options: list[OptionAnalysisPayload]
 
 
 class NodePayload(_APIModel):
@@ -109,7 +72,6 @@ class NodeResponse(_APIModel):
     done: bool
     node: NodePayload | None = None
     options: list[OptionPayload] | None = None
-    analysis: NodeAnalysisPayload | None = None
     summary: SummaryPayload | None = None
 
 

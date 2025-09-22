@@ -26,7 +26,7 @@ def test_preflop_threebet_uses_fold_equity_threshold(monkeypatch):
 
     combos = _simple_range((str_to_int("Qc"), str_to_int("Qd")), (str_to_int("7s"), str_to_int("2d")))
 
-    def fake_range(_open_size, _blocked, **_kwargs):  # noqa: ARG001
+    def fake_range(_open_size, _blocked):  # noqa: ARG001
         return combos
 
     eq_map = {
@@ -78,7 +78,7 @@ def test_flop_half_pot_bet_uses_p_plus_2b_when_called(monkeypatch):
 
     combos = _simple_range((str_to_int("Kd"), str_to_int("Jh")), (str_to_int("8c"), str_to_int("4c")))
 
-    def fake_range(_open_size, _blocked, **_kwargs):
+    def fake_range(_open_size, _blocked):
         return combos
 
     eq_map = {
@@ -126,7 +126,7 @@ def test_river_bet_uses_showdown_payout_formula(monkeypatch):
 
     combos = _simple_range((str_to_int("Qc"), str_to_int("Qd")), (str_to_int("7s"), str_to_int("2d")))
 
-    def fake_range(_open_size, _blocked, **_kwargs):  # noqa: ARG001
+    def fake_range(_open_size, _blocked):  # noqa: ARG001
         return combos
 
     def fake_tighten_range(_combos, _fraction):  # noqa: ARG001

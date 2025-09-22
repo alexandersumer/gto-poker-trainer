@@ -14,14 +14,12 @@ from ...dynamic.cards import format_card_ascii
 from ...dynamic.generator import Episode, Node, available_rival_styles
 from ...dynamic.policy import options_for, resolve_for
 from ...dynamic.seating import SeatRotation
-from .analysis import build_node_analysis
 from .concurrency import run_blocking
 from .engine import SessionEngine
 from .schemas import (
     ActionSnapshot,
     ChoiceResult,
     FeedbackPayload,
-    NodeAnalysisPayload,
     NodePayload,
     NodeResponse,
     OptionPayload,
@@ -106,13 +104,7 @@ class SessionManager:
                 return NodeResponse(done=True, summary=_summary_payload(state.records))
             payload = _node_payload(state, node)
             options = _ensure_options(state, node)
-            analysis = _analysis_payload(node, options)
-            return NodeResponse(
-                done=False,
-                node=payload,
-                options=_option_payloads(node, options),
-                analysis=analysis,
-            )
+            return NodeResponse(done=False, node=payload, options=_option_payloads(node, options))
 
     async def get_node_async(self, session_id: str) -> NodeResponse:
         return await run_blocking(self.get_node, session_id)
@@ -158,7 +150,11 @@ class SessionManager:
             next_payload = (
                 NodeResponse(done=True, summary=_summary_payload(state.records))
                 if next_node is None
-                else _response_for_node(state, next_node)
+                else NodeResponse(
+                    done=False,
+                    node=_node_payload(state, next_node),
+                    options=_option_payloads(next_node, _ensure_options(state, next_node)),
+                )
             )
 
         feedback = FeedbackPayload(
@@ -253,16 +249,6 @@ def _option_payloads(node: Node, options: list[Option]) -> list[OptionPayload]:
     ]
 
 
-def _response_for_node(state: SessionState, node: Node) -> NodeResponse:
-    options = _ensure_options(state, node)
-    return NodeResponse(
-        done=False,
-        node=_node_payload(state, node),
-        options=_option_payloads(node, options),
-        analysis=_analysis_payload(node, options),
-    )
-
-
 def _snapshot(node: Node, option: Option) -> ActionSnapshot:
     return ActionSnapshot(
         key=option.key,
@@ -283,8 +269,3 @@ def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
         ev_lost=stats.total_ev_lost,
         score=stats.score_pct,
     )
-
-
-def _analysis_payload(node: Node, options: list[Option]) -> NodeAnalysisPayload | None:
-    analysis = build_node_analysis(node, options)
-    return analysis
