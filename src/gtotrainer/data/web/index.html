@@ -1663,6 +1663,17 @@
         background: color-mix(in srgb, var(--action-neutral-selected-bg) 65%, var(--action-neutral-bg) 35%);
         border-color: color-mix(in srgb, var(--action-neutral-selected-border) 85%, transparent);
       }
+      :root[data-theme="dark"] .next-hand-btn {
+        background: color-mix(in srgb, var(--surface-3) 48%, var(--action-neutral-selected-bg) 52%);
+        border-color: color-mix(in srgb, var(--action-neutral-selected-border) 75%, rgba(255, 255, 255, 0.14));
+        color: color-mix(in srgb, var(--action-neutral-text) 94%, white 6%);
+        box-shadow: 0 12px 26px rgba(8, 13, 22, 0.56), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
+      :root[data-theme="dark"] .next-hand-btn:hover {
+        background: color-mix(in srgb, var(--surface-3) 42%, var(--action-neutral-selected-bg) 58%);
+        border-color: color-mix(in srgb, var(--action-neutral-selected-border) 88%, rgba(255, 255, 255, 0.18));
+        box-shadow: 0 14px 30px rgba(9, 15, 25, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.07);
+      }
       .size-chip {
         display: inline-flex;
         align-items: baseline;
