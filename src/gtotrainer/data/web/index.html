@@ -31,6 +31,15 @@
         --card-row-pad-y: 4px;
         --card-row-pad-x: 6px;
         --card-hand-offset: clamp(4px, 1.1vw, 12px);
+        --layout-panel-stack-padding: calc(var(--space-1) + 3px);
+        --layout-panel-stack-gap: calc(var(--space-1) + 1px);
+        --layout-action-area-gap: calc(var(--space-1) * 0.75);
+        --layout-action-area-pad-base: calc(var(--space-1) - 3px);
+        --layout-bet-group-gap: 8px;
+        --layout-bet-group-padding: calc(var(--space-1) + 2px);
+        --layout-bet-jam-offset: 10px;
+        --layout-size-chip-gap: 12px;
+        --layout-size-chip-padding: 12px;
       }
 
       /* Light palette (default) */
@@ -1161,8 +1170,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: calc(var(--space-1) * 0.75);
-        padding: calc(var(--space-1) - 3px) calc(var(--space-1)) calc(var(--space-1) + env(safe-area-inset-bottom, 0px) - 3px);
+        gap: var(--layout-action-area-gap);
+        padding: var(--layout-action-area-pad-base) calc(var(--space-1)) calc(var(--layout-action-area-pad-base) + env(safe-area-inset-bottom, 0px));
         background: transparent;
         border-radius: var(--radius-md);
         border: 0;
@@ -1230,10 +1239,10 @@
         transform: translateY(0);
       }
       #panel-play .panel-box.panel-soft {
-        padding: calc(var(--space-1) + 3px);
+        padding: var(--layout-panel-stack-padding);
       }
       #panel-play .panel-soft > * + * {
-        margin-top: calc(var(--space-1) + 1px);
+        margin-top: var(--layout-panel-stack-gap);
       }
       .summary-page {
         display: flex;
@@ -1417,12 +1426,12 @@
       .bet-group {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: var(--layout-bet-group-gap);
         width: 100%;
         background: color-mix(in srgb, var(--action-accent-bg) 82%, var(--surface-1) 18%);
         border: 1px solid color-mix(in srgb, var(--action-accent-border) 70%, transparent);
         border-radius: var(--radius-md);
-        padding: calc(var(--space-1) + 2px);
+        padding: var(--layout-bet-group-padding);
       }
       .bet-group__label {
         font-size: 0.76rem;
@@ -1432,14 +1441,14 @@
         color: color-mix(in srgb, var(--action-accent-text) 85%, var(--text-primary) 15%);
       }
       .bet-group__jam {
-        margin-top: 10px;
+        margin-top: var(--layout-bet-jam-offset);
         display: flex;
         width: 100%;
       }
       .action-sizes {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
+        gap: var(--layout-size-chip-gap);
         min-height: calc(var(--min-tap) - 10px);
       }
       .action-sizes .action-button {
@@ -1660,7 +1669,7 @@
         border: 1px solid var(--muted-border);
         background: var(--muted-bg);
         color: var(--text-primary);
-        padding: 12px 0;
+        padding: var(--layout-size-chip-padding) 0;
         font-size: 0.84rem;
         font-weight: 600;
         text-align: center;
