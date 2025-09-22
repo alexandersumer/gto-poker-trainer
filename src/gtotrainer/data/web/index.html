@@ -110,6 +110,11 @@
         --action-negative-border: color-mix(in srgb, var(--error) 45%, transparent);
         --action-negative-selected-bg: var(--error);
         --action-negative-selected-border: color-mix(in srgb, var(--error) 70%, transparent);
+        --action-call-bg: var(--action-neutral-bg);
+        --action-call-border: var(--action-neutral-selected-border);
+        --action-call-text: var(--action-neutral-text);
+        --action-call-hover: color-mix(in srgb, var(--action-neutral-selected-bg) 32%, var(--action-neutral-bg) 68%);
+        --action-call-pressed-ring: color-mix(in srgb, var(--action-neutral-selected-border) 40%, transparent);
         --chipbar-bg: #EAEFF7;
         --chipbar-text: #0F172A;
         --chipbar-border: color-mix(in srgb, #94A3B8 35%, transparent);
@@ -211,6 +216,11 @@
         --action-negative-border: color-mix(in srgb, var(--error) 55%, transparent);
         --action-negative-selected-bg: var(--error);
         --action-negative-selected-border: color-mix(in srgb, var(--error) 70%, transparent);
+        --action-call-bg: color-mix(in srgb, var(--surface-2) 78%, var(--surface-1) 22%);
+        --action-call-border: color-mix(in srgb, var(--chip-selected-border) 88%, transparent);
+        --action-call-text: #F7FBFF;
+        --action-call-hover: color-mix(in srgb, var(--action-call-bg) 80%, var(--chipbar-hover) 20%);
+        --action-call-pressed-ring: color-mix(in srgb, var(--chip-selected-border) 58%, transparent);
         --chipbar-bg: #1F2937;
         --chipbar-text: #EAEFF7;
         --chipbar-border: color-mix(in srgb, #94A3B8 45%, transparent);
@@ -1489,6 +1499,39 @@
       .action-button.action-neutral:hover {
         background: color-mix(in srgb, var(--action-neutral-bg) 90%, var(--action-neutral-selected-bg) 10%);
         border-color: var(--action-neutral-selected-border);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral.action-call {
+        background: var(--action-call-bg);
+        border-color: var(--action-call-border);
+        color: var(--action-call-text);
+        box-shadow: 0 12px 26px rgba(6, 12, 22, 0.52), 0 0 0 1px color-mix(in srgb, var(--chip-selected-border) 40%, transparent);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral.action-call .action-label {
+        color: var(--action-call-text);
+        font-weight: 500;
+        text-shadow: 0 0 8px rgba(9, 21, 44, 0.16);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral.action-call .action-meta {
+        color: color-mix(in srgb, var(--chip-selected-border) 55%, var(--surface-1) 45%);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral.action-call:hover {
+        background: var(--action-call-hover);
+        border-color: color-mix(in srgb, var(--action-call-border) 85%, transparent);
+        box-shadow: 0 16px 30px rgba(6, 12, 22, 0.55), 0 0 0 1px color-mix(in srgb, var(--chip-selected-border) 60%, transparent);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral.action-call:not([disabled]):active {
+        box-shadow: 0 0 0 2px var(--action-call-pressed-ring), 0 10px 18px rgba(5, 11, 20, 0.52);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral.action-call.is-selected,
+      :root[data-theme="dark"] .action-button.action-neutral.action-call.is-armed {
+        background: color-mix(in srgb, var(--action-call-bg) 65%, var(--action-neutral-selected-bg) 35%);
+        border-color: color-mix(in srgb, var(--action-call-border) 75%, var(--action-neutral-selected-border) 25%);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--chip-selected-border) 66%, transparent), 0 18px 34px rgba(6, 12, 22, 0.58);
+        color: var(--action-call-text);
+      }
+      :root[data-theme="dark"] .action-button.action-neutral.action-call.is-selected .action-label,
+      :root[data-theme="dark"] .action-button.action-neutral.action-call.is-armed .action-label {
+        color: var(--action-call-text);
       }
       .action-button.action-primary {
         background: var(--surface-2);
@@ -3337,6 +3380,9 @@
           btn.type = 'button';
           btn.className = `action-button ${variant}`;
           btn.dataset.slot = slotKey;
+          if(descriptor?.action === 'call'){
+            btn.classList.add('action-call');
+          }
           const { label, meta } = makeLabelMeta(descriptor, override);
           const labelEl = document.createElement('span');
           labelEl.className = 'action-label';
