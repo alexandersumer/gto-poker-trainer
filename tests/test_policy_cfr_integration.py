@@ -38,4 +38,6 @@ def test_options_for_attaches_cfr_metadata() -> None:
 
     passive = [opt for opt in options if not (opt.meta and opt.meta.get("supports_cfr"))]
     for opt in passive:
-        assert opt.gto_freq is None
+        if opt.gto_freq is not None:
+            assert opt.meta is not None
+            assert "solver_mix" in opt.meta

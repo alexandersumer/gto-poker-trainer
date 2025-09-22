@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from gtotrainer.core.models import Option
+from gtotrainer.dynamic.episode import Node
 from gtotrainer.features.session import (
     ChoiceResult,
     NodeResponse,
@@ -16,7 +17,6 @@ from gtotrainer.features.session.service import (
     _node_payload,
     _view_context,
 )
-from gtotrainer.dynamic.episode import Node
 
 
 def test_session_manager_basic_flow():

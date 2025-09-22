@@ -3114,11 +3114,14 @@
 
       const cleanDescriptor = (descriptor) => {
         if(!descriptor) return '';
-        return descriptor
+        let text = descriptor
           .replace(/Rival\s+/i, '')
           .replace(/\s+/g, ' ')
           .replace(/[.]+$/g, '')
           .trim();
+        text = text.replace(/^\((?:SB|BB)\)\s*/i, '');
+        text = text.replace(/^(You|Hero)\s*/i, '');
+        return text.trim();
       };
 
       const formatStatusLine = (node, descriptor) => {
@@ -3165,11 +3168,11 @@
           if(facing === 'bet'){
             heroAction = betSize ? `Facing ${betSize} bet` : 'Facing a bet';
           } else if(facing === 'check' || facing === 'oop-check'){
-            heroAction = descriptorClean || 'Choose your bet';
+            heroAction = 'Action on you';
           } else if(openSize){
-            heroAction = descriptorClean || `Facing ${openSize} open`;
+            heroAction = `Facing ${openSize} open`;
           } else {
-            heroAction = descriptorClean || 'Your turn';
+            heroAction = 'Action on you';
           }
         } else {
           heroAction = descriptorClean || 'Waiting';
@@ -3401,7 +3404,7 @@
         const facingState = (node?.context?.facing || '').toString().toLowerCase();
         const contextBet = typeof node?.context?.bet === 'number' ? node.context.bet : null;
         const isFacingBet = facingState === 'bet' || (contextBet !== null && Number.isFinite(contextBet) && contextBet > 0);
-        const passiveOpt = isFacingBet ? (callOpt || checkOpt) : (checkOpt || callOpt);
+        const passiveOpt = isFacingBet ? (callOpt || null) : (checkOpt || callOpt);
 
         const used = new Set([foldOpt, passiveOpt, jamOpt].filter(Boolean));
         if(raiseOpts.length === 0){

@@ -191,3 +191,47 @@ def normalise_mix(mix: Mapping[str, float]) -> Mapping[str, float]:
     if total <= 0:
         return mix
     return {k: v / total for k, v in mix.items()}
+
+
+def action_profile_for_combo(
+    combo: tuple[int, int],
+    *,
+    open_size: float,
+    blocked: Iterable[int] | None = None,
+) -> Mapping[str, float]:
+    """Return a normalised defensive profile for the combo.
+
+    The helper exposes a stable mapping so other modules can reference the
+    aggregate defend share or specific action buckets without re-implementing
+    ``action_mix_for_combo`` logic.
+    """
+
+    base_mix = action_mix_for_combo(combo, open_size=open_size, blocked=blocked or [])
+    normalised = normalise_mix(base_mix)
+    defend = normalised.get("call", 0.0) + normalised.get("threebet", 0.0) + normalised.get("jam", 0.0)
+    profile = dict(normalised)
+    profile["defend"] = defend
+    return profile
+
+
+def continue_combos(
+    *,
+    open_size: float,
+    blocked: Iterable[int] | None = None,
+    minimum_defend: float = 0.05,
+) -> list[tuple[int, int]]:
+    """Return combos that defend at least ``minimum_defend`` share vs the open.
+
+    This gives the policy and rival modelling layers a deterministic way to
+    approximate solver continue ranges while still honouring blockers.
+    """
+
+    blocked_cards = blocked or []
+    threshold = max(0.0, min(1.0, minimum_defend))
+    combos = _combos_without_blockers(blocked_cards)
+    result: list[tuple[int, int]] = []
+    for combo in combos:
+        profile = action_profile_for_combo(combo, open_size=open_size, blocked=blocked_cards)
+        if profile.get("defend", 0.0) >= threshold:
+            result.append(combo)
+    return result

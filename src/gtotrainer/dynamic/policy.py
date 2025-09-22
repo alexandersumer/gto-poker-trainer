@@ -14,6 +14,7 @@ from .cards import format_card_ascii, format_cards_spaced
 from .cfr import refine_options as _refine_with_cfr
 from .episode import Node
 from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_vs_range
+from .preflop_mix import action_profile_for_combo, continue_combos
 from .range_model import rival_bb_defend_range, rival_sb_open_range, tighten_range
 
 
@@ -441,6 +442,9 @@ def _rival_base_range(node: Node, blocked: Iterable[int]) -> list[tuple[int, int
     tag = _rival_range_tag(node)
     open_size = _default_open_size(node)
     if tag == "bb_defend":
+        improved = continue_combos(open_size=open_size, blocked=blocked, minimum_defend=0.08)
+        if improved:
+            return improved
         return rival_bb_defend_range(open_size, blocked)
     return rival_sb_open_range(open_size, blocked)
 
@@ -526,6 +530,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     del rng
     hero = node.hero_cards
     open_size = float(node.context.get("open_size") or 2.5)
+    hero_combo = tuple(sorted(hero))
     hand_state = _hand_state(node)
     pot = _set_node_pot_from_state(node, hand_state)
     hero_contrib = _state_value(hand_state, "hero_contrib", 1.0)
@@ -538,6 +543,11 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     call_cost = max(0.0, min(hero_stack, rival_contrib - hero_contrib))
 
     blocked = _blocked_cards(hero, [])
+    solver_profile = action_profile_for_combo(hero_combo, open_size=open_size, blocked=blocked)
+    fold_freq = max(0.0, 1.0 - float(solver_profile.get("defend", 0.0)))
+    call_freq = float(solver_profile.get("call", 0.0))
+    threebet_freq = float(solver_profile.get("threebet", 0.0))
+    jam_freq = float(solver_profile.get("jam", 0.0))
     open_range = _rival_base_range(node, blocked)
     sampled_range = _sample_range(open_range, _sample_cap_preflop(mc_trials)) or open_range
     precision = _precision_for_street(mc_trials, "preflop")
@@ -548,9 +558,10 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         Option(
             "Fold",
             0.0,
-            "Fold now and lose nothing extra.",
+            f"Fold now and lose nothing extra. Recommended {fold_freq:.0%} of the time versus this open.",
+            gto_freq=fold_freq,
             ends_hand=True,
-            meta={"street": "preflop", "action": "fold"},
+            meta={"street": "preflop", "action": "fold", "solver_mix": {"fold": fold_freq}},
         ),
     ]
 
@@ -563,12 +574,15 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
                 avg_range_eq * final_pot_call - call_cost,
                 (
                     f"Pot odds: call {call_cost:.2f} bb to win {final_pot_call:.2f} bb. "
-                    f"Need ≈{_fmt_pct(be_call_eq, 1)} equity, hand has {_fmt_pct(avg_range_eq, 1)}."
+                    f"Need ≈{_fmt_pct(be_call_eq, 1)} equity, hand has {_fmt_pct(avg_range_eq, 1)}. "
+                    f"Solver mix suggests calling {call_freq:.0%}."
                 ),
+                gto_freq=call_freq,
                 meta={
                     "street": "preflop",
                     "action": "call",
                     "call_cost": call_cost,
+                    "solver_mix": {"call": call_freq},
                 },
             )
         )
@@ -586,7 +600,9 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             continue
         raise_targets.add(round(target, 2))
 
-    for raise_to in sorted(raise_targets):
+    sorted_raises = sorted(raise_targets)
+    raise_share = threebet_freq / len(sorted_raises) if sorted_raises else 0.0
+    for raise_to in sorted_raises:
         hero_add = raise_to - hero_contrib
         if hero_add <= 0 or hero_add > hero_stack + 1e-6:
             continue
@@ -621,11 +637,20 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_call": rival_call,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
+            "solver_mix": {"threebet": threebet_freq},
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
         _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
-        options.append(Option(f"3-bet to {raise_to:.2f}bb", ev, why, meta=meta))
+        options.append(
+            Option(
+                f"3-bet to {raise_to:.2f}bb",
+                ev,
+                why + f" Solver mix uses this sizing {raise_share:.0%} of the time.",
+                gto_freq=raise_share,
+                meta=meta,
+            )
+        )
 
     hero_add = hero_stack
     if hero_add > 0.0:
@@ -659,6 +684,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_call_cost": rival_call_to,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
+            "solver_mix": {"jam": jam_freq},
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -667,7 +693,8 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             Option(
                 "All-in",
                 ev,
-                why_jam,
+                why_jam + f" Solver mix jams {jam_freq:.0%}.",
+                gto_freq=jam_freq,
                 ends_hand=True,
                 meta=meta,
             )
