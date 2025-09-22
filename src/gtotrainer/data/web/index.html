@@ -993,11 +993,10 @@
       }
       .status-compact__text {
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        flex-wrap: wrap;
-        gap: clamp(4px, 0.8vw, 8px);
-        row-gap: clamp(2px, 0.6vw, 6px);
+        gap: clamp(2px, 0.6vw, 6px);
         white-space: normal;
         text-align: center;
         font-variant-numeric: tabular-nums;
@@ -1005,8 +1004,20 @@
         margin: 0 auto;
         max-width: 100%;
       }
-      .status-compact__text .status-seg:first-child { padding-left: 2px; }
-      .status-compact__text .status-seg:last-child { padding-right: 2px; }
+      .status-row {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(4px, 0.8vw, 8px);
+        white-space: nowrap;
+      }
+      .status-row--metrics {
+        font-size: 0.95em;
+        color: var(--text-secondary);
+        opacity: 0.92;
+      }
+      .status-row .status-seg:first-child { padding-left: 2px; }
+      .status-row .status-seg:last-child { padding-right: 2px; }
       .status-seg {
         display: inline-flex;
         align-items: baseline;
@@ -2967,32 +2978,38 @@
       const updateHeaderStatus = (node, opts = {}) => {
         if(!headerStatus) return;
         const { state } = opts;
-        const segments = [];
+        const contextSegments = [];
+        const metricSegments = [];
 
         if(node){
           const street = streetLabel(node.street);
-          if(street) segments.push(street);
+          if(street) contextSegments.push(street);
           if(typeof node.hand_no === 'number' && typeof node.total_hands === 'number'){
-            segments.push(`Hand ${node.hand_no}/${node.total_hands}`);
+            contextSegments.push(`Hand ${node.hand_no}/${node.total_hands}`);
             sessionHands = node.total_hands;
           }
           if(typeof node.effective_bb === 'number' && Number.isFinite(node.effective_bb) && node.effective_bb > 0){
-            segments.push(`Stk ${formatBb(node.effective_bb)}`);
+            contextSegments.push(`Stk ${formatBb(node.effective_bb)}`);
           }
-        } else if(state){
-          segments.push(state);
-        } else {
-          segments.push('Ready');
+        }
+
+        if(!contextSegments.length){
+          if(state){
+            contextSegments.push(state);
+          } else {
+            const fallback = node ? streetLabel(node?.street) : 'Ready';
+            contextSegments.push(fallback || 'Ready');
+          }
         }
 
         const evMagnitude = Math.abs(totalEvLost);
         const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : `+${formatBb(evMagnitude)}`;
-        segments.push(`ΔEV ${evDisplay}`);
+        metricSegments.push(`ΔEV ${evDisplay}`);
 
         const accPct = answered > 0
           ? Math.round((correctDecisions / Math.max(1, answered)) * 100)
           : null;
-        segments.push(`Acc ${accPct !== null ? `${accPct}%` : '--'}`);
+        metricSegments.push(`Acc ${accPct !== null ? `${accPct}%` : '--'}`);
 
         const formatSegment = (segment) => {
           const raw = (segment || '').trim();
@@ -3008,12 +3025,25 @@
           return `<span class="status-seg"><strong>${labelMarkup}</strong><span>${valueMarkup}</span></span>`;
         };
 
-        const markup = segments
-          .map(formatSegment)
-          .filter(Boolean)
-          .join('<span class="status-dot">·</span>');
+        const formatGroup = (segments, rowClass = '') => {
+          const rowMarkup = segments
+            .map(formatSegment)
+            .filter(Boolean)
+            .join('<span class="status-dot">·</span>');
+          if(!rowMarkup) return '';
+          const rowClasses = ['status-row'];
+          if(rowClass) rowClasses.push(rowClass);
+          return `<span class="${rowClasses.join(' ')}">${rowMarkup}</span>`;
+        };
 
-        headerStatus.innerHTML = markup || '<span class="status-seg">Ready</span>';
+        const markup = [
+          formatGroup(contextSegments, 'status-row--context'),
+          formatGroup(metricSegments, 'status-row--metrics'),
+        ]
+          .filter(Boolean)
+          .join('');
+
+        headerStatus.innerHTML = markup || formatGroup(['Ready'], 'status-row--context');
         if(statusCompact){
           statusCompact.scrollLeft = 0;
         }
