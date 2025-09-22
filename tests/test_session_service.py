@@ -134,6 +134,29 @@ def test_view_context_omits_unknown_fields():
     assert _view_context(node) == {"actor_seat": "BB"}
 
 
+def test_view_context_preserves_facing_bet_information():
+    node = Node(
+        street="turn",
+        description="Board; Rival bets 5.60bb into 11.20bb.",
+        pot_bb=11.2,
+        effective_bb=88.4,
+        hero_cards=[19, 20],
+        board=[21, 22, 23, 24],
+        actor="BB",
+        context={
+            "facing": "bet",
+            "bet": 5.6,
+            "hero_seat": "bb",
+            "rival_seat": "sb",
+        },
+    )
+
+    view = _view_context(node)
+
+    assert view["facing"] == "bet"
+    assert view["bet"] == pytest.approx(5.6)
+
+
 def test_session_manager_alternates_blinds():
     manager = SessionManager()
     hands = 6
