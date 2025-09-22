@@ -40,5 +40,54 @@
       </li>
       {% endfor %}
     </ul>
+    {% if analysis and analysis.options %}
+    <section class="action-analysis">
+      <div class="action-analysis__header">
+        <h3 class="action-analysis__title">EV breakdown</h3>
+        <p class="action-analysis__subtitle">Fold/call mix and villain responses for each option.</p>
+      </div>
+      <div class="action-analysis__body">
+        {% for item in analysis.options %}
+        <div class="analysis-card" data-best="{{ 'true' if item.is_best else 'false' }}">
+          <div class="analysis-card__summary">
+            <span class="analysis-card__title">{{ item.label }}</span>
+            <span class="analysis-card__ev">EV {{ '%.2f'|format(item.ev) }} bb</span>
+            {% if item.is_best %}
+            <span class="analysis-card__tag">Best</span>
+            {% else %}
+            <span class="analysis-card__delta">Δ {{ '%.2f'|format(item.ev_delta) }} bb</span>
+            {% endif %}
+          </div>
+          {% if item.breakdown %}
+          <div class="analysis-card__metrics">
+            {% if item.breakdown.fold_pct is not none %}
+            <span>Fold {{ '%.0f'|format(item.breakdown.fold_pct * 100) }}%</span>
+            {% endif %}
+            {% if item.breakdown.continue_pct is not none %}
+            <span>Continue {{ '%.0f'|format(item.breakdown.continue_pct * 100) }}%</span>
+            {% endif %}
+            {% if item.breakdown.hero_equity_vs_continue is not none %}
+            <span>Equity {{ '%.1f'|format(item.breakdown.hero_equity_vs_continue * 100) }}%</span>
+            {% endif %}
+          </div>
+          {% if item.breakdown.villain_continue_sample %}
+          <div class="analysis-card__range">
+            <span>Villain continues with:</span>
+            <div class="analysis-card__range-list">
+              {% for vr in item.breakdown.villain_continue_sample %}
+              <span class="analysis-card__combo">{{ vr.combo }}</span>
+              {% endfor %}
+              {% if item.breakdown.villain_continue_total and item.breakdown.villain_continue_total > item.breakdown.villain_continue_sample|length %}
+              <span class="analysis-card__more">+{{ item.breakdown.villain_continue_total - item.breakdown.villain_continue_sample|length }} more</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
   </section>
 </div>

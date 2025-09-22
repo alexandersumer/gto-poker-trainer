@@ -27,6 +27,10 @@ def test_session_manager_basic_flow():
     assert len(node["hero_cards"]) == 2
     assert all(len(card) == 2 for card in node["hero_cards"])
     assert data["options"], "options should be available"
+    analysis = data.get("analysis")
+    assert analysis is not None
+    assert isinstance(analysis.get("options"), list)
+    assert analysis["options"], "analysis should include option breakdowns"
     first_option = data["options"][0]
     assert {"key", "label", "ev", "why", "ends_hand"}.issubset(first_option)
 
@@ -39,6 +43,7 @@ def test_session_manager_basic_flow():
     assert "chosen" in feedback and "label" in feedback["chosen"]
     next_payload = choice_payload["next"]
     assert "done" in next_payload
+    assert "analysis" in next_payload
 
     # Play until session completes to validate summary
     steps = 0
@@ -55,6 +60,26 @@ def test_session_manager_basic_flow():
     # Summary endpoint mirrors the same content
     summary_direct = manager.summary(session_id).to_dict()
     assert summary_direct == summary
+
+
+def test_analysis_ev_delta_matches_options():
+    manager = SessionManager()
+    session_id = manager.create_session(SessionConfig(hands=1, mc_trials=60, seed=321))
+    payload = manager.get_node(session_id)
+    assert not payload.done and payload.analysis is not None
+    analysis = payload.analysis.to_dict()
+    options = payload.options or []
+    assert analysis["options"], "analysis payload should include options"
+    best_ev = max(opt.ev for opt in options)
+    lookup = {item["key"]: item for item in analysis["options"]}
+    for opt in options:
+        entry = lookup[opt.key]
+        if entry["is_best"]:
+            assert abs(entry["ev_delta"]) < 1e-9
+            assert abs(opt.ev - best_ev) < 1e-9
+        else:
+            expected_delta = best_ev - opt.ev
+            assert entry["ev_delta"] == pytest.approx(expected_delta)
 
 
 def test_session_manager_alternates_blinds():
