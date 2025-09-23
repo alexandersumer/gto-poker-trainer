@@ -280,6 +280,70 @@ def test_turn_call_moves_to_river_when_rival_strong():
     assert "call" in (res.note or "").lower()
 
 
+def test_river_rebuild_after_turn_call_sets_check_context():
+    hero = _str_cards(["As", "Kd"])
+    rival = _rival_tuple("Qh", "Js")
+    board = _str_cards(["2c", "7d", "Jh", "9s", "3d"])
+    state = _make_hand_state(
+        hero,
+        rival,
+        board[:4],
+        pot=12.0,
+        street="turn",
+        hero_contrib=6.0,
+        rival_contrib=6.0,
+    )
+
+    turn_node = Node(
+        street="turn",
+        description="Turn node",
+        pot_bb=12.0,
+        effective_bb=100.0,
+        hero_cards=hero,
+        board=board[:4],
+        actor="BTN",
+        context={
+            "facing": "bet",
+            "bet": 3.0,
+            "open_size": 2.5,
+            "hand_state": state,
+        },
+    )
+
+    river_node = Node(
+        street="river",
+        description="River node",
+        pot_bb=12.0,
+        effective_bb=100.0,
+        hero_cards=hero,
+        board=board,
+        actor="BTN",
+        context={
+            "facing": "bet",
+            "bet": 3.0,
+            "open_size": 2.5,
+            "hand_state": state,
+        },
+    )
+
+    state["nodes"] = {"turn": turn_node, "river": river_node}
+
+    opts = turn_options(turn_node, random.Random(11), mc_trials=120)
+    call_opt = next(opt for opt in opts if opt.meta and opt.meta.get("action") == "call")
+
+    res = resolve_for(turn_node, call_opt, random.Random(11))
+
+    assert not res.hand_ended
+    assert state["street"] == "river"
+    assert state["board_index"] == 5
+
+    assert river_node.context.get("facing") == "oop-check"
+    assert "bet" not in river_node.context
+
+    river_opts = river_options(river_node, random.Random(11), mc_trials=120)
+    assert any(opt.key == "Check" for opt in river_opts)
+
+
 def test_river_bet_call_reveals_rival(monkeypatch):
     hero = _str_cards(["7c", "2d"])
     rival = _rival_tuple("As", "Ad")
