@@ -14,7 +14,7 @@ keywords = ["poker", "gto", "trainer", "web"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.13",
-  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "License :: OSI Approved :: MIT License",
   "Environment :: Web Environment",
   "Topic :: Games/Entertainment",
 ]

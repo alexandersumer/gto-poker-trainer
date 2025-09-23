@@ -113,4 +113,4 @@ uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh
 
 ## License
 
-Distributed under the terms of the [GNU Affero General Public License v3.0](LICENSE).
+Distributed under the terms of the [MIT License](LICENSE).
