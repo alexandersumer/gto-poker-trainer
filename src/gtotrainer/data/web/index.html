@@ -2640,8 +2640,7 @@
       let jamConfirmButton = null;
       let jamConfirmLabel = '';
       let jamConfirmMarkup = '';
-      let startPanelHeight = 0;
-      let playPanelHeightTimer = 0;
+      let panelBaselineMin = 720;
 
       const escapeHtml = (text) => String(text)
         .replace(/&/g, "&amp;")
@@ -3954,6 +3953,26 @@
         screen.classList.toggle('density-compact', shouldCompact);
       };
 
+      const updatePanelBaseline = (element) => {
+        if(!element || !screen) return;
+        const measured = Math.max(element.scrollHeight || 0, element.offsetHeight || 0);
+        if(!measured) return;
+        panelBaselineMin = Math.max(panelBaselineMin, measured, 720);
+        screen.style.minHeight = `${panelBaselineMin}px`;
+      };
+
+      const updateBaselineFromVisible = () => {
+        const candidates = ['#panel-play', '#panel-summary', '#panel-start'];
+        for(const selector of candidates){
+          const el = $(selector);
+          if(el && !el.classList.contains('hidden')){
+            updatePanelBaseline(el);
+            return;
+          }
+        }
+        updatePanelBaseline($('#panel-start'));
+      };
+
       updateHeaderStatus(null, { state: 'Ready' });
       if(statusLineEl){
         statusLineEl.dataset.active = '';
@@ -3964,45 +3983,23 @@
         actionArea.innerHTML = '';
       }
       applyDensity();
-      window.addEventListener('resize', () => window.requestAnimationFrame(applyDensity));
-
-      function captureStartHeight(){
-        if(startPanelHeight > 0) return;
-        const startPanelEl = $('#panel-start');
-        if(startPanelEl){
-          const measured = startPanelEl.offsetHeight;
-          if(measured > 0){
-            startPanelHeight = measured;
-          }
-        }
-      }
-
-      function lockPlayPanelHeight(){
-        const playPanel = $('#panel-play');
-        if(!playPanel) return;
-        window.cancelAnimationFrame(playPanelHeightTimer);
-        playPanelHeightTimer = window.requestAnimationFrame(() => {
-          const current = playPanel.offsetHeight;
-          const reference = Math.max(startPanelHeight, current);
-          if(reference > 0){
-            playPanel.style.minHeight = `${reference}px`;
-            window.clearTimeout(playPanelHeightTimer);
-            playPanelHeightTimer = window.setTimeout(() => {
-              playPanel.style.removeProperty('min-height');
-            }, 380);
-          }
-        });
-      }
+      updatePanelBaseline($('#panel-start'));
+      window.addEventListener('resize', () => window.requestAnimationFrame(() => {
+        applyDensity();
+        updateBaselineFromVisible();
+      }));
 
       function show(id){
         clearNextHandQueue();
-        captureStartHeight();
         ['#panel-start', '#panel-play', '#panel-summary'].forEach((sel)=>{
           const el = $(sel);
           if(el){ el.classList.add('hidden'); }
         });
         const target = $(id);
-        if(target){ target.classList.remove('hidden'); }
+        if(target){
+          target.classList.remove('hidden');
+          updatePanelBaseline(target);
+        }
         if(id === '#panel-start'){
           updateHeaderStatus(null, { state: 'Ready' });
           activeNode = null;
@@ -4015,9 +4012,6 @@
             actionArea.innerHTML = '';
             delete actionArea.dataset.pending;
           }
-        }
-        if(id === '#panel-play'){
-          lockPlayPanelHeight();
         }
         if(id === '#panel-summary'){
           updateHeaderStatus(null, { state: 'Summary' });
@@ -4342,6 +4336,7 @@
         }
         const optionList = Array.isArray(payload.options) ? payload.options : [];
         renderActions(optionList, node);
+        updateBaselineFromVisible();
         if(optionList.length === 0 && actionArea){
           actionArea.classList.add('is-disabled');
         }
