@@ -2640,6 +2640,8 @@
       let jamConfirmButton = null;
       let jamConfirmLabel = '';
       let jamConfirmMarkup = '';
+      let startPanelHeight = 0;
+      let playPanelHeightTimer = 0;
 
       const escapeHtml = (text) => String(text)
         .replace(/&/g, "&amp;")
@@ -3963,8 +3965,37 @@
       applyDensity();
       window.addEventListener('resize', () => window.requestAnimationFrame(applyDensity));
 
+      function captureStartHeight(){
+        if(startPanelHeight > 0) return;
+        const startPanelEl = $('#panel-start');
+        if(startPanelEl){
+          const measured = startPanelEl.offsetHeight;
+          if(measured > 0){
+            startPanelHeight = measured;
+          }
+        }
+      }
+
+      function lockPlayPanelHeight(){
+        const playPanel = $('#panel-play');
+        if(!playPanel) return;
+        window.cancelAnimationFrame(playPanelHeightTimer);
+        playPanelHeightTimer = window.requestAnimationFrame(() => {
+          const current = playPanel.offsetHeight;
+          const reference = Math.max(startPanelHeight, current);
+          if(reference > 0){
+            playPanel.style.minHeight = `${reference}px`;
+            window.clearTimeout(playPanelHeightTimer);
+            playPanelHeightTimer = window.setTimeout(() => {
+              playPanel.style.removeProperty('min-height');
+            }, 380);
+          }
+        });
+      }
+
       function show(id){
         clearNextHandQueue();
+        captureStartHeight();
         ['#panel-start', '#panel-play', '#panel-summary'].forEach((sel)=>{
           const el = $(sel);
           if(el){ el.classList.add('hidden'); }
@@ -3983,6 +4014,9 @@
             actionArea.innerHTML = '';
             delete actionArea.dataset.pending;
           }
+        }
+        if(id === '#panel-play'){
+          lockPlayPanelHeight();
         }
         if(id === '#panel-summary'){
           updateHeaderStatus(null, { state: 'Summary' });
