@@ -58,3 +58,19 @@ def test_value_hands_prefer_aggressive_actions() -> None:
     mix_large = preflop_mix.normalise_mix(preflop_mix.action_mix_for_combo(kjo, open_size=3.0))
     assert mix_small.get("threebet", 0.0) > 0.3
     assert mix_large.get("threebet", 0.0) >= mix_small.get("threebet", 0.0)
+
+
+def test_cfr_profile_sum_and_monotonicity() -> None:
+    aa = _combo("AsAh")
+    profile = preflop_mix.action_profile_for_combo(aa, open_size=2.5)
+    total = profile.get("fold", 0.0) + profile.get("call", 0.0) + profile.get("threebet", 0.0) + profile.get("jam", 0.0)
+    assert pytest.approx(total, rel=1e-6, abs=1e-6) == 1.0
+    assert profile.get("threebet", 0.0) + profile.get("jam", 0.0) >= 0.3
+
+
+def test_cfr_profile_adjusts_to_open_size() -> None:
+    q4o = _combo("Qs4h")
+    profile_small = preflop_mix.action_profile_for_combo(q4o, open_size=2.0)
+    profile_large = preflop_mix.action_profile_for_combo(q4o, open_size=3.0)
+    assert profile_small.get("fold", 0.0) <= 0.4
+    assert profile_large.get("fold", 0.0) >= 0.3
