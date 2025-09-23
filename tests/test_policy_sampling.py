@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+
 from gtotrainer.dynamic.cards import str_to_int
 from gtotrainer.dynamic.policy import _combo_category, _sample_range
 
@@ -64,19 +66,22 @@ def test_sample_range_respects_limit_and_is_deterministic() -> None:
     combos = _build_test_combos()
     limit = 20
 
-    first = _sample_range(combos, limit)
-    second = _sample_range(combos, limit)
+    first = _sample_range(combos, limit, None, random.Random(42))
+    second = _sample_range(combos, limit, None, random.Random(42))
 
     assert len(first) == limit
     assert first == second
     assert all(combo in combos for combo in first)
+
+    different = _sample_range(combos, limit, None, random.Random(7))
+    assert different != first
 
 
 def test_sample_range_covers_available_categories_when_possible() -> None:
     combos = _build_test_combos()
     limit = 24
 
-    sampled = _sample_range(combos, limit)
+    sampled = _sample_range(combos, limit, None, random.Random(99))
     categories = {_combo_category(combo) for combo in sampled}
 
     assert categories.issuperset({"pair", "suited", "offsuit"})
@@ -96,7 +101,7 @@ def test_sample_range_prioritizes_weighted_combos() -> None:
         suited_only[4]: 0.7,
     }
 
-    sampled = _sample_range(suited_only, 3, weights)
+    sampled = _sample_range(suited_only, 3, weights, random.Random(7))
 
     assert suited_only[3] in sampled
     assert suited_only[4] in sampled

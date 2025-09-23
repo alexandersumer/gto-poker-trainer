@@ -18,9 +18,18 @@ from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_v
 from .preflop_mix import action_profile_for_combo, continue_combos
 from .range_model import load_range_with_weights, rival_bb_defend_range, rival_sb_open_range, tighten_range
 
+MAX_BET_OPTIONS = 3
+
 
 def _fmt_pct(x: float, decimals: int = 0) -> str:
     return f"{100.0 * x:.{decimals}f}%"
+
+
+def _board_texture_key(cards: Iterable[int]) -> str:
+    board = [format_card_ascii(card, upper=True) for card in cards]
+    if not board:
+        return ""
+    return "|".join(sorted(board))
 
 
 def _blocked_cards(hero: Iterable[int], board: Iterable[int]) -> set[int]:
@@ -182,20 +191,54 @@ def _evenly_sample_indexed(entries: list[tuple[int, tuple[int, int]]], count: in
     return sampled
 
 
+def _weighted_sample(
+    entries: list[tuple[int, tuple[int, int]]],
+    count: int,
+    weights: Mapping[tuple[int, int], float] | None,
+    rng: random.Random,
+) -> list[tuple[int, tuple[int, int]]]:
+    if count <= 0 or not entries:
+        return []
+    pool = entries.copy()
+    result: list[tuple[int, tuple[int, int]]] = []
+
+    def entry_weight(entry: tuple[int, tuple[int, int]]) -> float:
+        if not weights:
+            return 1.0
+        combo = _normalize_combo(entry[1])
+        return max(0.0, float(weights.get(combo, 0.0)))
+
+    for _ in range(min(count, len(pool))):
+        totals = [entry_weight(entry) for entry in pool]
+        weight_sum = sum(totals)
+        if weight_sum <= 0.0:
+            chosen = rng.randrange(len(pool))
+        else:
+            target = rng.random() * weight_sum
+            cumulative = 0.0
+            chosen = len(pool) - 1
+            for idx, weight in enumerate(totals):
+                cumulative += weight
+                if cumulative >= target:
+                    chosen = idx
+                    break
+        result.append(pool.pop(chosen))
+
+    return result
+
+
 def _sample_range(
     combos: Iterable[tuple[int, int]],
     limit: int,
-    weights: Mapping[tuple[int, int], float] | None = None,
+    weights: Mapping[tuple[int, int], float] | None,
+    rng: random.Random | None,
 ) -> list[tuple[int, int]]:
     combos_list = list(combos)
-    if weights:
-        combos_list.sort(
-            key=lambda combo: weights.get(_normalize_combo(combo), 0.0),
-            reverse=True,
-        )
     total = len(combos_list)
     if limit <= 0 or total <= limit:
         return combos_list
+
+    local_rng = rng or random.Random()
 
     buckets: dict[str, list[tuple[int, tuple[int, int]]]] = {
         "pair": [],
@@ -205,7 +248,6 @@ def _sample_range(
     for idx, combo in enumerate(combos_list):
         buckets[_combo_category(combo)].append((idx, combo))
 
-    # Allocate slots proportional to bucket sizes while respecting the limit.
     allocations: dict[str, int] = {"pair": 0, "suited": 0, "offsuit": 0}
     remainders: list[tuple[float, str]] = []
     assigned = 0
@@ -219,7 +261,6 @@ def _sample_range(
         assigned += alloc
         remainders.append((exact - alloc, cat))
 
-    # Distribute remaining slots starting with the largest fractional remainder.
     remaining = limit - assigned
     if remaining > 0:
         remainders.sort(reverse=True)
@@ -233,7 +274,6 @@ def _sample_range(
             allocations[cat] += 1
             remaining -= 1
 
-    # If we still have spare slots (e.g., some buckets empty), fill them greedily.
     if remaining > 0:
         for cat in ("pair", "suited", "offsuit"):
             if remaining <= 0:
@@ -256,9 +296,8 @@ def _sample_range(
         take = allocations[cat]
         if take <= 0:
             continue
-        selected.extend(_evenly_sample_indexed(entries, take))
+        selected.extend(_weighted_sample(entries, take, weights, local_rng))
 
-    # Ensure we return exactly `limit` combos by trimming the weakest indices if needed.
     selected.sort(key=lambda item: item[0])
     if len(selected) > limit:
         selected = selected[:limit]
@@ -769,6 +808,7 @@ def _rebuild_turn_node(hand_state: dict[str, Any], pot: float) -> None:
     turn_node.context["facing"] = "bet"
     turn_node.context["bet"] = bet_turn
     board_turn = turn_node.board
+    turn_node.context["board_key"] = _board_texture_key(board_turn)
     board_str = " ".join(format_card_ascii(c, upper=True) for c in board_turn)
     rival_seat = str(hand_state.get("rival_seat", "SB"))
     turn_node.description = f"{board_str}; Rival ({rival_seat}) bets {bet_turn:.2f}bb into {pot:.2f}bb."
@@ -787,6 +827,7 @@ def _rebuild_river_node(hand_state: dict[str, Any], pot: float) -> None:
     board_str = " ".join(format_card_ascii(c, upper=True) for c in board_river)
     river_node.description = f"{board_str}; choose your bet."
     river_node.context["facing"] = "oop-check"
+    river_node.context["board_key"] = _board_texture_key(board_river)
     river_node.context.pop("bet", None)
 
 
@@ -800,7 +841,6 @@ def _showdown_outcome(hero: list[int], board: list[int], rival: tuple[int, int])
 
 
 def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
-    del rng
     hero = node.hero_cards
     open_size = float(node.context.get("open_size") or 2.5)
     hero_combo = tuple(sorted(hero))
@@ -822,7 +862,9 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     threebet_freq = float(solver_profile.get("threebet", 0.0))
     jam_freq = float(solver_profile.get("jam", 0.0))
     open_range, range_weights = _rival_base_range(node, blocked)
-    sampled_range = _sample_range(open_range, _sample_cap_preflop(mc_trials), range_weights) or open_range
+    sampled_range = _sample_range(open_range, _sample_cap_preflop(mc_trials), range_weights, rng)
+    if not sampled_range:
+        sampled_range = open_range
     precision = _precision_for_street(mc_trials, "preflop")
     equities: dict[tuple[int, int], float] = {}
     for combo in sampled_range:
@@ -870,8 +912,9 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         hero_stack=hero_stack,
         rival_stack=rival_stack,
     )
-    raise_share = threebet_freq / len(sorted_raises) if sorted_raises else 0.0
-    for raise_to in sorted_raises:
+    selected_raises = sorted_raises[:MAX_BET_OPTIONS]
+    raise_share = threebet_freq / len(selected_raises) if selected_raises else 0.0
+    for raise_to in selected_raises:
         hero_add = raise_to - hero_contrib
         if hero_add <= 0 or hero_add > hero_stack + 1e-6:
             continue
@@ -983,7 +1026,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     return options
 
 
-def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
+def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
     hero = node.hero_cards
     board = node.board
     hand_state = _hand_state(node) or {}
@@ -993,7 +1036,9 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
     probe_tighten = float(hand_state.get("style_turn_probe_tighten", 0.7))
     probe_range = tighten_range(base_range, probe_tighten)
     probe_weights = _subset_weights(base_weights, probe_range)
-    sampled_range = _sample_range(probe_range, _sample_cap_postflop(mc_trials), probe_weights) or probe_range
+    sampled_range = _sample_range(probe_range, _sample_cap_postflop(mc_trials), probe_weights, rng)
+    if not sampled_range:
+        sampled_range = probe_range
     precision = _precision_for_street(mc_trials, "turn")
     equities: dict[tuple[int, int], float] = {}
     for combo in sampled_range:
@@ -1018,7 +1063,10 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
         context=probe_context,
         base_fractions=base_probe_sizes or (0.5, 0.8),
     )
+    aggressive_added = 0
     for pct in probe_sizes:
+        if aggressive_added >= MAX_BET_OPTIONS:
+            break
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
@@ -1057,6 +1105,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
         _apply_profile_meta(meta, profile, continue_range)
         _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"continue": ev_called})
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
+        aggressive_added += 1
 
     risk = round(node.effective_bb, 2)
     if risk > 0:
@@ -1106,14 +1155,15 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
 
 
 def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
-    del rng
     hero = node.hero_cards
     board = node.board
     hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
     open_range, range_weights = _rival_base_range(node, blocked)
-    sampled_range = _sample_range(open_range, _sample_cap_postflop(mc_trials), range_weights) or open_range
+    sampled_range = _sample_range(open_range, _sample_cap_postflop(mc_trials), range_weights, rng)
+    if not sampled_range:
+        sampled_range = open_range
     precision = _precision_for_street(mc_trials, "flop")
     equities: dict[tuple[int, int], float] = {}
     for combo in sampled_range:
@@ -1137,7 +1187,10 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         context=cbet_context,
         base_fractions=(0.33, 0.5, 0.75),
     )
+    aggressive_added = 0
     for pct in cbet_fractions:
+        if aggressive_added >= MAX_BET_OPTIONS:
+            break
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
@@ -1178,6 +1231,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         _apply_profile_meta(meta, profile, continue_range)
         _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"continue": ev_called})
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
+        aggressive_added += 1
 
     # All-in shove option for maximum pressure
     risk = round(node.effective_bb, 2)
@@ -1227,7 +1281,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     return options
 
 
-def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
+def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
     hero = node.hero_cards
     board = node.board
     hand_state = _hand_state(node) or {}
@@ -1240,7 +1294,9 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     lead_tighten = float(hand_state.get("style_river_lead_tighten", 0.5))
     lead_range = tighten_range(base_range, lead_tighten)
     lead_weights = _subset_weights(base_weights, lead_range)
-    sampled_range = _sample_range(lead_range, _sample_cap_postflop(mc_trials), lead_weights) or lead_range
+    sampled_range = _sample_range(lead_range, _sample_cap_postflop(mc_trials), lead_weights, rng)
+    if not sampled_range:
+        sampled_range = lead_range
     precision = _precision_for_street(mc_trials, "river")
     equities: dict[tuple[int, int], float] = {}
     for combo in sampled_range:
@@ -1365,10 +1421,9 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
 
 
 def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
-    del rng
     facing = str(node.context.get("facing") or "bet").lower()
     if facing == "check":
-        return _turn_probe_options(node, mc_trials)
+        return _turn_probe_options(node, rng, mc_trials)
 
     hero = node.hero_cards
     board = node.board
@@ -1382,7 +1437,9 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     tighten = float(hand_state.get("style_turn_bet_tighten", 0.55))
     bet_range = tighten_range(base_range, tighten)
     bet_weights = _subset_weights(base_weights, bet_range)
-    sampled_range = _sample_range(bet_range, _sample_cap_postflop(mc_trials), bet_weights) or bet_range
+    sampled_range = _sample_range(bet_range, _sample_cap_postflop(mc_trials), bet_weights, rng)
+    if not sampled_range:
+        sampled_range = bet_range
     precision = _precision_for_street(mc_trials, "turn")
     equities: dict[tuple[int, int], float] = {}
     for combo in sampled_range:
@@ -1466,10 +1523,9 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
 
 
 def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
-    del rng
     facing = str(node.context.get("facing") or "oop-check").lower()
     if facing == "bet":
-        return _river_vs_bet_options(node, mc_trials)
+        return _river_vs_bet_options(node, rng, mc_trials)
 
     hero = node.hero_cards
     board = node.board
@@ -1480,7 +1536,9 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     check_tighten = float(hand_state.get("style_river_check_tighten", 0.65))
     check_range = tighten_range(base_range, check_tighten)
     check_weights = _subset_weights(base_weights, check_range)
-    sampled_range = _sample_range(check_range, _sample_cap_postflop(mc_trials), check_weights) or check_range
+    sampled_range = _sample_range(check_range, _sample_cap_postflop(mc_trials), check_weights, rng)
+    if not sampled_range:
+        sampled_range = check_range
     precision = _precision_for_street(mc_trials, "river")
     equities: dict[tuple[int, int], float] = {}
     for combo in sampled_range:
@@ -1504,7 +1562,10 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         context=river_context,
         base_fractions=(0.5, 1.0),
     )
+    aggressive_added = 0
     for pct in river_fractions:
+        if aggressive_added >= MAX_BET_OPTIONS:
+            break
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
@@ -1567,6 +1628,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             continuation_evs["jam"] = hero_best_vs_jam
         _attach_cfr_meta(meta, fold_ev=pot, continue_evs=continuation_evs)
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
+        aggressive_added += 1
 
     risk = round(node.effective_bb, 2)
     if risk > 0:

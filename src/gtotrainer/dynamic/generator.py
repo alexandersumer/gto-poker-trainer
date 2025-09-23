@@ -11,6 +11,7 @@ changing the external behaviour of ``generate_episode``.
 from __future__ import annotations
 
 import random
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from .cards import Dealt, deal_hand_and_board, format_card_ascii
@@ -23,6 +24,13 @@ _DEFAULT_STACKS = 100.0
 _DEFAULT_SB = 0.5
 _DEFAULT_BB = 1.0
 _OPEN_SIZES = (2.0, 2.5, 3.0)
+
+
+def _board_key(cards: Iterable[int]) -> str:
+    formatted = [format_card_ascii(card, upper=True) for card in cards]
+    if not formatted:
+        return ""
+    return "|".join(sorted(formatted))
 
 
 @dataclass(frozen=True)
@@ -254,7 +262,11 @@ class EpisodeBuilder:
             context=self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "check", "rival_range": ctx.rival_range},
+                extra={
+                    "facing": "check",
+                    "rival_range": ctx.rival_range,
+                    "board_key": _board_key(flop_cards),
+                },
             ),
         )
 
@@ -275,6 +287,7 @@ class EpisodeBuilder:
                     "bet": bet_turn,
                     "rival_range": ctx.rival_range,
                     "rival_style": self._style.name,
+                    "board_key": _board_key(turn_board),
                 },
             )
         else:
@@ -283,7 +296,12 @@ class EpisodeBuilder:
             turn_context = self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "check", "rival_range": ctx.rival_range, "rival_style": self._style.name},
+                extra={
+                    "facing": "check",
+                    "rival_range": ctx.rival_range,
+                    "rival_style": self._style.name,
+                    "board_key": _board_key(turn_board),
+                },
             )
 
         turn_node = Node(
@@ -314,6 +332,7 @@ class EpisodeBuilder:
                     "bet": lead_size,
                     "rival_range": ctx.rival_range,
                     "rival_style": self._style.name,
+                    "board_key": _board_key(ctx.board),
                 },
             )
         else:
@@ -321,7 +340,12 @@ class EpisodeBuilder:
             river_context = self._node_context(
                 ctx,
                 hand_state,
-                extra={"facing": "oop-check", "rival_range": ctx.rival_range, "rival_style": self._style.name},
+                extra={
+                    "facing": "oop-check",
+                    "rival_range": ctx.rival_range,
+                    "rival_style": self._style.name,
+                    "board_key": _board_key(ctx.board),
+                },
             )
 
         river_node = Node(
