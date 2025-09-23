@@ -46,6 +46,7 @@ def build_profile(
     fold_probability: float,
     continue_ratio: float,
     strengths: Iterable[tuple[tuple[int, int], float]] | None = None,
+    weights: Iterable[tuple[tuple[int, int], float]] | Mapping[str, float] | None = None,
 ) -> dict:
     """Create a lightweight metadata profile for rival response sampling.
 
@@ -62,15 +63,35 @@ def build_profile(
             key = _encode_combo(combo_pair)
             strength_lookup[key] = float(score)
 
-    combos = {_encode_combo(combo): [int(combo[0]), int(combo[1])] for combo in sampled_range}
+    weight_lookup: dict[str, float] = {}
+    if weights:
+        if isinstance(weights, Mapping):
+            for key, value in weights.items():
+                if isinstance(key, str):
+                    weight_lookup[key] = max(0.0, float(value))
+                else:
+                    try:
+                        a, b = int(key[0]), int(key[1])
+                    except (TypeError, ValueError, IndexError):
+                        continue
+                    weight_lookup[_encode_combo((a, b))] = max(0.0, float(value))
+        else:
+            for combo_pair, value in weights:
+                key = _encode_combo(combo_pair)
+                weight_lookup[key] = max(0.0, float(value))
 
-    def _strength_for(combo: Sequence[int]) -> float:
-        key = _encode_combo(combo)
-        if key in strength_lookup:
-            return strength_lookup[key]
-        return _combo_strength(combo)
+    scored: list[tuple[float, list[int]]] = []
+    for combo in sampled_range:
+        a, b = int(combo[0]), int(combo[1])
+        if a > b:
+            a, b = b, a
+        ordered = [a, b]
+        score = strength_lookup.get(_encode_combo(ordered), _combo_strength(ordered))
+        scored.append((score, ordered))
 
-    ranked = sorted(combos.values(), key=_strength_for, reverse=True)
+    sorted_scored = sorted(scored, key=lambda item: item[0], reverse=True)
+    ranked: list[list[int]] = [entry for _, entry in sorted_scored]
+    strengths_sorted: list[float] = [weight for weight, _ in sorted_scored]
     total = len(ranked)
     fold_probability = max(0.0, min(1.0, float(fold_probability)))
     continue_ratio = max(0.0, min(1.0, float(continue_ratio)))
@@ -78,15 +99,42 @@ def build_profile(
     if continue_ratio > 0 and continue_count == 0:
         continue_count = 1
 
-    strengths = [_strength_for(c) for c in ranked]
     ranks = {_encode_combo(c): idx for idx, c in enumerate(ranked)}
-    min_strength = min(strengths) if strengths else 0.0
-    max_strength = max(strengths) if strengths else 1.0
-    threshold_strength = strengths[continue_count - 1] if continue_count > 0 else min_strength
+    min_strength = min(strengths_sorted) if strengths_sorted else 0.0
+    max_strength = max(strengths_sorted) if strengths_sorted else 1.0
+    threshold_strength = strengths_sorted[continue_count - 1] if continue_count > 0 else min_strength
     temperature = max(0.05, 0.2 * (1.0 - continue_ratio))
 
     # Prepare deterministic noise seed contribution: sorted key list hashed as float.
     hash_seed = float(total)
+
+    base_weights: list[float] = []
+    for idx, combo in enumerate(ranked):
+        key = _encode_combo(combo)
+        if key in weight_lookup:
+            base_weights.append(weight_lookup[key])
+            continue
+        score = strengths_sorted[idx]
+        scaled = (score - threshold_strength) / max(temperature, 1e-6)
+        # Clamp exponent to avoid overflow while preserving ordering.
+        scaled = max(-40.0, min(40.0, scaled))
+        base_weights.append(math.exp(scaled))
+
+    positive_total = sum(value for value in base_weights if value > 0)
+    if positive_total <= 0 and continue_count > 0:
+        base_weights = [1.0 if idx < continue_count else 0.0 for idx in range(total)]
+        positive_total = float(continue_count)
+
+    continue_weights: list[list[float | int]] = []
+    if continue_ratio > 0 and positive_total > 0:
+        # Convert to conditional distribution among continuing combos.
+        conditional_scale = sum(base_weights)
+        if conditional_scale <= 0:
+            conditional_scale = positive_total
+        for combo, raw_weight in zip(ranked, base_weights, strict=False):
+            if raw_weight <= 0:
+                continue
+            continue_weights.append([int(combo[0]), int(combo[1]), float(raw_weight / conditional_scale)])
 
     return {
         "fold_probability": fold_probability,
@@ -94,12 +142,13 @@ def build_profile(
         "total": total,
         "continue_count": continue_count,
         "ranked": ranked,
-        "strengths": strengths,
+        "strengths": strengths_sorted,
         "ranks": ranks,
         "strength_bounds": (min_strength, max_strength),
         "threshold_strength": threshold_strength,
         "temperature": temperature,
         "noise_seed": hash_seed,
+        "continue_weights": continue_weights,
     }
 
 
@@ -165,6 +214,30 @@ def _sample_profile_combo(profile: Mapping[str, object], rng: random.Random) -> 
         return combos[idx]
 
     if rng.random() < continue_ratio:
+        weighted_entries = profile.get("continue_weights")
+        distribution: list[tuple[tuple[int, int], float]] = []
+        if isinstance(weighted_entries, list):
+            for entry in weighted_entries:
+                try:
+                    card_a = int(entry[0])
+                    card_b = int(entry[1])
+                    weight = float(entry[2])
+                except (TypeError, ValueError, IndexError):
+                    continue
+                if weight <= 0:
+                    continue
+                distribution.append(((card_a, card_b), weight))
+
+        if distribution:
+            total_weight = sum(weight for _, weight in distribution)
+            if total_weight > 0:
+                draw = rng.random() * total_weight
+                cumulative = 0.0
+                for combo, weight in distribution:
+                    cumulative += weight
+                    if draw <= cumulative:
+                        return combo
+
         idx = int(rng.random() * continue_count)
         return combos[idx]
 

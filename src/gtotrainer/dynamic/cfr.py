@@ -33,16 +33,16 @@ class LocalCFRBackend:
         if len(eligible) < self.config.minimum_actions:
             return options
 
-        fold_continue_payoffs = _extract_payoffs([opt for _, opt in eligible])
-        if fold_continue_payoffs is None:
+        payoff_matrix, rival_actions = _extract_payoffs([opt for _, opt in eligible])
+        if payoff_matrix is None or rival_actions is None:
             return options
 
-        payoff_matrix = fold_continue_payoffs
         num_actions = payoff_matrix.shape[0]
+        num_rival_actions = payoff_matrix.shape[1]
         hero_regret = np.zeros(num_actions, dtype=np.float64)
         hero_strategy_sum = np.zeros(num_actions, dtype=np.float64)
-        rival_regret = np.zeros(2, dtype=np.float64)
-        rival_strategy_sum = np.zeros(2, dtype=np.float64)
+        rival_regret = np.zeros(num_rival_actions, dtype=np.float64)
+        rival_strategy_sum = np.zeros(num_rival_actions, dtype=np.float64)
 
         extra_actions = max(0, num_actions - self.config.minimum_actions)
         iterations = max(
@@ -75,8 +75,7 @@ class LocalCFRBackend:
             meta["cfr_backend"] = self.name
             meta["cfr_probability"] = float(hero_prob)
             meta["cfr_rival_mix"] = {
-                "fold": float(rival_avg[0]),
-                "continue": float(rival_avg[1]),
+                str(action): float(prob) for action, prob in zip(rival_actions, rival_avg, strict=False)
             }
             option.meta = meta
             option.gto_freq = float(hero_prob)
@@ -95,27 +94,70 @@ _SOLVER = LocalCFRBackend()
 
 def _supports_cfr(option: Option) -> bool:
     meta = option.meta or {}
-    return bool(meta.get("supports_cfr")) and {
-        "hero_ev_fold",
-        "hero_ev_continue",
-    }.issubset(meta.keys())
+    if not meta.get("supports_cfr"):
+        return False
+    if "cfr_payoffs" in meta:
+        return True
+    return {"hero_ev_fold", "hero_ev_continue"}.issubset(meta.keys())
 
 
-def _extract_payoffs(options: Iterable[Option]) -> np.ndarray | None:
-    matrix_rows: list[list[float]] = []
+def _extract_payoffs(options: Iterable[Option]) -> tuple[np.ndarray | None, tuple[str, ...] | None]:
+    rows_info: list[tuple[list[str], list[float]]] = []
+    labels_order: list[str] = []
     for option in options:
         meta = option.meta or {}
-        try:
-            fold_ev = float(meta["hero_ev_fold"])
-            continue_ev = float(meta["hero_ev_continue"])
-        except (KeyError, TypeError, ValueError):
-            return None
-        if not math.isfinite(fold_ev) or not math.isfinite(continue_ev):
-            return None
-        matrix_rows.append([fold_ev, continue_ev])
-    if not matrix_rows:
-        return None
-    return np.array(matrix_rows, dtype=np.float64)
+        payoffs = meta.get("cfr_payoffs")
+        if isinstance(payoffs, dict):
+            raw_labels = payoffs.get("rival_actions")
+            hero_values = payoffs.get("hero")
+            if not isinstance(raw_labels, (list, tuple)) or not isinstance(hero_values, (list, tuple)):
+                return None, None
+            try:
+                hero_row = [float(value) for value in hero_values]
+            except (TypeError, ValueError):
+                return None, None
+            labels = [str(label) for label in raw_labels]
+        else:
+            try:
+                fold_ev = float(meta["hero_ev_fold"])
+                continue_ev = float(meta["hero_ev_continue"])
+            except (KeyError, TypeError, ValueError):
+                return None, None
+            if not math.isfinite(fold_ev) or not math.isfinite(continue_ev):
+                return None, None
+            labels = ["fold", "continue"]
+            hero_row = [fold_ev, continue_ev]
+
+        if any(not math.isfinite(value) for value in hero_row):
+            return None, None
+        rows_info.append((labels, hero_row))
+        for label in labels:
+            if label not in labels_order:
+                labels_order.append(label)
+
+    if not rows_info:
+        return None, None
+
+    if "fold" in labels_order:
+        labels_order.remove("fold")
+        labels_order.insert(0, "fold")
+
+    matrix_rows: list[list[float]] = []
+    for labels, hero_values in rows_info:
+        value_map = dict(zip(labels, hero_values))
+        row: list[float] = []
+        for label in labels_order:
+            if label in value_map:
+                row.append(value_map[label])
+            elif label == "jam" and "call" in value_map:
+                row.append(value_map["call"])
+            elif label == "continue" and "call" in value_map:
+                row.append(value_map["call"])
+            else:
+                row.append(value_map.get("fold", 0.0))
+        matrix_rows.append(row)
+
+    return np.array(matrix_rows, dtype=np.float64), tuple(labels_order)
 
 
 def _regret_matching(regrets: np.ndarray) -> np.ndarray:

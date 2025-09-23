@@ -92,3 +92,35 @@ def test_decide_action_adapts_to_hero_aggression() -> None:
 
     assert passive_decision.folds is True
     assert aggressive_decision.folds is False
+
+
+def test_build_profile_emits_weighted_distribution() -> None:
+    top = _combo("As", "Qs")
+    mid = _combo("Jh", "Th")
+    low = _combo("7c", "6c")
+    combos = [top, mid, low]
+
+    profile = build_profile(
+        combos,
+        fold_probability=0.25,
+        continue_ratio=0.7,
+        strengths=[
+            (top, 0.85),
+            (mid, 0.55),
+            (low, 0.2),
+        ],
+        weights=[
+            (top, 0.6),
+            (mid, 0.3),
+            (low, 0.1),
+        ],
+    )
+
+    weights = profile.get("continue_weights")
+    assert isinstance(weights, list) and weights
+
+    weight_map = {tuple(sorted((int(entry[0]), int(entry[1])))): float(entry[2]) for entry in weights}
+    total = sum(weight_map.values())
+    assert 0.99 <= total <= 1.01
+
+    assert weight_map.get(top, 0.0) > weight_map.get(mid, 0.0) > weight_map.get(low, 0.0)

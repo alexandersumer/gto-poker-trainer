@@ -6,7 +6,7 @@ import random
 from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any
+from typing import Any, Mapping
 
 from ..core.models import Option, OptionResolution
 from . import rival_strategy
@@ -141,6 +141,16 @@ def _combo_category(combo: tuple[int, int]) -> str:
     return "offsuit"
 
 
+def _normalize_combo(combo: Iterable[int] | tuple[int, int]) -> tuple[int, int]:
+    try:
+        a, b = int(combo[0]), int(combo[1])  # type: ignore[index]
+    except (TypeError, ValueError, IndexError):
+        raise ValueError("combo must contain two card indices")
+    if a > b:
+        a, b = b, a
+    return a, b
+
+
 def _evenly_sample_indexed(entries: list[tuple[int, tuple[int, int]]], count: int) -> list[tuple[int, tuple[int, int]]]:
     if count <= 0 or not entries:
         return []
@@ -160,8 +170,14 @@ def _evenly_sample_indexed(entries: list[tuple[int, tuple[int, int]]], count: in
 def _sample_range(
     combos: Iterable[tuple[int, int]],
     limit: int,
+    weights: Mapping[tuple[int, int], float] | None = None,
 ) -> list[tuple[int, int]]:
     combos_list = list(combos)
+    if weights:
+        combos_list.sort(
+            key=lambda combo: weights.get(_normalize_combo(combo), 0.0),
+            reverse=True,
+        )
     total = len(combos_list)
     if limit <= 0 or total <= limit:
         return combos_list
@@ -235,6 +251,81 @@ def _sample_range(
     return [combo for _, combo in selected]
 
 
+def _subset_weights(
+    weights: Mapping[tuple[int, int], float] | None,
+    combos: Iterable[tuple[int, int]],
+) -> dict[tuple[int, int], float] | None:
+    if not weights:
+        return None
+    subset: dict[tuple[int, int], float] = {}
+    for combo in combos:
+        normalized = _normalize_combo(combo)
+        weight = weights.get(normalized, 0.0)
+        if weight > 0:
+            subset[normalized] = weight
+    if not subset:
+        return None
+    total = sum(subset.values())
+    if total <= 0:
+        return None
+    scale = 1.0 / total
+    return {combo: weight * scale for combo, weight in subset.items()}
+
+
+def _top_weight_fraction(
+    weights: Mapping[tuple[int, int], float] | None,
+    fraction: float,
+) -> tuple[dict[tuple[int, int], float] | None, float]:
+    if not weights:
+        return None, 0.0
+    fraction = max(0.0, min(1.0, fraction))
+    if fraction <= 0.0:
+        return None, 0.0
+    sorted_weights = sorted(weights.items(), key=lambda item: item[1], reverse=True)
+    total_weight = sum(weights.values())
+    if total_weight <= 0:
+        return None, 0.0
+    target = total_weight * fraction
+    selected: dict[tuple[int, int], float] = {}
+    cumulative = 0.0
+    for combo, weight in sorted_weights:
+        if weight <= 0:
+            continue
+        selected[combo] = weight
+        cumulative += weight
+        if cumulative >= target:
+            break
+    if not selected:
+        return None, 0.0
+    selected_total = sum(selected.values())
+    if selected_total <= 0:
+        return None, 0.0
+    scale = 1.0 / selected_total
+    normalized = {combo: weight * scale for combo, weight in selected.items()}
+    return normalized, min(1.0, selected_total)
+
+
+def _weighted_equity(
+    equities: Mapping[tuple[int, int], float],
+    weights: Mapping[tuple[int, int], float] | None,
+) -> float:
+    if not equities:
+        return 0.0
+    if not weights:
+        return sum(equities.values()) / len(equities)
+    numerator = 0.0
+    denominator = 0.0
+    for combo, weight in weights.items():
+        equity = equities.get(combo)
+        if equity is None:
+            continue
+        numerator += equity * weight
+        denominator += weight
+    if denominator <= 0:
+        return sum(equities.values()) / len(equities)
+    return numerator / denominator
+
+
 def _default_open_size(node: Node) -> float:
     return float(node.context.get("open_size") or 2.5)
 
@@ -295,6 +386,7 @@ def _cached_profile(
     fold_probability: float,
     continue_ratio: float,
     strengths_key: tuple[tuple[int, float], ...] | None,
+    weights_key: tuple[tuple[int, float], ...] | None,
 ) -> dict | None:
     try:
         return rival_strategy.build_profile(
@@ -302,6 +394,7 @@ def _cached_profile(
             fold_probability=fold_probability,
             continue_ratio=continue_ratio,
             strengths=strengths_key,
+            weights=weights_key,
         )
     except Exception:
         return None
@@ -314,6 +407,7 @@ def _rival_profile(
     fold_probability: float,
     continue_ratio: float,
     strengths: dict[tuple[int, int], float] | None = None,
+    weights: Mapping[tuple[int, int], float] | None = None,
 ) -> tuple[dict | None, tuple[tuple[int, int], ...] | None]:
     combo_list = list(combos)
     if not combo_list:
@@ -333,12 +427,25 @@ def _rival_profile(
         if keyed:
             keyed.sort(key=lambda item: item[0])
             strengths_key = tuple(((pair[0], pair[1]), round(score, 4)) for pair, score in keyed)
+    weights_key: tuple[tuple[int, float], ...] | None = None
+    if weights:
+        weighted_entries: list[tuple[tuple[int, int], float]] = []
+        for combo in combo_list:
+            normalized = tuple(sorted((int(combo[0]), int(combo[1]))))
+            if normalized in weights:
+                weight = float(weights[normalized])
+                if weight > 0:
+                    weighted_entries.append((normalized, weight))
+        if weighted_entries:
+            weighted_entries.sort(key=lambda item: item[0])
+            weights_key = tuple(((c[0], c[1]), round(w, 6)) for c, w in weighted_entries)
     profile = _cached_profile(
         tag,
         combos_key,
         round(float(fold_probability), 4),
         round(float(continue_ratio), 4),
         strengths_key,
+        weights_key,
     )
     if not profile:
         return None, None
@@ -359,16 +466,57 @@ def _apply_profile_meta(
 ) -> None:
     if profile:
         meta["rival_profile"] = profile
+        weights = profile.get("continue_weights") if isinstance(profile, dict) else None
+        if isinstance(weights, list):
+            normalized: list[list[float | int]] = []
+            for entry in weights:
+                try:
+                    a = int(entry[0])
+                    b = int(entry[1])
+                    w = float(entry[2])
+                except (TypeError, ValueError, IndexError):
+                    continue
+                if w <= 0:
+                    continue
+                normalized.append([a, b, w])
+            if normalized:
+                meta["rival_continue_weights"] = normalized
     if continue_range:
         meta["rival_continue_range"] = continue_range
 
 
-def _attach_cfr_meta(meta: dict[str, Any], *, fold_ev: float, continue_ev: float) -> None:
+def _attach_cfr_meta(
+    meta: dict[str, Any],
+    *,
+    fold_ev: float,
+    continue_evs: Mapping[str, float] | float,
+) -> None:
+    if isinstance(continue_evs, Mapping):
+        cont_map = {str(key): float(value) for key, value in continue_evs.items()}
+    else:
+        cont_map = {"continue": float(continue_evs)}
+
     meta["supports_cfr"] = True
     meta["hero_ev_fold"] = float(fold_ev)
-    meta["hero_ev_continue"] = float(continue_ev)
     meta["rival_ev_fold"] = -float(fold_ev)
-    meta["rival_ev_continue"] = -float(continue_ev)
+
+    # Backwards compatibility: prefer the explicit "continue" label when present.
+    if "continue" in cont_map:
+        primary_label = "continue"
+    else:
+        primary_label = next(iter(cont_map))
+    primary_value = cont_map[primary_label]
+    meta["hero_ev_continue"] = float(primary_value)
+    meta["rival_ev_continue"] = -float(primary_value)
+
+    rival_actions = ["fold", *cont_map.keys()]
+    hero_payoffs = [float(fold_ev), *cont_map.values()]
+    rival_payoffs = [-value for value in hero_payoffs]
+    meta["cfr_payoffs"] = {
+        "rival_actions": rival_actions,
+        "hero": hero_payoffs,
+        "rival": rival_payoffs,
+    }
 
 
 def _update_rival_range(hand_state: dict[str, Any], meta: dict[str, Any] | None, rival_folds: bool) -> None:
@@ -376,17 +524,42 @@ def _update_rival_range(hand_state: dict[str, Any], meta: dict[str, Any] | None,
         return
     if rival_folds:
         hand_state.pop("rival_continue_range", None)
+        hand_state.pop("rival_continue_weights", None)
         return
     if not isinstance(meta, dict):
         return
     cont_range = meta.get("rival_continue_range")
     if not isinstance(cont_range, (list, tuple)):
         return
-    normalized = [
+    normalized: list[tuple[int, int]] = [
         tuple(int(c) for c in combo) for combo in cont_range if isinstance(combo, (list, tuple)) and len(combo) == 2
     ]
     if normalized:
         hand_state["rival_continue_range"] = normalized
+    weights_meta = meta.get("rival_continue_weights")
+    if isinstance(weights_meta, list):
+        normalized_weights: list[list[float | int]] = []
+        total_weight = 0.0
+        for entry in weights_meta:
+            try:
+                a = int(entry[0])
+                b = int(entry[1])
+                weight = float(entry[2])
+            except (TypeError, ValueError, IndexError):
+                continue
+            if weight <= 0:
+                continue
+            normalized_weights.append([a, b, weight])
+            total_weight += weight
+        if total_weight > 0:
+            scale = 1.0 / total_weight
+            for value in normalized_weights:
+                value[2] = float(value[2] * scale)
+            hand_state["rival_continue_weights"] = normalized_weights
+        else:
+            hand_state.pop("rival_continue_weights", None)
+    else:
+        hand_state.pop("rival_continue_weights", None)
 
 
 def _combo_equity(
@@ -429,24 +602,55 @@ def _rival_range_tag(node: Node, default: str = "sb_open") -> str:
     return default
 
 
-def _rival_base_range(node: Node, blocked: Iterable[int]) -> list[tuple[int, int]]:
+def _rival_base_range(
+    node: Node,
+    blocked: Iterable[int],
+) -> tuple[list[tuple[int, int]], dict[tuple[int, int], float] | None]:
     hand_state = _hand_state(node)
     if hand_state:
         stored = hand_state.get("rival_continue_range")
         if isinstance(stored, (list, tuple)):
             stored_combos = [tuple(int(c) for c in combo) for combo in stored if len(combo) == 2]
             filtered = [combo for combo in stored_combos if combo[0] not in blocked and combo[1] not in blocked]
+            weights_meta = hand_state.get("rival_continue_weights")
+            weights: dict[tuple[int, int], float] | None = None
+            if isinstance(weights_meta, list):
+                temp_weights: dict[tuple[int, int], float] = {}
+                for item in weights_meta:
+                    try:
+                        a = int(item[0])
+                        b = int(item[1])
+                        w = float(item[2])
+                    except (TypeError, ValueError, IndexError):
+                        continue
+                    combo = tuple(sorted((a, b)))
+                    if combo[0] in blocked or combo[1] in blocked or w <= 0:
+                        continue
+                    temp_weights[combo] = w
+                if temp_weights:
+                    total = sum(temp_weights.values())
+                    if total > 0:
+                        scale = 1.0 / total
+                        weights = {combo: weight * scale for combo, weight in temp_weights.items() if weight > 0}
             if filtered:
-                return filtered
+                if weights:
+                    # Ensure weights only cover filtered combos.
+                    weights = {combo: weights.get(combo, 0.0) for combo in filtered}
+                    total = sum(weights.values())
+                    if total > 0:
+                        weights = {combo: weight / total for combo, weight in weights.items() if weight > 0}
+                    else:
+                        weights = None
+                return filtered, weights
 
     tag = _rival_range_tag(node)
     open_size = _default_open_size(node)
     if tag == "bb_defend":
         improved = continue_combos(open_size=open_size, blocked=blocked, minimum_defend=0.08)
         if improved:
-            return improved
-        return rival_bb_defend_range(open_size, blocked)
-    return rival_sb_open_range(open_size, blocked)
+            return improved, None
+        return rival_bb_defend_range(open_size, blocked), None
+    return rival_sb_open_range(open_size, blocked), None
 
 
 def _set_node_pot_from_state(node: Node, hand_state: dict[str, Any] | None) -> float:
@@ -551,10 +755,13 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     call_freq = float(solver_profile.get("call", 0.0))
     threebet_freq = float(solver_profile.get("threebet", 0.0))
     jam_freq = float(solver_profile.get("jam", 0.0))
-    open_range = _rival_base_range(node, blocked)
-    sampled_range = _sample_range(open_range, _sample_cap_preflop(mc_trials)) or open_range
+    open_range, range_weights = _rival_base_range(node, blocked)
+    sampled_range = _sample_range(open_range, _sample_cap_preflop(mc_trials), range_weights) or open_range
     precision = _precision_for_street(mc_trials, "preflop")
-    equities = {combo: _combo_equity(hero, [], combo, precision) for combo in sampled_range}
+    equities: dict[tuple[int, int], float] = {}
+    for combo in sampled_range:
+        normalized_combo = _normalize_combo(combo)
+        equities[normalized_combo] = _combo_equity(hero, [], normalized_combo, precision)
     avg_range_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options: list[Option] = [
@@ -629,6 +836,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
+            weights=range_weights,
         )
         meta = {
             "street": "preflop",
@@ -644,7 +852,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
-        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"call": ev_called})
         options.append(
             Option(
                 f"3-bet to {raise_to:.2f}bb",
@@ -676,6 +884,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
+            weights=range_weights,
         )
         meta = {
             "street": "preflop",
@@ -691,7 +900,8 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
-        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"call": ev_called})
+        meta["supports_cfr"] = False
         options.append(
             Option(
                 "All-in",
@@ -712,12 +922,16 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
     hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
-    base_range = _rival_base_range(node, blocked)
+    base_range, base_weights = _rival_base_range(node, blocked)
     probe_tighten = float(hand_state.get("style_turn_probe_tighten", 0.7))
     probe_range = tighten_range(base_range, probe_tighten)
-    sampled_range = _sample_range(probe_range, _sample_cap_postflop(mc_trials)) or probe_range
+    probe_weights = _subset_weights(base_weights, probe_range)
+    sampled_range = _sample_range(probe_range, _sample_cap_postflop(mc_trials), probe_weights) or probe_range
     precision = _precision_for_street(mc_trials, "turn")
-    equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
+    equities: dict[tuple[int, int], float] = {}
+    for combo in sampled_range:
+        normalized_combo = _normalize_combo(combo)
+        equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options: list[Option] = [
@@ -749,6 +963,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
+            weights=probe_weights,
         )
         meta = {
             "street": "turn",
@@ -761,7 +976,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
-        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"continue": ev_called})
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
 
     risk = round(node.effective_bb, 2)
@@ -777,6 +992,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
+            weights=probe_weights,
         )
         meta = {
             "street": "turn",
@@ -789,7 +1005,8 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
-        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"call": ev_called})
+        meta["supports_cfr"] = False
         options.append(
             Option(
                 "All-in",
@@ -813,10 +1030,13 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
-    open_range = _rival_base_range(node, blocked)
-    sampled_range = _sample_range(open_range, _sample_cap_postflop(mc_trials)) or open_range
+    open_range, range_weights = _rival_base_range(node, blocked)
+    sampled_range = _sample_range(open_range, _sample_cap_postflop(mc_trials), range_weights) or open_range
     precision = _precision_for_street(mc_trials, "flop")
-    equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
+    equities: dict[tuple[int, int], float] = {}
+    for combo in sampled_range:
+        normalized_combo = _normalize_combo(combo)
+        equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options: list[Option] = [
@@ -849,6 +1069,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
+            weights=range_weights,
         )
         meta = {
             "street": "flop",
@@ -861,7 +1082,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
-        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"continue": ev_called})
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
 
     # All-in shove option for maximum pressure
@@ -878,6 +1099,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
+            weights=range_weights,
         )
         meta = {
             "street": "flop",
@@ -890,7 +1112,8 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
-        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"call": ev_called})
+        meta["supports_cfr"] = False
         options.append(
             Option(
                 "All-in",
@@ -916,12 +1139,16 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     node.context["bet"] = rival_bet
     pot_after_bet = pot_start + rival_bet
     blocked = _blocked_cards(hero, board)
-    base_range = _rival_base_range(node, blocked)
+    base_range, base_weights = _rival_base_range(node, blocked)
     lead_tighten = float(hand_state.get("style_river_lead_tighten", 0.5))
     lead_range = tighten_range(base_range, lead_tighten)
-    sampled_range = _sample_range(lead_range, _sample_cap_postflop(mc_trials)) or lead_range
+    lead_weights = _subset_weights(base_weights, lead_range)
+    sampled_range = _sample_range(lead_range, _sample_cap_postflop(mc_trials), lead_weights) or lead_range
     precision = _precision_for_street(mc_trials, "river")
-    equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
+    equities: dict[tuple[int, int], float] = {}
+    for combo in sampled_range:
+        normalized_combo = _normalize_combo(combo)
+        equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options: list[Option] = [
@@ -965,6 +1192,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         fold_probability=fe,
         continue_ratio=continue_ratio,
         strengths=equities,
+        weights=lead_weights,
     )
     raise_meta = {
         "street": "river",
@@ -978,7 +1206,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, raise_profile, continue_range)
-    _attach_cfr_meta(raise_meta, fold_ev=pot_after_bet, continue_ev=ev_called)
+    _attach_cfr_meta(raise_meta, fold_ev=pot_after_bet, continue_evs={"continue": ev_called})
     options.append(
         Option(
             f"Raise to {raise_to:.2f} bb",
@@ -1001,6 +1229,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
             fold_probability=fe_ai,
             continue_ratio=continue_ratio_ai,
             strengths=equities,
+            weights=lead_weights,
         )
         jam_meta = {
             "street": "river",
@@ -1013,7 +1242,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         }
         jam_meta.update(precision.to_meta())
         _apply_profile_meta(jam_meta, profile_ai, continue_range_ai)
-        _attach_cfr_meta(jam_meta, fold_ev=pot_after_bet, continue_ev=ev_called_ai)
+        _attach_cfr_meta(jam_meta, fold_ev=pot_after_bet, continue_evs={"continue": ev_called_ai})
         options.append(
             Option(
                 "All-in",
@@ -1045,12 +1274,16 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     node.context["bet"] = rival_bet
     pot_before_action = pot_start + rival_bet
     blocked = _blocked_cards(hero, board)
-    base_range = _rival_base_range(node, blocked)
+    base_range, base_weights = _rival_base_range(node, blocked)
     tighten = float(hand_state.get("style_turn_bet_tighten", 0.55))
     bet_range = tighten_range(base_range, tighten)
-    sampled_range = _sample_range(bet_range, _sample_cap_postflop(mc_trials)) or bet_range
+    bet_weights = _subset_weights(base_weights, bet_range)
+    sampled_range = _sample_range(bet_range, _sample_cap_postflop(mc_trials), bet_weights) or bet_range
     precision = _precision_for_street(mc_trials, "turn")
-    equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
+    equities: dict[tuple[int, int], float] = {}
+    for combo in sampled_range:
+        normalized_combo = _normalize_combo(combo)
+        equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options = [
@@ -1104,6 +1337,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         fold_probability=fe,
         continue_ratio=continue_ratio,
         strengths=equities,
+        weights=bet_weights,
     )
     raise_meta = {
         "street": "turn",
@@ -1117,7 +1351,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, profile, continue_range)
-    _attach_cfr_meta(raise_meta, fold_ev=pot_before_action, continue_ev=ev_called)
+    _attach_cfr_meta(raise_meta, fold_ev=pot_before_action, continue_evs={"continue": ev_called})
     options.append(Option(f"Raise to {raise_to:.2f} bb", ev, why_raise, meta=raise_meta))
 
     return options
@@ -1134,12 +1368,16 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     hand_state = _hand_state(node) or {}
     pot = _set_node_pot_from_state(node, hand_state)
     blocked = _blocked_cards(hero, board)
-    base_range = _rival_base_range(node, blocked)
+    base_range, base_weights = _rival_base_range(node, blocked)
     check_tighten = float(hand_state.get("style_river_check_tighten", 0.65))
     check_range = tighten_range(base_range, check_tighten)
-    sampled_range = _sample_range(check_range, _sample_cap_postflop(mc_trials)) or check_range
+    check_weights = _subset_weights(base_weights, check_range)
+    sampled_range = _sample_range(check_range, _sample_cap_postflop(mc_trials), check_weights) or check_range
     precision = _precision_for_street(mc_trials, "river")
-    equities = {combo: _combo_equity(hero, board, combo, precision) for combo in sampled_range}
+    equities: dict[tuple[int, int], float] = {}
+    for combo in sampled_range:
+        normalized_combo = _normalize_combo(combo)
+        equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
     avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
 
     options: list[Option] = [
@@ -1160,11 +1398,27 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
         ev_showdown = eq_call * (pot + bet) - (1 - eq_call) * bet
         ev_called = ev_showdown if continue_ratio else -bet
-        ev = fe * pot + (1 - fe) * ev_called
+        jam_weights, jam_mass = _top_weight_fraction(check_weights, 0.35)
+        if jam_mass > continue_ratio:
+            jam_mass = continue_ratio
+        call_share = max(0.0, continue_ratio - jam_mass)
+
+        jam_total = max(bet, node.effective_bb)
+        final_pot_jam = pot + bet + jam_total
+        eq_jam = _weighted_equity(equities, jam_weights)
+        hero_call_ev = eq_jam * final_pot_jam - jam_total
+        hero_best_vs_jam = max(-bet, hero_call_ev)
+
+        ev = fe * pot + call_share * ev_called + jam_mass * hero_best_vs_jam
         why = (
             f"Bet {int(pct * 100)}%: rival folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
             f"Calls (~{_fmt_pct(continue_ratio)}) give you {_fmt_pct(eq_call, 1)} equity → EV {ev_called:.2f} bb."
         )
+        if jam_mass > 0:
+            why += (
+                f" Check-raise jams (~{_fmt_pct(jam_mass)}) best response EV {hero_best_vs_jam:.2f} bb"
+                f" (call EV {hero_call_ev:.2f} bb)."
+            )
         why += f" Additional sizing detail: {bet:.2f} bb (equals {int(pct * 100)}% pot)."
         profile, continue_range = _rival_profile(
             sampled_range,
@@ -1172,6 +1426,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
+            weights=check_weights,
         )
         meta = {
             "street": "river",
@@ -1181,10 +1436,16 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "rival_threshold": be_threshold,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
+            "rival_raise_ratio": jam_mass,
+            "hero_ev_raise": hero_best_vs_jam,
+            "hero_call_vs_raise": hero_call_ev,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
-        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
+        continuation_evs: dict[str, float] = {"call": ev_called}
+        if jam_mass > 0:
+            continuation_evs["jam"] = hero_best_vs_jam
+        _attach_cfr_meta(meta, fold_ev=pot, continue_evs=continuation_evs)
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
 
     risk = round(node.effective_bb, 2)
@@ -1200,6 +1461,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
+            weights=check_weights,
         )
         meta = {
             "street": "river",
@@ -1212,7 +1474,8 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
-        _attach_cfr_meta(meta, fold_ev=pot, continue_ev=ev_called)
+        _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"call": ev_called})
+        meta["supports_cfr"] = False
         options.append(
             Option(
                 "All-in",

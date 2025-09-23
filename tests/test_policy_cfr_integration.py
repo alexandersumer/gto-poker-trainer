@@ -35,6 +35,11 @@ def test_options_for_attaches_cfr_metadata() -> None:
         assert "hero_ev_continue" in opt.meta
         assert "rival_ev_fold" in opt.meta
         assert "rival_ev_continue" in opt.meta
+        assert "cfr_payoffs" in opt.meta
+        mix = opt.meta.get("cfr_rival_mix")
+        assert isinstance(mix, dict)
+        assert "fold" in mix
+        assert any(label in mix for label in ("continue", "call"))
 
     passive = [opt for opt in options if not (opt.meta and opt.meta.get("supports_cfr"))]
     for opt in passive:

@@ -81,3 +81,23 @@ def test_sample_range_covers_available_categories_when_possible() -> None:
 
     assert categories.issuperset({"pair", "suited", "offsuit"})
     assert len(sampled) == limit
+
+
+def test_sample_range_prioritizes_weighted_combos() -> None:
+    suited_only = [
+        _make_combo("As", "Qs"),
+        _make_combo("Ks", "Js"),
+        _make_combo("Qs", "Ts"),
+        _make_combo("Js", "9s"),
+        _make_combo("Ts", "8s"),
+    ]
+    weights = {
+        suited_only[3]: 0.8,
+        suited_only[4]: 0.7,
+    }
+
+    sampled = _sample_range(suited_only, 3, weights)
+
+    assert suited_only[3] in sampled
+    assert suited_only[4] in sampled
+    assert len(sampled) == 3
