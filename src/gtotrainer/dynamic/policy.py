@@ -10,12 +10,13 @@ from typing import Any, Mapping
 
 from ..core.models import Option, OptionResolution
 from . import rival_strategy
+from .bet_sizing import BetSizingManager
 from .cards import format_card_ascii, format_cards_spaced
 from .cfr import refine_options as _refine_with_cfr
 from .episode import Node
 from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_vs_range
 from .preflop_mix import action_profile_for_combo, continue_combos
-from .range_model import rival_bb_defend_range, rival_sb_open_range, tighten_range
+from .range_model import load_range_with_weights, rival_bb_defend_range, rival_sb_open_range, tighten_range
 
 
 def _fmt_pct(x: float, decimals: int = 0) -> str:
@@ -76,22 +77,36 @@ def _apply_contribution(hand_state: dict[str, Any], role: str, amount: float) ->
     return applied
 
 
-def _fold_continue_stats(hero_equities: Iterable[float], rival_threshold: float) -> tuple[float, float, float]:
-    hero_list = list(hero_equities)
-    if not hero_list:
+def _fold_continue_stats(
+    hero_equities: Iterable[float | tuple[float, float]], rival_threshold: float
+) -> tuple[float, float, float]:
+    entries = list(hero_equities)
+    if not entries:
         return 0.0, 0.0, 0.0
-    folds = 0
+    fold_weight = 0.0
+    continue_weight = 0.0
     continue_eq = 0.0
-    for eq in hero_list:
-        if 1.0 - eq < rival_threshold:
-            folds += 1
+    total_weight = 0.0
+    for entry in entries:
+        if isinstance(entry, (tuple, list)) and len(entry) == 2:
+            eq = float(entry[0])
+            weight = max(0.0, float(entry[1]))
         else:
-            continue_eq += eq
-    total = len(hero_list)
-    continue_count = total - folds
-    fe = folds / total
-    avg_eq = continue_eq / continue_count if continue_count else 0.0
-    continue_ratio = continue_count / total
+            eq = float(entry)
+            weight = 1.0
+        if weight <= 0:
+            continue
+        total_weight += weight
+        if 1.0 - eq < rival_threshold:
+            fold_weight += weight
+        else:
+            continue_weight += weight
+            continue_eq += eq * weight
+    if total_weight <= 0:
+        return 0.0, 0.0, 0.0
+    fe = fold_weight / total_weight
+    continue_ratio = continue_weight / total_weight
+    avg_eq = (continue_eq / continue_weight) if continue_weight > 0 else 0.0
     return fe, avg_eq, continue_ratio
 
 
@@ -272,6 +287,36 @@ def _subset_weights(
     return {combo: weight * scale for combo, weight in subset.items()}
 
 
+def _weighted_average(
+    values: Mapping[tuple[int, int], float],
+    weights: Mapping[tuple[int, int], float] | None,
+) -> float:
+    if not values:
+        return 0.0
+    if not weights:
+        return float(sum(values.values()) / len(values))
+    total_weight = 0.0
+    weighted_sum = 0.0
+    for combo, value in values.items():
+        weight = float(weights.get(combo, 0.0))
+        if weight <= 0:
+            continue
+        total_weight += weight
+        weighted_sum += weight * value
+    if total_weight <= 0:
+        return float(sum(values.values()) / len(values))
+    return float(weighted_sum / total_weight)
+
+
+def _equity_with_weights(
+    values: Mapping[tuple[int, int], float],
+    weights: Mapping[tuple[int, int], float] | None,
+) -> list[float | tuple[float, float]]:
+    if not weights:
+        return list(values.values())
+    return [(values[combo], weights.get(combo, 0.0)) for combo in values]
+
+
 def _top_weight_fraction(
     weights: Mapping[tuple[int, int], float] | None,
     fraction: float,
@@ -332,6 +377,13 @@ def _default_open_size(node: Node) -> float:
 
 # Public alias preserved for tests that monkeypatch hero_equity_vs_range.
 hero_equity_vs_range = _hero_equity_vs_range
+
+
+def reset_bet_sizing_state() -> None:
+    """Reset the global bet sizing manager (used in tests)."""
+
+    global BET_SIZING
+    BET_SIZING = BetSizingManager()
 
 
 @dataclass(frozen=True)
@@ -646,10 +698,16 @@ def _rival_base_range(
     tag = _rival_range_tag(node)
     open_size = _default_open_size(node)
     if tag == "bb_defend":
+        combos, weights = load_range_with_weights("bb_defend", open_size, blocked)
+        if combos:
+            return combos, weights
         improved = continue_combos(open_size=open_size, blocked=blocked, minimum_defend=0.08)
         if improved:
             return improved, None
         return rival_bb_defend_range(open_size, blocked), None
+    combos, weights = load_range_with_weights("sb_open", open_size, blocked)
+    if combos:
+        return combos, weights
     return rival_sb_open_range(open_size, blocked), None
 
 
@@ -678,6 +736,14 @@ def _rival_str(hand_state: dict[str, Any] | None, reveal: bool) -> str:
     if reveal and cards:
         return format_cards_spaced(list(cards))
     return "(hidden)"
+
+
+def _bet_context_tag(node: Node, suffix: str) -> str:
+    ctx = node.context if isinstance(node.context, dict) else {}
+    facing = str(ctx.get("facing", "neutral"))
+    style = str(ctx.get("rival_style", ctx.get("style", "")))
+    texture = str(ctx.get("texture", ctx.get("board_key", "")))
+    return f"{suffix}|{facing}|{style}|{texture}"
 
 
 def _set_street_pot(hand_state: dict[str, Any], street: str, pot: float) -> None:
@@ -762,7 +828,8 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     for combo in sampled_range:
         normalized_combo = _normalize_combo(combo)
         equities[normalized_combo] = _combo_equity(hero, [], normalized_combo, precision)
-    avg_range_eq = sum(equities.values()) / len(equities) if equities else 0.0
+    sample_weights = _subset_weights(range_weights, sampled_range)
+    avg_range_eq = _weighted_average(equities, sample_weights)
 
     options: list[Option] = [
         Option(
@@ -797,20 +864,12 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             )
         )
 
-    max_raise = hero_total
-    raise_targets: set[float] = set()
-    for mult in (2.8, 3.5, 5.0):
-        target = round(open_size * mult, 2)
-        if target <= rival_contrib + 0.25:
-            continue
-        target = min(target, max_raise)
-        if target >= max_raise - 0.05:
-            continue
-        if target <= hero_contrib + 0.25:
-            continue
-        raise_targets.add(round(target, 2))
-
-    sorted_raises = sorted(raise_targets)
+    sorted_raises = BET_SIZING.preflop_raise_sizes(
+        open_size=open_size,
+        hero_contrib=hero_contrib,
+        hero_stack=hero_stack,
+        rival_stack=rival_stack,
+    )
     raise_share = threebet_freq / len(sorted_raises) if sorted_raises else 0.0
     for raise_to in sorted_raises:
         hero_add = raise_to - hero_contrib
@@ -822,7 +881,10 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         if final_pot <= 0:
             continue
         be_threshold = rival_call / final_pot if final_pot > 0 else 1.0
-        fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(
+            _equity_with_weights(equities, sample_weights),
+            be_threshold,
+        )
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
         why = (
@@ -836,7 +898,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
-            weights=range_weights,
+            weights=sample_weights,
         )
         meta = {
             "street": "preflop",
@@ -849,6 +911,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
             "solver_mix": {"threebet": threebet_freq},
+            "sizing_key": round(raise_to, 2),
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -870,7 +933,10 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         rival_call = min(rival_call_to, rival_stack)
         final_pot = pot + hero_add + rival_call
         be_threshold = rival_call / final_pot if final_pot > 0 else 1.0
-        fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(
+            _equity_with_weights(equities, sample_weights),
+            be_threshold,
+        )
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
         why_jam = (
@@ -884,7 +950,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
-            weights=range_weights,
+            weights=sample_weights,
         )
         meta = {
             "street": "preflop",
@@ -897,6 +963,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
             "solver_mix": {"jam": jam_freq},
+            "sizing_key": round(jam_to, 2),
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -932,7 +999,8 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
     for combo in sampled_range:
         normalized_combo = _normalize_combo(combo)
         equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
-    avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
+    sample_weights = _subset_weights(probe_weights, sampled_range)
+    avg_eq = _weighted_average(equities, sample_weights)
 
     options: list[Option] = [
         Option(
@@ -943,14 +1011,23 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
         )
     ]
 
-    probe_sizes = tuple(hand_state.get("style_turn_probe_sizes", (0.5, 0.8)))
-    for pct in probe_sizes or (0.5, 0.8):
+    base_probe_sizes = tuple(hand_state.get("style_turn_probe_sizes", (0.5, 0.8)))
+    probe_context = _bet_context_tag(node, "turn_probe")
+    probe_sizes = BET_SIZING.postflop_bet_fractions(
+        street="turn",
+        context=probe_context,
+        base_fractions=base_probe_sizes or (0.5, 0.8),
+    )
+    for pct in probe_sizes:
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
         final_pot = pot + 2 * bet
         be_threshold = bet / final_pot if final_pot > 0 else 1.0
-        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        fe, eq_call, continue_ratio = _fold_continue_stats(
+            _equity_with_weights(equities, sample_weights),
+            be_threshold,
+        )
         ev_called = eq_call * final_pot - bet if continue_ratio else -bet
         ev = fe * pot + (1 - fe) * ev_called
         why = (
@@ -963,7 +1040,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
-            weights=probe_weights,
+            weights=sample_weights,
         )
         meta = {
             "street": "turn",
@@ -973,6 +1050,8 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             "rival_threshold": be_threshold,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
+            "sizing_fraction": float(pct),
+            "bet_context": probe_context,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -983,7 +1062,10 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
     if risk > 0:
         final_pot = pot + 2 * risk
         be_threshold = risk / final_pot if final_pot > 0 else 1.0
-        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        fe, eq_call, continue_ratio = _fold_continue_stats(
+            _equity_with_weights(equities, sample_weights),
+            be_threshold,
+        )
         ev_called = eq_call * final_pot - risk if continue_ratio else -risk
         ev = fe * pot + (1 - fe) * ev_called
         profile, continue_range = _rival_profile(
@@ -992,7 +1074,7 @@ def _turn_probe_options(node: Node, mc_trials: int) -> list[Option]:
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
-            weights=probe_weights,
+            weights=sample_weights,
         )
         meta = {
             "street": "turn",
@@ -1037,7 +1119,8 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     for combo in sampled_range:
         normalized_combo = _normalize_combo(combo)
         equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
-    avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
+    sample_weights = _subset_weights(range_weights, sampled_range)
+    avg_eq = _weighted_average(equities, sample_weights)
 
     options: list[Option] = [
         Option(
@@ -1048,13 +1131,22 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         ),
     ]
 
-    for pct in (0.33, 0.5, 0.75):
+    cbet_context = _bet_context_tag(node, "flop_cbet")
+    cbet_fractions = BET_SIZING.postflop_bet_fractions(
+        street="flop",
+        context=cbet_context,
+        base_fractions=(0.33, 0.5, 0.75),
+    )
+    for pct in cbet_fractions:
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
         final_pot = pot + 2 * bet
         be_threshold = bet / final_pot
-        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        fe, eq_call, continue_ratio = _fold_continue_stats(
+            _equity_with_weights(equities, sample_weights),
+            be_threshold,
+        )
         ev_called = eq_call * final_pot - bet if continue_ratio else -bet
         ev = fe * pot + (1 - fe) * ev_called
         why = (
@@ -1069,7 +1161,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
-            weights=range_weights,
+            weights=sample_weights,
         )
         meta = {
             "street": "flop",
@@ -1079,6 +1171,8 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "rival_threshold": be_threshold,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
+            "sizing_fraction": float(pct),
+            "bet_context": cbet_context,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1090,7 +1184,10 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     if risk > 0:
         final_pot = pot + 2 * risk
         be_threshold = risk / final_pot if final_pot > 0 else 1.0
-        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        fe, eq_call, continue_ratio = _fold_continue_stats(
+            _equity_with_weights(equities, sample_weights),
+            be_threshold,
+        )
         ev_called = eq_call * final_pot - risk if continue_ratio else -risk
         ev = fe * pot + (1 - fe) * ev_called
         profile, continue_range = _rival_profile(
@@ -1099,7 +1196,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
-            weights=range_weights,
+            weights=sample_weights,
         )
         meta = {
             "street": "flop",
@@ -1149,7 +1246,8 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     for combo in sampled_range:
         normalized_combo = _normalize_combo(combo)
         equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
-    avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
+    sample_weights = _subset_weights(lead_weights, sampled_range)
+    avg_eq = _weighted_average(equities, sample_weights)
 
     options: list[Option] = [
         Option(
@@ -1183,7 +1281,10 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     rival_call_cost = max(0.0, raise_to - _state_value(hand_state, "rival_contrib") - rival_bet)
     final_pot = pot_after_bet + raise_to
     be_threshold = rival_call_cost / final_pot if final_pot > 0 else 1.0
-    fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+    fe, eq_call, continue_ratio = _fold_continue_stats(
+        _equity_with_weights(equities, sample_weights),
+        be_threshold,
+    )
     ev_called = eq_call * final_pot - risk if continue_ratio else -risk
     ev = fe * pot_after_bet + (1 - fe) * ev_called
     raise_profile, continue_range = _rival_profile(
@@ -1192,7 +1293,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
         fold_probability=fe,
         continue_ratio=continue_ratio,
         strengths=equities,
-        weights=lead_weights,
+        weights=sample_weights,
     )
     raise_meta = {
         "street": "river",
@@ -1220,7 +1321,10 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
     if risk_allin > 0:
         final_pot_allin = pot_after_bet + 2 * risk_allin
         be_threshold_allin = risk_allin / final_pot_allin if final_pot_allin > 0 else 1.0
-        fe_ai, eq_call_ai, continue_ratio_ai = _fold_continue_stats(equities.values(), be_threshold_allin)
+        fe_ai, eq_call_ai, continue_ratio_ai = _fold_continue_stats(
+            _equity_with_weights(equities, sample_weights),
+            be_threshold_allin,
+        )
         ev_called_ai = eq_call_ai * final_pot_allin - risk_allin if continue_ratio_ai else -risk_allin
         ev_ai = fe_ai * pot_after_bet + (1 - fe_ai) * ev_called_ai
         profile_ai, continue_range_ai = _rival_profile(
@@ -1229,7 +1333,7 @@ def _river_vs_bet_options(node: Node, mc_trials: int) -> list[Option]:
             fold_probability=fe_ai,
             continue_ratio=continue_ratio_ai,
             strengths=equities,
-            weights=lead_weights,
+            weights=sample_weights,
         )
         jam_meta = {
             "street": "river",
@@ -1284,7 +1388,8 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     for combo in sampled_range:
         normalized_combo = _normalize_combo(combo)
         equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
-    avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
+    sample_weights = _subset_weights(bet_weights, sampled_range)
+    avg_eq = _weighted_average(equities, sample_weights)
 
     options = [
         Option(
@@ -1321,7 +1426,10 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     final_pot = pot_start + 2 * raise_to
     rival_call_cost = raise_to - rival_bet
     be_threshold = rival_call_cost / final_pot if final_pot > 0 else 1.0
-    fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+    fe, eq_call, continue_ratio = _fold_continue_stats(
+        _equity_with_weights(equities, sample_weights),
+        be_threshold,
+    )
     ev_called = eq_call * final_pot - risk if continue_ratio else -risk
     ev = fe * pot_before_action + (1 - fe) * ev_called
     fe_break_even = risk / (risk + pot_before_action) if (risk + pot_before_action) > 0 else 1.0
@@ -1337,7 +1445,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         fold_probability=fe,
         continue_ratio=continue_ratio,
         strengths=equities,
-        weights=bet_weights,
+        weights=sample_weights,
     )
     raise_meta = {
         "street": "turn",
@@ -1378,7 +1486,8 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     for combo in sampled_range:
         normalized_combo = _normalize_combo(combo)
         equities[normalized_combo] = _combo_equity(hero, board, normalized_combo, precision)
-    avg_eq = sum(equities.values()) / len(equities) if equities else 0.0
+    sample_weights = _subset_weights(check_weights, sampled_range)
+    avg_eq = _weighted_average(equities, sample_weights)
 
     options: list[Option] = [
         Option(
@@ -1389,13 +1498,22 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         )
     ]
 
-    for pct in (0.5, 1.0):
+    river_context = _bet_context_tag(node, "river_lead")
+    river_fractions = BET_SIZING.postflop_bet_fractions(
+        street="river",
+        context=river_context,
+        base_fractions=(0.5, 1.0),
+    )
+    for pct in river_fractions:
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
         final_pot = pot + 2 * bet
         be_threshold = bet / final_pot if final_pot > 0 else 1.0
-        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        fe, eq_call, continue_ratio = _fold_continue_stats(
+            _equity_with_weights(equities, sample_weights),
+            be_threshold,
+        )
         ev_showdown = eq_call * (pot + bet) - (1 - eq_call) * bet
         ev_called = ev_showdown if continue_ratio else -bet
         jam_weights, jam_mass = _top_weight_fraction(check_weights, 0.35)
@@ -1439,6 +1557,8 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "rival_raise_ratio": jam_mass,
             "hero_ev_raise": hero_best_vs_jam,
             "hero_call_vs_raise": hero_call_ev,
+            "sizing_fraction": float(pct),
+            "bet_context": river_context,
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1452,7 +1572,10 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     if risk > 0:
         final_pot = pot + 2 * risk
         be_threshold = risk / final_pot if final_pot > 0 else 1.0
-        fe, eq_call, continue_ratio = _fold_continue_stats(equities.values(), be_threshold)
+        fe, eq_call, continue_ratio = _fold_continue_stats(
+            _equity_with_weights(equities, sample_weights),
+            be_threshold,
+        )
         ev_called = eq_call * final_pot - risk if continue_ratio else -risk
         ev = fe * pot + (1 - fe) * ev_called
         profile, continue_range = _rival_profile(
@@ -1461,7 +1584,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             fold_probability=fe,
             continue_ratio=continue_ratio,
             strengths=equities,
-            weights=check_weights,
+            weights=sample_weights,
         )
         meta = {
             "street": "river",
@@ -1503,7 +1626,60 @@ def options_for(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
         options = river_options(node, rng, mc_trials)
     else:
         raise ValueError(f"Unknown street: {node.street}")
-    return _refine_with_cfr(node, options)
+    refined = _refine_with_cfr(node, options)
+    _record_bet_sizing_feedback(node, refined)
+    return refined
+
+
+def _record_bet_sizing_feedback(node: Node, options: list[Option]) -> None:
+    hand_state = _hand_state(node)
+    if not hand_state:
+        return
+    if node.street == "preflop":
+        open_size = float(node.context.get("open_size", 2.5))
+        hero_contrib = _state_value(hand_state, "hero_contrib", 1.0)
+        hero_stack = _state_value(hand_state, "hero_stack", node.effective_bb)
+        rival_stack = _state_value(hand_state, "rival_stack", node.effective_bb)
+        observations: list[tuple[float, float, float]] = []
+        for opt in options:
+            meta = opt.meta or {}
+            if meta.get("action") != "3bet":
+                continue
+            size = float(meta.get("raise_to", hero_contrib))
+            freq = float(getattr(opt, "gto_freq", 0.0))
+            if freq <= 0:
+                continue
+            regret = float(meta.get("cfr_regret", 0.0))
+            observations.append((size, freq, regret))
+        if observations:
+            BET_SIZING.observe_preflop(
+                open_size=open_size,
+                hero_contrib=hero_contrib,
+                hero_stack=hero_stack,
+                rival_stack=rival_stack,
+                observations=observations,
+            )
+        return
+
+    grouped: dict[str, list[tuple[float, float, float]]] = {}
+    for opt in options:
+        meta = opt.meta or {}
+        fraction = meta.get("sizing_fraction")
+        context = meta.get("bet_context")
+        if fraction is None or context is None:
+            continue
+        freq = float(getattr(opt, "gto_freq", 0.0))
+        if freq <= 0:
+            continue
+        regret = float(meta.get("cfr_regret", 0.0))
+        grouped.setdefault(str(context), []).append((float(fraction), freq, regret))
+
+    for context, obs in grouped.items():
+        BET_SIZING.observe_postflop(
+            street=node.street,
+            context=context,
+            observations=obs,
+        )
 
 
 def resolve_for(node: Node, option: Option, rng: random.Random) -> OptionResolution:
@@ -1558,9 +1734,15 @@ def _resolve_preflop(
         hero_add = max(0.0, raise_to - hero_contrib)
         _apply_contribution(hand_state, "hero", hero_add)
         precision = _precision_from_meta(option.meta, "preflop")
+        be_threshold = float(option.meta.get("rival_threshold", 1.0))
+        board = node.board if node.board else []
         _record_rival_adapt(hand_state, aggressive=True)
         decision_meta = _decision_meta(option.meta, hand_state)
         decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
+        if rival_cards is not None:
+            hero_vs_known = _combo_equity(hero_cards, board, rival_cards, precision)
+            if 1.0 - hero_vs_known < be_threshold:
+                decision = rival_strategy.RivalDecision(folds=True)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
@@ -1645,6 +1827,11 @@ def _resolve_flop(
         _record_rival_adapt(hand_state, aggressive=True)
         decision_meta = _decision_meta(option.meta, hand_state)
         decision = rival_strategy.decide_action(decision_meta, rival_cards, rng)
+        if rival_cards is not None:
+            hero_vs_known = _combo_equity(hero_cards, board, rival_cards, precision)
+            threshold = float(option.meta.get("rival_threshold", 1.0))
+            if 1.0 - hero_vs_known < threshold:
+                decision = rival_strategy.RivalDecision(folds=True)
         if decision.folds:
             _update_rival_range(hand_state, option.meta, True)
             hand_state["hand_over"] = True
@@ -2007,3 +2194,6 @@ def _resolve_river(
         )
 
     return OptionResolution(hand_ended=getattr(option, "ends_hand", False))
+
+
+BET_SIZING = BetSizingManager()

@@ -9,7 +9,7 @@ import pytest
 
 from gtotrainer.dynamic.cards import str_to_int
 from gtotrainer.dynamic.episode import Node
-from gtotrainer.dynamic.policy import options_for
+from gtotrainer.dynamic.policy import options_for, reset_bet_sizing_state
 
 REFERENCE_PATH = Path(__file__).with_name("reference_river_bet.json")
 
@@ -44,6 +44,7 @@ def _hand_state() -> dict:
 
 @pytest.mark.parametrize("reference", json.loads(REFERENCE_PATH.read_text()))
 def test_river_half_pot_calibration(reference: dict[str, object]) -> None:
+    reset_bet_sizing_state()
     hand_state = _hand_state()
     node = Node(
         street="river",

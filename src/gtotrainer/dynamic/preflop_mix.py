@@ -14,10 +14,10 @@ from functools import lru_cache
 
 from ..core.models import Option
 from .cards import fresh_deck
-from .cfr import LocalCFRBackend, LocalCFRConfig
+from .cfr import LinearCFRBackend, LinearCFRConfig
 from .equity import hero_equity_vs_combo
 from .hand_strength import combo_playability_score
-from .range_model import rival_sb_open_range
+from .range_model import load_range_with_weights, rival_sb_open_range
 
 # Heads-up uses the same ranking heuristic as range_model for determinism.
 
@@ -26,7 +26,9 @@ _SB_CONTRIBUTION = 0.5
 _BB_CONTRIBUTION = 1.0
 _PRELOP_MC_TRIALS = 150
 _PRELOP_SAMPLE_LIMIT = 80
-_PRELOP_SOLVER = LocalCFRBackend(LocalCFRConfig(iterations=160, extra_iterations_per_action=80))
+_PRELOP_SOLVER = LinearCFRBackend(
+    LinearCFRConfig(iterations=320, extra_iterations_per_action=120, linear_weight_pow=1.8)
+)
 
 
 @lru_cache(maxsize=1)
@@ -145,6 +147,9 @@ def _profile_for_open(open_size: float) -> DefenseProfile:
 
 
 def _villain_open_range(open_size: float, blocked_cards: Iterable[int]) -> list[tuple[int, int]]:
+    combos, _ = load_range_with_weights("sb_open", open_size, blocked_cards)
+    if combos:
+        return combos
     return rival_sb_open_range(open_size, blocked_cards)
 
 
@@ -326,7 +331,10 @@ def _solve_combo_profile(
 ) -> Mapping[str, float]:
     hero_combo = tuple(sorted(int(card) for card in hero_combo))
     blocked = list(hero_combo)
-    villain_range = _villain_open_range(open_size, blocked)
+    villain_range, villain_weights = load_range_with_weights("sb_open", open_size, blocked)
+    if not villain_range:
+        villain_range = _villain_open_range(open_size, blocked)
+        villain_weights = None
     if not villain_range:
         return {"fold": 1.0, "call": 0.0, "threebet": 0.0, "jam": 0.0, "defend": 0.0}
 
@@ -339,7 +347,15 @@ def _solve_combo_profile(
     hero_stack = max(0.0, _PRELOP_STACK - _BB_CONTRIBUTION)
     rival_stack = max(0.0, _PRELOP_STACK - open_size)
 
-    weights = _weights_for_combos(sampled_villain, blocked)
+    if villain_weights:
+        weights = {combo: villain_weights.get(combo, 0.0) for combo in sampled_villain}
+        total_weight = sum(weights.values())
+        if total_weight <= 0:
+            weights = _weights_for_combos(sampled_villain, blocked)
+        else:
+            weights = {combo: weight / total_weight for combo, weight in weights.items() if weight > 0}
+    else:
+        weights = _weights_for_combos(sampled_villain, blocked)
     range_error = _weighted_error(errors, weights)
 
     options: list[Option] = []

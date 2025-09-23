@@ -4,7 +4,7 @@ import random
 
 from gtotrainer.dynamic.cards import str_to_int
 from gtotrainer.dynamic.generator import Node
-from gtotrainer.dynamic.policy import options_for
+from gtotrainer.dynamic.policy import options_for, reset_bet_sizing_state
 
 
 def _sample_node() -> Node:
@@ -21,6 +21,7 @@ def _sample_node() -> Node:
 
 
 def test_options_for_attaches_cfr_metadata() -> None:
+    reset_bet_sizing_state()
     node = _sample_node()
     options = options_for(node, random.Random(0), mc_trials=120)
 
@@ -30,7 +31,9 @@ def test_options_for_attaches_cfr_metadata() -> None:
     for opt in cfr_options:
         assert opt.gto_freq is not None
         assert opt.meta is not None
-        assert opt.meta.get("cfr_backend") == "local_cfr_v1"
+        assert opt.meta.get("cfr_backend") == "linear_cfr_v1"
+        assert opt.meta.get("cfr_iterations")
+        assert opt.meta.get("cfr_regret") is not None
         assert "hero_ev_fold" in opt.meta
         assert "hero_ev_continue" in opt.meta
         assert "rival_ev_fold" in opt.meta

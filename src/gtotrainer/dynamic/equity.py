@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import random
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from functools import lru_cache
 from itertools import combinations
 from typing import Final
@@ -129,8 +129,8 @@ class _Eval7MonteCarlo:
 _ENGINE: Final[_Eval7MonteCarlo] = _Eval7MonteCarlo()
 
 _MIN_MONTE_TRIALS = 0
-_MAX_MONTE_TRIALS = 1000
-_MONTE_CHUNK = 150
+_MAX_MONTE_TRIALS = 3200
+_MONTE_CHUNK = 256
 _TARGET_STD_ERROR = 0.025
 _LAST_MONTE_TRIALS = 0
 
@@ -282,11 +282,29 @@ def hero_equity_vs_range(
     trials: int,
     *,
     target_std_error: float | None = None,
+    weights: Mapping[tuple[int, int], float] | None = None,
 ) -> float:
-    combos_list = list(combos)
+    combos_list = [tuple(sorted(combo)) for combo in combos]
     if not combos_list:
         return 0.0
-    total = 0.0
+    weight_map: dict[tuple[int, int], float] | None = None
+    if weights:
+        weight_map = {tuple(sorted(combo)): max(0.0, float(weight)) for combo, weight in weights.items() if weight > 0}
+    total_weight = 0.0
+    weighted_sum = 0.0
     for combo in combos_list:
-        total += hero_equity_vs_combo(hero, board, combo, trials, target_std_error=target_std_error)
-    return total / len(combos_list)
+        weight = weight_map.get(combo, 1.0) if weight_map else 1.0
+        if weight <= 0:
+            continue
+        equity = hero_equity_vs_combo(
+            hero,
+            board,
+            combo,
+            trials,
+            target_std_error=target_std_error,
+        )
+        weighted_sum += weight * equity
+        total_weight += weight
+    if total_weight <= 0:
+        return 0.0
+    return weighted_sum / total_weight

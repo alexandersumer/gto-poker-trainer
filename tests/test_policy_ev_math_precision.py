@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import random
 
+import pytest
+
 import gtotrainer.dynamic.policy as pol
 from gtotrainer.dynamic.cards import str_to_int
 from gtotrainer.dynamic.generator import Node
@@ -9,6 +11,11 @@ from gtotrainer.dynamic.generator import Node
 
 def _simple_range(*pairs: tuple[int, int]) -> list[tuple[int, int]]:
     return [tuple(sorted(p)) for p in pairs]
+
+
+@pytest.fixture(autouse=True)
+def _disable_range_repository(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pol, "load_range_with_weights", lambda *_args, **_kwargs: ([], None))
 
 
 def test_preflop_threebet_uses_fold_equity_threshold(monkeypatch):

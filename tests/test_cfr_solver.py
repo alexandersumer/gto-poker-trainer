@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from gtotrainer.core.models import Option
-from gtotrainer.dynamic.cfr import LocalCFRBackend, LocalCFRConfig
+from gtotrainer.dynamic.cfr import LinearCFRBackend, LinearCFRConfig
 
 
 def _option(key: str, fold_ev: float, continue_ev: float) -> Option:
@@ -23,13 +23,18 @@ def _option(key: str, fold_ev: float, continue_ev: float) -> Option:
 def test_local_cfr_backend_updates_strategy_profile() -> None:
     opts = [_option("Small bet", 1.0, -0.5), _option("Big bet", 0.5, 1.5)]
     baseline = [opt.ev for opt in opts]
-    backend = LocalCFRBackend(LocalCFRConfig(iterations=100))
+    backend = LinearCFRBackend(LinearCFRConfig(iterations=200))
     refined = backend.refine(None, opts)
     hero_mix = [opt.gto_freq for opt in refined]
     assert all(freq is not None for freq in hero_mix)
     assert abs(sum(freq for freq in hero_mix if freq is not None) - 1.0) < 1e-6
     assert refined[0].ev != baseline[0]  # CFR adjusts baseline EV
     assert refined[1].ev != baseline[1]
+    for opt in refined:
+        assert opt.meta is not None
+        assert opt.meta.get("cfr_max_regret") is not None
+        assert opt.meta.get("cfr_max_rival_regret") is not None
+        assert opt.meta.get("cfr_iterations") == 200
 
 
 def test_local_cfr_backend_handles_multiple_rival_responses() -> None:
@@ -62,7 +67,7 @@ def test_local_cfr_backend_handles_multiple_rival_responses() -> None:
         ),
     ]
 
-    backend = LocalCFRBackend(LocalCFRConfig(iterations=150))
+    backend = LinearCFRBackend(LinearCFRConfig(iterations=240))
     refined = backend.refine(None, options)
 
     hero_mix = [opt.gto_freq for opt in refined]
