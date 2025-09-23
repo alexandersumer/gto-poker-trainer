@@ -117,12 +117,21 @@ def test_feedback_classifier_frequency_overrides():
                 "evLossRaw": 0.01,
             },
         },
+        {
+            "id": "rare_mix_exact",
+            "args": {
+                "feedback": {"chosen": {"gto_freq": 0.01}},
+                "node": {"pot_bb": 10},
+                "evLossRaw": 0.0,
+            },
+        },
     ]
     results = _run_node(cases)
 
     assert results["freq_zero_yellow"]["state"] == "warning"
     assert results["freq_zero_red"]["state"] == "danger"
     assert results["rare_mix_bump"]["state"] == "warning"
+    assert results["rare_mix_exact"]["state"] in {"success", "gain"}
 
 
 def test_feedback_classifier_gain_tinting():

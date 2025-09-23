@@ -3788,6 +3788,7 @@
           yellowUpper = greenCutoff + MIN_YELLOW_BAND;
         }
 
+        const isZeroLoss = absLoss <= EPS;
         const evLossPct = pot ? (absLoss / pot) * 100 : null;
         const freqRaw = typeof feedback?.chosen?.gto_freq === 'number' ? feedback.chosen.gto_freq : null;
         const freq = freqRaw != null && Number.isFinite(freqRaw) ? Math.max(0, freqRaw) : null;
@@ -3811,17 +3812,17 @@
           }
         }
 
-        if(freq === 0 && loss > yellowUpper + EPS){
+        if(freq === 0 && !isZeroLoss && loss > yellowUpper + EPS){
           state = 'danger';
           tone = 'danger';
-        } else if(gtoFreqPct != null && gtoFreqPct > 0 && gtoFreqPct < LOW_FREQ_THRESHOLD){
+        } else if(!isZeroLoss && gtoFreqPct != null && gtoFreqPct > 0 && gtoFreqPct < LOW_FREQ_THRESHOLD){
           if(state === 'success' || state === 'gain'){
             state = 'warning';
             tone = 'warning';
           }
         }
 
-        const shouldTintValue = rawLoss < 0 ? true : rawLoss > 0 && (tone === 'warning' || tone === 'danger');
+        const shouldTintValue = rawLoss < 0 ? true : rawLoss > EPS && (tone === 'warning' || tone === 'danger');
         let symbol;
         if(tone === 'warning'){
           symbol = '!';
