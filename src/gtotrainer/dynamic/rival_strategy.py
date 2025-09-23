@@ -40,6 +40,57 @@ def _encode_combo(combo: Sequence[int]) -> str:
     return f"{a}-{b}"
 
 
+def _board_draw_intensity(cards: Sequence[int] | None) -> float:
+    if not cards:
+        return 0.5
+    ranks = sorted(card // 4 for card in cards)
+    suits = [card % 4 for card in cards]
+    unique_ranks = len(set(ranks))
+    span = ranks[-1] - ranks[0] if ranks else 0
+    suit_counts: dict[int, int] = {}
+    for suit in suits:
+        suit_counts[suit] = suit_counts.get(suit, 0) + 1
+    max_suit = max(suit_counts.values(), default=0)
+    flush_factor = 0.0 if len(cards) < 3 else max(0.0, (max_suit - 1) / (len(cards) - 1))
+    paired_factor = 1.0 if unique_ranks < len(ranks) else 0.0
+    straight_factor = max(0.0, 1.0 - min(4, span) / 4)
+    texture = 0.25 + 0.45 * flush_factor + 0.2 * straight_factor + 0.1 * paired_factor
+    return max(0.0, min(1.0, texture))
+
+
+def _safe_float(value: object, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _bet_size_ratio(meta: Mapping[str, object]) -> float:
+    pot = _safe_float(
+        meta.get("pot_before")
+        or meta.get("pot_before_action")
+        or meta.get("pot_before_bet")
+        or meta.get("pot_before_raise"),
+        default=0.0,
+    )
+    risk_candidates = (
+        meta.get("bet"),
+        meta.get("hero_add"),
+        meta.get("risk"),
+        meta.get("call_cost"),
+    )
+    risk = 0.0
+    for candidate in risk_candidates:
+        risk = max(risk, _safe_float(candidate))
+    if risk <= 0.0 and "raise_to" in meta:
+        risk = _safe_float(meta["raise_to"]) - _safe_float(meta.get("pot_before"))
+        if risk <= 0.0:
+            risk = _safe_float(meta["raise_to"])
+    if pot <= 0.0:
+        pot = 1.0
+    return max(0.0, min(2.5, risk / pot))
+
+
 def build_profile(
     sampled_range: Iterable[Sequence[int]],
     *,
@@ -275,7 +326,18 @@ def decide_action(
     spread = max(1e-6, max_strength - min_strength)
     continue_ratio = float(profile.get("continue_ratio", 0.0))
     temperature = float(profile.get("temperature", 0.12))
-    noise = min(0.08, max(0.0, 0.18 * (1.0 - continue_ratio)))
+    board_meta = meta.get("board_cards") if isinstance(meta, Mapping) else None
+    board_cards: Sequence[int] | None
+    if isinstance(board_meta, (list, tuple)):
+        board_cards = tuple(int(c) for c in board_meta)
+    else:
+        board_cards = None
+    texture = _board_draw_intensity(board_cards)
+    temperature = max(0.035, temperature * (0.75 + 0.4 * texture))
+    noise = min(0.12, max(0.0, 0.12 * (1.0 - continue_ratio) + 0.05 * texture))
+    size_ratio = _bet_size_ratio(meta)
+    fold_prob -= 0.14 * (texture - 0.5)
+    fold_prob += 0.1 * (size_ratio - 0.7)
 
     adapt = meta.get("rival_adapt") if isinstance(meta, Mapping) else None
     adapt_scale = 0.0
@@ -290,8 +352,8 @@ def decide_action(
             observed_passive = 0.0
         deviation = math.log((observed_aggr + 1.0) / (observed_passive + 1.0))
         sample_total = observed_aggr + observed_passive
-        sample_weight = min(1.0, sample_total / 6.0)
-        adapt_scale = max(-0.35, min(0.35, 0.14 * deviation * sample_weight))
+        sample_weight = min(1.0, sample_total / 5.0)
+        adapt_scale = max(-0.3, min(0.3, 0.12 * deviation * sample_weight))
 
     strength = None
     if rival_cards is not None:

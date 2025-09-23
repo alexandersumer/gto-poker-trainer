@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 
 from gtotrainer.dynamic import rival_strategy as vs
+from gtotrainer.dynamic.cards import str_to_int
 
 
 def test_build_profile_returns_expected_structure() -> None:
@@ -38,3 +39,26 @@ def test_decide_action_biases_by_strength() -> None:
 def test_decide_action_defaults_to_continue_without_profile() -> None:
     decision = vs.decide_action({}, (0, 1), random.Random(0))
     assert not decision.folds
+
+
+def test_board_texture_adjusts_fold_tendency() -> None:
+    combos = [(0, 1), (12, 13), (24, 25), (36, 37), (40, 41)]
+    profile = vs.build_profile(combos, fold_probability=0.45, continue_ratio=0.55)
+
+    base_meta = {
+        "rival_profile": profile,
+        "pot_before": 6.0,
+        "bet": 3.0,
+    }
+
+    dry_board = [str_to_int("Ah"), str_to_int("7d"), str_to_int("2c")]
+    wet_board = [str_to_int("Th"), str_to_int("Jh"), str_to_int("Qh")]
+
+    dry_meta = {**base_meta, "board_cards": dry_board}
+    wet_meta = {**base_meta, "board_cards": wet_board}
+
+    seeds = [random.Random(seed) for seed in range(120)]
+    dry_folds = sum(vs.decide_action(dry_meta, None, rng).folds for rng in seeds)
+    wet_folds = sum(vs.decide_action(wet_meta, None, random.Random(10_000 + i)).folds for i in range(120))
+
+    assert wet_folds < dry_folds

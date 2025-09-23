@@ -36,6 +36,16 @@ def _blocked_cards(hero: Iterable[int], board: Iterable[int]) -> set[int]:
     return set(hero) | set(board)
 
 
+def _board_metadata(node: Node) -> dict[str, Any]:
+    data: dict[str, Any] = {}
+    board_key = node.context.get("board_key")
+    if isinstance(board_key, str) and board_key:
+        data["board_key"] = board_key
+    if node.board:
+        data["board_cards"] = list(node.board)
+    return data
+
+
 def _state_value(hand_state: dict[str, Any] | None, key: str, default: float = 0.0) -> float:
     if not hand_state:
         return default
@@ -574,6 +584,18 @@ def _apply_profile_meta(
                 meta["rival_continue_weights"] = normalized
     if continue_range:
         meta["rival_continue_range"] = continue_range
+
+
+def _ensure_board_metadata(node: Node, options: Iterable[Option]) -> None:
+    info = _board_metadata(node)
+    if not info:
+        return
+    for opt in options:
+        existing = opt.meta or {}
+        for key, value in info.items():
+            if key not in existing:
+                existing[key] = value[:] if isinstance(value, list) else value
+        opt.meta = existing
 
 
 def _attach_cfr_meta(
@@ -1690,6 +1712,7 @@ def options_for(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
         raise ValueError(f"Unknown street: {node.street}")
     refined = _refine_with_cfr(node, options)
     _record_bet_sizing_feedback(node, refined)
+    _ensure_board_metadata(node, refined)
     return refined
 
 
