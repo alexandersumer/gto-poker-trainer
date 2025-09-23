@@ -3,8 +3,8 @@ from __future__ import annotations
 import random
 
 from gtotrainer.dynamic.generator import EpisodeBuilder, SeatAssignment
-from gtotrainer.dynamic.seating import BB, SB
 from gtotrainer.dynamic.policy import options_for, reset_bet_sizing_state
+from gtotrainer.dynamic.seating import BB, SB
 
 
 def _episode() -> tuple:
