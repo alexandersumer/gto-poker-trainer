@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import random
 
-from gtotrainer.dynamic.rival_strategy import build_profile, decide_action
 from gtotrainer.dynamic.cards import str_to_int
+from gtotrainer.dynamic.rival_strategy import build_profile, decide_action
 
 
 def _combo(card1: str, card2: str) -> tuple[int, int]:

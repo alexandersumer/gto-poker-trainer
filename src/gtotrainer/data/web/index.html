@@ -2336,7 +2336,7 @@
             <div class="field-group" data-field-group="inp-hands">
               <label class="field-label" for="inp-hands">Hands</label>
               <div class="field-shell">
-                <input id="inp-hands" type="number" min="1" value="3" data-default="3" placeholder="e.g., 3" class="w-full" inputmode="numeric" aria-describedby="helper-hands inp-hands-error" />
+                <input id="inp-hands" type="number" min="1" value="5" data-default="5" placeholder="e.g., 5" class="w-full" inputmode="numeric" aria-describedby="helper-hands inp-hands-error" />
               </div>
               <p id="helper-hands" class="field-helper">Choose how many scenarios play back-to-back.</p>
               <p id="inp-hands-error" class="field-error-message" role="status" aria-live="polite" hidden></p>
@@ -2346,7 +2346,7 @@
               <div class="field-shell">
                 <input id="inp-mc" type="number" min="40" step="10" value="120" data-default="120" placeholder="e.g., 120" class="w-full" inputmode="numeric" aria-describedby="helper-depth inp-mc-error" />
               </div>
-              <p id="helper-depth" class="field-helper long">More trials yield tighter EV estimates but extend the compute per hand.</p>
+              <p id="helper-depth" class="field-helper long">Depth sets simulations per hand: 120 balances speed and accuracy, 40 runs fastest, and 200+ smooths results but takes longer.</p>
               <p id="inp-mc-error" class="field-error-message" role="status" aria-live="polite" hidden></p>
             </div>
           </div>
@@ -4221,7 +4221,7 @@
       };
 
       const numericFieldConfigs = {
-        'inp-hands': { fallback: 3, min: 1 },
+        'inp-hands': { fallback: 5, min: 1 },
         'inp-mc': { fallback: 120, min: 40 }
       };
 
