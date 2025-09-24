@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from itertools import cycle
 from pathlib import Path
 
 if __package__ is None:
@@ -15,7 +16,7 @@ if __package__ is None:
     if str(src_dir) not in sys.path:
         sys.path.insert(0, str(src_dir))
 
-from gtotrainer.analysis.benchmark import BenchmarkConfig, run_benchmark
+from gtotrainer.analysis.benchmark import BenchmarkConfig, BenchmarkScenario, run_benchmark
 
 
 def _parse_seeds(raw: str) -> tuple[int, ...]:
@@ -25,10 +26,48 @@ def _parse_seeds(raw: str) -> tuple[int, ...]:
         raise argparse.ArgumentTypeError(f"invalid seed list '{raw}'") from exc
 
 
-def _parse_flags(raw: str | None) -> tuple[str, ...]:
-    if not raw:
-        return ()
-    return tuple(flag.strip() for flag in raw.split(",") if flag.strip())
+def _resolve_scenarios(
+    pack: str,
+    seeds: tuple[int, ...],
+    hands: int,
+    rival_style: str,
+    hero_policy: str,
+) -> list[BenchmarkScenario]:
+    if not seeds:
+        raise ValueError("at least one seed must be supplied")
+
+    pack_key = pack.strip().lower()
+    if pack_key == "seeded":
+        return [
+            BenchmarkScenario(
+                name=f"seed_{idx}_{seed}",
+                seed=seed,
+                rival_style=rival_style,
+                hero_policy=hero_policy,
+                hands=hands,
+            )
+            for idx, seed in enumerate(seeds)
+        ]
+
+    # Standard trio approximates SRP, probe, and 3-bet situations by mixing styles/policies.
+    presets = [
+        ("srp_btn_vs_bb", "balanced", "gto"),
+        ("turn_probe_passive", "passive", "gto"),
+        ("three_bet_defence", "aggressive", "best"),
+    ]
+    seed_cycle = cycle(seeds)
+    scenarios: list[BenchmarkScenario] = []
+    for name, style, policy in presets:
+        scenarios.append(
+            BenchmarkScenario(
+                name=name,
+                seed=next(seed_cycle),
+                rival_style=style,
+                hero_policy=policy,
+                hands=hands,
+            )
+        )
+    return scenarios
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -55,18 +94,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Hero policy used during the benchmark",
     )
     parser.add_argument(
-        "--enable",
-        type=_parse_flags,
-        default=(),
-        help="Comma-separated feature flags to enable during the run",
+        "--scenario-pack",
+        type=str,
+        default="standard",
+        choices=("standard", "seeded"),
+        help="Scenario pack to run (default: standard trio)",
     )
-    parser.add_argument(
-        "--disable",
-        type=_parse_flags,
-        default=(),
-        help="Comma-separated feature flags to disable during the run",
-    )
-
     args = parser.parse_args(argv)
 
     config = BenchmarkConfig(
@@ -75,8 +108,9 @@ def main(argv: list[str] | None = None) -> int:
         mc_trials=args.mc_trials,
         rival_style=args.rival_style,
         hero_policy=args.hero_policy,
-        enable_features=args.enable,
-        disable_features=args.disable,
+        scenarios=tuple(
+            _resolve_scenarios(args.scenario_pack, args.seeds, args.hands, args.rival_style, args.hero_policy)
+        ),
     )
 
     result = run_benchmark(config)
@@ -92,7 +126,10 @@ def main(argv: list[str] | None = None) -> int:
         },
         "runs": [
             {
-                "seed": run.seed,
+                "scenario": run.scenario.name,
+                "seed": run.scenario.seed,
+                "rival_style": run.scenario.rival_style,
+                "hero_policy": run.scenario.hero_policy,
                 "decisions": run.stats.decisions,
                 "avg_ev_lost": run.stats.avg_ev_lost,
                 "score_pct": run.stats.score_pct,

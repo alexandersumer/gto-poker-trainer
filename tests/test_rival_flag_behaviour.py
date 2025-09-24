@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import random
 
-from gtotrainer.core import feature_flags
 from gtotrainer.dynamic import rival_strategy
 
 
@@ -28,36 +27,34 @@ def _profile() -> dict:
 
 
 def _meta(profile: dict) -> dict:
-    meta = {
+    return {
         "rival_profile": copy.deepcopy(profile),
         "bet": 6.0,
         "pot_before": 9.0,
         "board_cards": [_card(10, 0), _card(9, 1), _card(5, 2)],
         "rival_adapt": {"aggr": 2, "passive": 1},
     }
-    return meta
 
 
-def _fold_rate(combo: tuple[int, int], *, enable_flag: bool) -> float:
+def _fold_rate(combo: tuple[int, int]) -> float:
     profile = _profile()
     rng = random.Random(321)
+    folds = 0
     trials = 800
-    enabled = {"rival.texture_v2"} if enable_flag else set()
-    with feature_flags.override(enable=enabled):
-        folds = 0
-        for _ in range(trials):
-            meta = _meta(profile)
-            decision = rival_strategy.decide_action(meta, combo, rng)
-            if decision.folds:
-                folds += 1
+    for _ in range(trials):
+        decision = rival_strategy.decide_action(_meta(profile), combo, rng)
+        if decision.folds:
+            folds += 1
     return folds / trials
 
 
-def test_texture_flag_strengthens_strength_separation() -> None:
+def test_rival_decisions_respect_strength_ordering() -> None:
     strong = (_card(12, 0), _card(12, 3))
     weak = (_card(1, 3), _card(5, 2))
 
-    base_gap = _fold_rate(weak, enable_flag=False) - _fold_rate(strong, enable_flag=False)
-    flagged_gap = _fold_rate(weak, enable_flag=True) - _fold_rate(strong, enable_flag=True)
+    strong_rate = _fold_rate(strong)
+    weak_rate = _fold_rate(weak)
 
-    assert flagged_gap > base_gap + 0.05
+    assert strong_rate < 0.25
+    assert weak_rate > 0.85
+    assert weak_rate - strong_rate > 0.6

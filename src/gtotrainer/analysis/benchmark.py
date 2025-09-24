@@ -2,8 +2,8 @@
 
 The benchmark runs small self-play sessions using the existing session
 manager, then summarises the EV loss and hit rates using the core scoring
-helpers.  This keeps the regression cheap while letting us compare different
-feature-flag configurations.
+helpers.  This keeps the regression cheap while letting us compare solver
+tweaks without touching production infrastructure.
 """
 
 from __future__ import annotations
@@ -12,12 +12,26 @@ import random
 from dataclasses import dataclass
 from typing import Sequence
 
-from ..core import feature_flags
 from ..core.scoring import SummaryStats, summarize_records
 from ..dynamic.generator import available_rival_styles
 from ..core.models import Option
 from ..dynamic.policy import reset_bet_sizing_state
 from ..features.session.service import SessionConfig, SessionManager, _ensure_active_node, _ensure_options
+
+
+@dataclass(frozen=True)
+class BenchmarkScenario:
+    """Single deterministic configuration executed inside the benchmark."""
+
+    name: str
+    seed: int
+    rival_style: str
+    hero_policy: str = "gto"
+    hands: int | None = None
+
+    def resolve_hands(self, fallback: int) -> int:
+        value = self.hands
+        return value if value and value > 0 else fallback
 
 
 class _HeroPolicy:
@@ -32,7 +46,20 @@ class _HeroPolicy:
         if not options:
             raise ValueError("options list is empty")
         if self.mode == "best":
-            return max(range(len(options)), key=lambda idx: options[idx].ev)
+
+            def score(idx: int) -> float:
+                opt = options[idx]
+                meta = getattr(opt, "meta", None) or {}
+                baseline = meta.get("baseline_ev")
+                value = float(opt.ev)
+                if baseline is not None:
+                    try:
+                        value = max(value, float(baseline))
+                    except (TypeError, ValueError):
+                        pass
+                return value
+
+            return max(range(len(options)), key=score)
 
         weighted: list[tuple[int, float]] = []
         for idx, option in enumerate(options):
@@ -60,22 +87,29 @@ class BenchmarkConfig:
     mc_trials: int = 96
     rival_style: str = "balanced"
     hero_policy: str = "gto"
-    enable_features: tuple[str, ...] = ()
-    disable_features: tuple[str, ...] = ()
+    scenarios: tuple[BenchmarkScenario, ...] | None = None
 
     def __post_init__(self) -> None:
         if self.hands <= 0:
             raise ValueError("hands must be positive")
         if self.mc_trials <= 0:
             raise ValueError("mc_trials must be positive")
+        if not self.seeds:
+            raise ValueError("at least one seed is required")
         allowed_styles = available_rival_styles()
-        if self.rival_style.strip().lower() not in allowed_styles:
+        if self.scenarios:
+            for scenario in self.scenarios:
+                if scenario.rival_style.strip().lower() not in allowed_styles:
+                    raise ValueError(
+                        f"Unknown rival_style '{scenario.rival_style}'. Options: {', '.join(sorted(allowed_styles))}"
+                    )
+        elif self.rival_style.strip().lower() not in allowed_styles:
             raise ValueError(f"Unknown rival_style '{self.rival_style}'. Options: {', '.join(sorted(allowed_styles))}")
 
 
 @dataclass(frozen=True)
 class BenchmarkRun:
-    seed: int
+    scenario: BenchmarkScenario
     stats: SummaryStats
 
     @property
@@ -102,37 +136,55 @@ class BenchmarkResult:
 
 
 def run_benchmark(config: BenchmarkConfig) -> BenchmarkResult:
-    policy = _HeroPolicy(config.hero_policy)
+    scenarios = _expand_scenarios(config)
     runs: list[BenchmarkRun] = []
     all_records: list[dict] = []
 
-    with feature_flags.override(enable=config.enable_features, disable=config.disable_features):
-        for seed in config.seeds:
-            manager = SessionManager()
-            reset_bet_sizing_state()
-            session_id = manager.create_session(
-                SessionConfig(
-                    hands=config.hands,
-                    mc_trials=config.mc_trials,
-                    seed=seed,
-                    rival_style=config.rival_style,
-                )
+    for scenario in scenarios:
+        policy = _HeroPolicy(scenario.hero_policy)
+        manager = SessionManager()
+        reset_bet_sizing_state()
+        session_id = manager.create_session(
+            SessionConfig(
+                hands=scenario.resolve_hands(config.hands),
+                mc_trials=config.mc_trials,
+                seed=scenario.seed,
+                rival_style=scenario.rival_style,
             )
-            state = manager._sessions[session_id]
+        )
+        state = manager._sessions[session_id]
 
-            while True:
-                node = _ensure_active_node(state)
-                if node is None:
-                    break
-                options = _ensure_options(state, node)
-                choice = policy.select(options, state.engine.rng)
-                manager.choose(session_id, choice)
+        while True:
+            node = _ensure_active_node(state)
+            if node is None:
+                break
+            options = _ensure_options(state, node)
+            choice = policy.select(options, state.engine.rng)
+            manager.choose(session_id, choice)
 
-            # Copy records before releasing the session.
-            run_records = [dict(record) for record in state.records]
-            all_records.extend(run_records)
-            runs.append(BenchmarkRun(seed=seed, stats=summarize_records(run_records)))
-            manager._sessions.pop(session_id, None)
+        run_records = [dict(record) for record in state.records]
+        all_records.extend(run_records)
+        runs.append(BenchmarkRun(scenario=scenario, stats=summarize_records(run_records)))
+        manager._sessions.pop(session_id, None)
 
     combined = summarize_records(all_records)
     return BenchmarkResult(runs=tuple(runs), combined=combined)
+
+
+def _expand_scenarios(config: BenchmarkConfig) -> tuple[BenchmarkScenario, ...]:
+    if config.scenarios:
+        return config.scenarios
+
+    style = config.rival_style.strip().lower()
+    policy = config.hero_policy
+    scenarios: list[BenchmarkScenario] = []
+    for idx, seed in enumerate(config.seeds):
+        scenarios.append(
+            BenchmarkScenario(
+                name=f"seed_{idx}_{seed}",
+                seed=seed,
+                rival_style=style,
+                hero_policy=policy,
+            )
+        )
+    return tuple(scenarios)

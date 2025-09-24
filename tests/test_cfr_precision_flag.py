@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import random
 
-from gtotrainer.core import feature_flags
 from gtotrainer.dynamic.generator import EpisodeBuilder, SeatAssignment
 from gtotrainer.dynamic.policy import options_for, reset_bet_sizing_state
 from gtotrainer.dynamic.seating import BB, SB
@@ -22,16 +21,22 @@ def _avg_iterations(options) -> float:
     return sum(float(v) for v in values) / len(values)
 
 
-def test_solver_high_precision_flag_increases_iterations() -> None:
+def test_cfr_backend_uses_high_iteration_budget() -> None:
     reset_bet_sizing_state()
     node = _preflop_node()
-    base_options = options_for(node, random.Random(5), mc_trials=120)
-    base_avg = _avg_iterations(base_options)
+    options = options_for(node, random.Random(5), mc_trials=120)
+    avg_iters = _avg_iterations(options)
+    assert avg_iters >= 1500
 
+
+def test_cfr_baseline_ev_is_tracked() -> None:
     reset_bet_sizing_state()
-    node_hp = _preflop_node()
-    with feature_flags.override(enable={"solver.high_precision_cfr"}):
-        precise_options = options_for(node_hp, random.Random(5), mc_trials=120)
+    node = _preflop_node()
+    options = options_for(node, random.Random(7), mc_trials=96)
 
-    precise_avg = _avg_iterations(precise_options)
-    assert precise_avg > base_avg
+    for opt in options:
+        if not opt.meta or not opt.meta.get("supports_cfr"):
+            continue
+        baseline = opt.meta.get("baseline_ev")
+        assert baseline is not None
+        assert float(baseline) >= opt.ev - 1e-6

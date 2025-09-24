@@ -17,7 +17,7 @@ Flags can be combined: `GTOTRAINER_FEATURES=solver.high_precision_cfr,rival.text
 Run the deterministic session benchmark to track exploitability and accuracy:
 
 ```bash
-scripts/run_benchmark.py --hands 50 --seeds 101,202
+scripts/run_benchmark.py --hands 40 --seeds 101,202,303
 ```
 
 Typical outputs include `avg_ev_lost` (approximate exploitability in bb per
@@ -26,9 +26,23 @@ decision) and `accuracy_pct` (noise-aware hit rate).
 To compare feature flags:
 
 ```bash
-scripts/run_benchmark.py --enable solver.high_precision_cfr --hands 50
-scripts/run_benchmark.py --enable rival.texture_v2 --hands 50
+scripts/run_benchmark.py --enable solver.high_precision_cfr --hands 40
+scripts/run_benchmark.py --enable rival.texture_v2 --hands 40
+scripts/run_benchmark.py --enable solver.high_precision_cfr,rival.texture_v2 --hands 40
 ```
 
 The benchmark is deterministic for a given seed, making it safe for CI and
 regressions.
+
+### Scenario packs
+
+- `--scenario-pack standard` (default) replays three contrasting spots: BTN vs BB
+  single-raised pot, turn probe response, and an aggressive 3-bet defence.
+- `--scenario-pack seeded` replays each supplied seed independently—useful when
+  you want before/after flag diffs on identical cards.
+
+Example extended run:
+
+```bash
+scripts/run_benchmark.py --hands 80 --seeds 101,202,303 --enable solver.high_precision_cfr
+```

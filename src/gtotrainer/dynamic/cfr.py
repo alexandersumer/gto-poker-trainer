@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ..core import feature_flags
 from ..core.models import Option
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -23,6 +22,9 @@ class LinearCFRConfig:
     extra_iterations_per_action: int = 220
     linear_weight_pow: float = 1.5
     regret_floor: float = 1e-9
+    hero_dropout_threshold: float = 0.2
+    hero_min_freq: float = 0.03
+    force_best_response: bool = False
 
 
 @dataclass(slots=True)
@@ -55,10 +57,36 @@ class LinearCFRBackend:
 
         adjusted_values = payload.hero_payoff @ stats.rival_avg
 
+        hero_probs = stats.hero_avg.copy()
+        best_value = float(np.max(adjusted_values)) if adjusted_values.size else 0.0
+        drop_threshold = max(0.0, self.config.hero_dropout_threshold)
+        min_freq = max(0.0, self.config.hero_min_freq)
+
+        if hero_probs.size:
+            mask = np.ones_like(hero_probs, dtype=bool)
+            if drop_threshold > 0.0:
+                mask = adjusted_values >= (best_value - drop_threshold)
+            if not np.any(mask):
+                mask[np.argmax(adjusted_values)] = True
+            filtered = hero_probs * mask
+            if min_freq > 0.0:
+                filtered = np.where(mask, np.maximum(filtered, min_freq), 0.0)
+            total = float(np.sum(filtered))
+            if total > 0.0:
+                hero_probs = filtered / total
+            else:
+                hero_probs = np.zeros_like(hero_probs)
+                hero_probs[np.argmax(adjusted_values)] = 1.0
+
+        if self.config.force_best_response and hero_probs.size:
+            best_idx = int(np.argmax(adjusted_values))
+            hero_probs = np.zeros_like(hero_probs)
+            hero_probs[best_idx] = 1.0
+
         for (idx, option), action_value, hero_prob, regret in zip(
             eligible,
             adjusted_values,
-            stats.hero_avg,
+            hero_probs,
             stats.hero_regret,
             strict=False,
         ):
@@ -82,21 +110,22 @@ class LinearCFRBackend:
         return options
 
 
-_SOLVER = LinearCFRBackend()
-_SOLVER_PRECISE = LinearCFRBackend(
+_SOLVER = LinearCFRBackend(
     LinearCFRConfig(
         iterations=1200,
         minimum_actions=2,
         extra_iterations_per_action=400,
         linear_weight_pow=1.7,
         regret_floor=1e-10,
+        hero_dropout_threshold=0.06,
+        hero_min_freq=0.015,
+        force_best_response=True,
     )
 )
 
 
 def refine_options(node: Node | None, options: list[Option]) -> list[Option]:
-    solver = _SOLVER_PRECISE if feature_flags.is_enabled("solver.high_precision_cfr") else _SOLVER
-    return solver.refine(node, options)
+    return _SOLVER.refine(node, options)
 
 
 @dataclass(slots=True)

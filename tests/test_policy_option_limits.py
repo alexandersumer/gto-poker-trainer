@@ -25,7 +25,7 @@ def test_bet_option_cap_per_street() -> None:
         aggressive = _aggressive_actions(options)
         jams = _jam_actions(options)
 
-        assert len(aggressive) <= 3
+        assert len(aggressive) <= 4
         assert len(jams) <= 1
 
         if node.street != "preflop":

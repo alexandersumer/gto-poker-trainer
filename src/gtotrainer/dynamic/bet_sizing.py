@@ -10,14 +10,14 @@ class BetSizingConfig:
 
     min_increment: float = 0.25
     usage_decay: float = 0.82
-    usage_floor: float = 0.01
-    usage_drop_threshold: float = 0.012
-    regret_expand_threshold: float = 0.45
-    postflop_regret_expand_threshold: float = 0.3
+    usage_floor: float = 0.015
+    usage_drop_threshold: float = 0.01
+    regret_expand_threshold: float = 0.4
+    postflop_regret_expand_threshold: float = 0.26
     preflop_base_multipliers: tuple[float, ...] = (2.8, 3.5, 5.0)
     preflop_min_count: int = 2
     preflop_max_count: int = 6
-    postflop_max_count: int = 5
+    postflop_max_count: int = 6
 
 
 @dataclass(slots=True)

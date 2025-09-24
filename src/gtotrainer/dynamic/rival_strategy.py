@@ -17,7 +17,6 @@ from dataclasses import dataclass
 # The profile dictionary stored on Option.meta uses only standard Python
 # container types (lists/dicts) so it can be copied or serialised in tests.
 from .hand_strength import combo_playability_score
-from ..core import feature_flags
 
 
 @dataclass(frozen=True)
@@ -107,28 +106,29 @@ def _calibrated_fold_probability(
     adapt_scale: float,
     continue_ratio: float,
 ) -> float:
-    if not feature_flags.is_enabled("rival.texture_v2"):
-        return base
-
     clamped = max(1e-4, min(1.0 - 1e-4, base))
     logit = math.log(clamped / (1.0 - clamped))
 
-    texture_adj = (texture - 0.5) * 1.35
-    size_adj = (size_ratio - 0.75) * 1.6
+    texture_adj = (texture - 0.5) * 0.9
+    size_adj = (size_ratio - 0.75) * 1.1
     logit += size_adj - texture_adj
 
     if strength_norm is not None:
         delta = strength_norm - threshold_norm
-        precision = 2.4 + 0.6 * (1.0 - continue_ratio)
+        precision = 1.8 + 0.5 * (1.0 - continue_ratio)
         logit -= delta * precision
 
     if adapt_scale:
-        logit -= 2.2 * adapt_scale
+        logit -= 1.5 * adapt_scale
 
     logit = max(-12.0, min(12.0, logit))
     adjusted = 1.0 / (1.0 + math.exp(-logit))
+    shift = adjusted - clamped
+    max_shift = 0.15 + 0.1 * (1.0 - continue_ratio)
+    adjusted = clamped + max(-max_shift, min(max_shift, shift))
+    adjusted = max(1e-4, min(1.0 - 1e-4, adjusted))
     # Blend back towards the base value to keep aggregate frequencies stable.
-    blend_weight = 0.55 + 0.2 * (1.0 - continue_ratio)
+    blend_weight = 0.45 + 0.25 * (1.0 - continue_ratio)
     return _blend_probability(clamped, adjusted, blend_weight)
 
 
@@ -394,7 +394,7 @@ def decide_action(
         deviation = math.log((observed_aggr + 1.0) / (observed_passive + 1.0))
         sample_total = observed_aggr + observed_passive
         sample_weight = min(1.0, sample_total / 5.0)
-        adapt_scale = max(-0.3, min(0.3, 0.12 * deviation * sample_weight))
+        adapt_scale = max(-0.25, min(0.25, 0.09 * deviation * sample_weight))
 
     strength = None
     strength_norm = None
@@ -416,7 +416,7 @@ def decide_action(
         fold_prob -= shift * bias_scale
 
     if adapt_scale:
-        fold_prob -= adapt_scale
+        fold_prob -= 0.6 * adapt_scale
 
     fold_prob = _calibrated_fold_probability(
         fold_prob,
@@ -427,6 +427,8 @@ def decide_action(
         adapt_scale=adapt_scale,
         continue_ratio=continue_ratio,
     )
+
+    noise *= 0.6
 
     if noise > 0:
         fold_prob += (rng.random() - 0.5) * 2.0 * noise

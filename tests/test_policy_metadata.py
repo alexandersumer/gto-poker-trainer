@@ -32,3 +32,6 @@ def test_flop_options_attach_bet_context_and_fraction() -> None:
     assert bet_opts, "expected flop betting options"
     assert any(opt.meta.get("sizing_fraction") is not None for opt in bet_opts)
     assert any(opt.meta.get("bet_context") for opt in bet_opts)
+    assert len(bet_opts) >= 3
+    fractions = [float(opt.meta.get("sizing_fraction", 0.0)) for opt in bet_opts]
+    assert any(frac >= 0.95 for frac in fractions)

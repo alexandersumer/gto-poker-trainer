@@ -155,22 +155,27 @@ class SessionManager:
                 raise ValueError("choice index out of range")
             chosen = options[choice_index]
             best = options[_best_index(options)]
-            worst = min(options, key=lambda opt: opt.ev)
+            worst = min(options, key=lambda opt: _effective_ev(opt))
             resolution = resolve_for(node, chosen, state.engine.rng)
             chosen_feedback = replace(chosen)
             if resolution.note:
                 chosen_feedback.resolution_note = resolution.note
             if resolution.hand_ended:
                 chosen_feedback.ends_hand = True
+            chosen_ev_eff = _effective_ev(chosen)
+            best_ev_eff = _effective_ev(best)
+            worst_ev_eff = _effective_ev(worst)
             record = {
                 "street": node.street,
                 "chosen_key": chosen.key,
-                "chosen_ev": chosen.ev,
+                "chosen_ev": chosen_ev_eff,
                 "best_key": best.key,
-                "best_ev": best.ev,
-                "worst_ev": worst.ev,
-                "room_ev": max(1e-9, best.ev - worst.ev),
-                "ev_loss": best.ev - chosen.ev,
+                "best_ev": best_ev_eff,
+                "worst_ev": worst_ev_eff,
+                "room_ev": max(1e-9, best_ev_eff - worst_ev_eff),
+                "ev_loss": best_ev_eff - chosen_ev_eff,
+                "chosen_cfr_ev": chosen.ev,
+                "best_cfr_ev": best.ev,
                 "hand_ended": getattr(chosen_feedback, "ends_hand", False),
                 "resolution_note": chosen_feedback.resolution_note,
                 "hand_index": state.hand_index,
@@ -252,6 +257,21 @@ def _ensure_options(state: SessionState, node: Node) -> list[Option]:
     return [replace(opt) for opt in cached]
 
 
+def _effective_ev(option: Option) -> float:
+    meta = option.meta or {}
+    baseline = meta.get("baseline_ev")
+    try:
+        option_ev = float(option.ev)
+    except (TypeError, ValueError):
+        option_ev = float(meta.get("baseline_ev", 0.0))
+    if baseline is None:
+        return option_ev
+    try:
+        return max(option_ev, float(baseline))
+    except (TypeError, ValueError):
+        return option_ev
+
+
 def _node_payload(state: SessionState, node: Node) -> NodePayload:
     context = _view_context(node)
     return NodePayload(
@@ -269,7 +289,7 @@ def _node_payload(state: SessionState, node: Node) -> NodePayload:
 
 
 def _best_index(opts: list[Option]) -> int:
-    return max(range(len(opts)), key=lambda idx: opts[idx].ev)
+    return max(range(len(opts)), key=lambda idx: _effective_ev(opts[idx]))
 
 
 def _option_payloads(node: Node, options: list[Option]) -> list[OptionPayload]:
@@ -277,7 +297,7 @@ def _option_payloads(node: Node, options: list[Option]) -> list[OptionPayload]:
         OptionPayload(
             key=opt.key,
             label=format_option_label(node, opt),
-            ev=opt.ev,
+            ev=_effective_ev(opt),
             why=opt.why,
             ends_hand=getattr(opt, "ends_hand", False),
             gto_freq=getattr(opt, "gto_freq", None),
@@ -290,7 +310,7 @@ def _snapshot(node: Node, option: Option) -> ActionSnapshot:
     return ActionSnapshot(
         key=option.key,
         label=format_option_label(node, option),
-        ev=option.ev,
+        ev=_effective_ev(option),
         why=option.why,
         gto_freq=getattr(option, "gto_freq", None),
         resolution_note=getattr(option, "resolution_note", None),

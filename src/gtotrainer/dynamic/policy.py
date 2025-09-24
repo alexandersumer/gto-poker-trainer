@@ -18,11 +18,43 @@ from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_v
 from .preflop_mix import action_profile_for_combo, continue_combos
 from .range_model import load_range_with_weights, rival_bb_defend_range, rival_sb_open_range, tighten_range
 
-MAX_BET_OPTIONS = 3
+MAX_BET_OPTIONS = 4
+PREFERRED_FRACTIONS = (0.5, 1.0, 0.75, 0.33, 0.25, 0.66, 1.25, 1.5)
 
 
 def _fmt_pct(x: float, decimals: int = 0) -> str:
     return f"{100.0 * x:.{decimals}f}%"
+
+
+def _select_fractions(fractions: Iterable[float], limit: int) -> list[float]:
+    unique = sorted({float(max(0.0, frac)) for frac in fractions if float(frac) > 0})
+    if not unique or limit <= 0:
+        return []
+    if len(unique) <= limit:
+        return unique
+
+    selected: list[float] = []
+    used: set[float] = set()
+    for target in PREFERRED_FRACTIONS:
+        match = next(
+            (value for value in unique if math.isclose(value, target, rel_tol=1e-6, abs_tol=1e-6)),
+            None,
+        )
+        if match is not None and match not in used:
+            selected.append(match)
+            used.add(match)
+            if len(selected) == limit:
+                return sorted(selected)
+
+    for value in unique:
+        if value in used:
+            continue
+        selected.append(value)
+        used.add(value)
+        if len(selected) == limit:
+            break
+
+    return sorted(selected[:limit])
 
 
 def _board_texture_key(cards: Iterable[int]) -> str:
@@ -1078,17 +1110,14 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
         )
     ]
 
-    base_probe_sizes = tuple(hand_state.get("style_turn_probe_sizes", (0.5, 0.8)))
+    base_probe_sizes = tuple(hand_state.get("style_turn_probe_sizes", (0.45, 0.75, 1.1)))
     probe_context = _bet_context_tag(node, "turn_probe")
     probe_sizes = BET_SIZING.postflop_bet_fractions(
         street="turn",
         context=probe_context,
         base_fractions=base_probe_sizes or (0.5, 0.8),
     )
-    aggressive_added = 0
-    for pct in probe_sizes:
-        if aggressive_added >= MAX_BET_OPTIONS:
-            break
+    for pct in _select_fractions(probe_sizes, MAX_BET_OPTIONS):
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
@@ -1127,7 +1156,6 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
         _apply_profile_meta(meta, profile, continue_range)
         _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"continue": ev_called})
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
-        aggressive_added += 1
 
     risk = round(node.effective_bb, 2)
     if risk > 0:
@@ -1207,12 +1235,9 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     cbet_fractions = BET_SIZING.postflop_bet_fractions(
         street="flop",
         context=cbet_context,
-        base_fractions=(0.33, 0.5, 0.75),
+        base_fractions=(0.25, 0.33, 0.5, 0.75, 1.0),
     )
-    aggressive_added = 0
-    for pct in cbet_fractions:
-        if aggressive_added >= MAX_BET_OPTIONS:
-            break
+    for pct in _select_fractions(cbet_fractions, MAX_BET_OPTIONS):
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
@@ -1253,7 +1278,6 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         _apply_profile_meta(meta, profile, continue_range)
         _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"continue": ev_called})
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
-        aggressive_added += 1
 
     # All-in shove option for maximum pressure
     risk = round(node.effective_bb, 2)
@@ -1582,12 +1606,9 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     river_fractions = BET_SIZING.postflop_bet_fractions(
         street="river",
         context=river_context,
-        base_fractions=(0.5, 1.0),
+        base_fractions=(0.5, 1.0, 1.4),
     )
-    aggressive_added = 0
-    for pct in river_fractions:
-        if aggressive_added >= MAX_BET_OPTIONS:
-            break
+    for pct in _select_fractions(river_fractions, MAX_BET_OPTIONS):
         bet = round(pot * pct, 2)
         if bet <= 0:
             continue
@@ -1650,7 +1671,6 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             continuation_evs["jam"] = hero_best_vs_jam
         _attach_cfr_meta(meta, fold_ev=pot, continue_evs=continuation_evs)
         options.append(Option(f"Bet {int(pct * 100)}% pot", ev, why, meta=meta))
-        aggressive_added += 1
 
     risk = round(node.effective_bb, 2)
     if risk > 0:
