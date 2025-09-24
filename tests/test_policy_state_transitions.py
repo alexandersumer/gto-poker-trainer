@@ -45,6 +45,8 @@ def test_resolve_for_continue_keeps_range_and_tracks_aggression(monkeypatch: pyt
     assert adapt.get("aggr") == prior_aggr + 1
     assert "rival_continue_range" in hand_state
     assert hand_state["rival_continue_range"]
+    assert hand_state["pot"] == pytest.approx(hand_state["hero_contrib"] + hand_state["rival_contrib"])
+    assert hand_state["effective_stack"] == pytest.approx(min(hand_state["hero_stack"], hand_state["rival_stack"]))
 
 
 def test_resolve_for_fold_clears_range(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -60,3 +62,9 @@ def test_resolve_for_fold_clears_range(monkeypatch: pytest.MonkeyPatch) -> None:
     assert hand_state.get("hand_over") is True
     assert "rival_continue_range" not in hand_state
     assert "rival_continue_weights" not in hand_state
+    assert hand_state["pot"] == pytest.approx(
+        hand_state.get("hero_contrib", 0.0) + hand_state.get("rival_contrib", 0.0)
+    )
+    assert hand_state["effective_stack"] == pytest.approx(
+        min(hand_state.get("hero_stack", 0.0), hand_state.get("rival_stack", 0.0))
+    )

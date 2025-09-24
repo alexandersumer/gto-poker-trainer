@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import math
 import random
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Mapping
@@ -17,6 +17,24 @@ from .episode import Node
 from .equity import hero_equity_vs_combo, hero_equity_vs_range as _hero_equity_vs_range
 from .preflop_mix import action_profile_for_combo, continue_combos
 from .range_model import load_range_with_weights, rival_bb_defend_range, rival_sb_open_range, tighten_range
+from .rival_strategy import board_draw_intensity
+from .range_sampling import (
+    combo_category as _combo_category,
+    equity_with_weights as _equity_with_weights,
+    normalize_combo as _normalize_combo,
+    sample_range as _sample_range,
+    subset_weights as _subset_weights,
+    top_weight_fraction as _top_weight_fraction,
+    weighted_average as _weighted_average,
+    weighted_equity as _weighted_equity,
+)
+from .hand_state import (
+    apply_contribution as _apply_contribution,
+    recalculate_pot as _recalc_pot,
+    set_street_pot as _set_street_pot,
+    state_value as _state_value,
+    update_effective_stack as _update_effective_stack,
+)
 
 MAX_BET_OPTIONS = 4
 
@@ -76,9 +94,8 @@ def _current_rival_style(hand_state: Mapping[str, Any] | None) -> str:
 
 def _board_texture_score(board: Sequence[int]) -> float:
     try:
-        return float(rival_strategy._board_draw_intensity(board))  # type: ignore[attr-defined]
-    except AttributeError:
-        # Fallback: treat missing helper as neutral texture.
+        return float(board_draw_intensity(board))
+    except (TypeError, ValueError):
         return 0.5
 
 
@@ -146,56 +163,6 @@ def _board_metadata(node: Node) -> dict[str, Any]:
     if node.board:
         data["board_cards"] = list(node.board)
     return data
-
-
-def _state_value(hand_state: dict[str, Any] | None, key: str, default: float = 0.0) -> float:
-    if not hand_state:
-        return default
-    value = hand_state.get(key, default)
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def _recalc_pot(hand_state: dict[str, Any]) -> float:
-    if "hero_contrib" in hand_state and "rival_contrib" in hand_state:
-        pot = _state_value(hand_state, "hero_contrib") + _state_value(hand_state, "rival_contrib")
-    else:
-        pot = _state_value(hand_state, "pot")
-    hand_state["pot"] = pot
-    return pot
-
-
-def _update_effective_stack(hand_state: dict[str, Any]) -> float:
-    hero_stack = _state_value(hand_state, "hero_stack")
-    rival_stack = _state_value(hand_state, "rival_stack")
-    effective = min(hero_stack, rival_stack)
-    hand_state["effective_stack"] = effective
-    nodes = hand_state.get("nodes")
-    if isinstance(nodes, dict):
-        for node in nodes.values():
-            if isinstance(node, Node):
-                node.effective_bb = effective
-    return effective
-
-
-def _apply_contribution(hand_state: dict[str, Any], role: str, amount: float) -> float:
-    if not hand_state or amount <= 0:
-        return 0.0
-    stack_key = f"{role}_stack"
-    contrib_key = f"{role}_contrib"
-    default_stack = float(hand_state.get("effective_stack", 100.0))
-    stack = _state_value(hand_state, stack_key, default_stack)
-    if stack <= 0:
-        return 0.0
-    applied = min(amount, stack)
-    current_contrib = _state_value(hand_state, contrib_key)
-    hand_state[contrib_key] = current_contrib + applied
-    hand_state[stack_key] = max(0.0, stack - applied)
-    _recalc_pot(hand_state)
-    _update_effective_stack(hand_state)
-    return applied
 
 
 def _fold_continue_stats(
@@ -266,260 +233,6 @@ def _decision_meta(base_meta: dict[str, Any] | None, hand_state: dict[str, Any] 
         "passive": int(adapt.get("passive", 0)),
     }
     return meta_copy
-
-
-def _combo_category(combo: tuple[int, int]) -> str:
-    a, b = combo
-    if a // 4 == b // 4:
-        return "pair"
-    if a % 4 == b % 4:
-        return "suited"
-    return "offsuit"
-
-
-def _normalize_combo(combo: Iterable[int] | tuple[int, int]) -> tuple[int, int]:
-    try:
-        a, b = int(combo[0]), int(combo[1])  # type: ignore[index]
-    except (TypeError, ValueError, IndexError):
-        raise ValueError("combo must contain two card indices")
-    if a > b:
-        a, b = b, a
-    return a, b
-
-
-def _evenly_sample_indexed(entries: list[tuple[int, tuple[int, int]]], count: int) -> list[tuple[int, tuple[int, int]]]:
-    if count <= 0 or not entries:
-        return []
-    if len(entries) <= count:
-        return entries.copy()
-
-    step = len(entries) / count
-    sampled: list[tuple[int, tuple[int, int]]] = []
-    for i in range(count):
-        idx = int(i * step)
-        if idx >= len(entries):
-            idx = len(entries) - 1
-        sampled.append(entries[idx])
-    return sampled
-
-
-def _weighted_sample(
-    entries: list[tuple[int, tuple[int, int]]],
-    count: int,
-    weights: Mapping[tuple[int, int], float] | None,
-    rng: random.Random,
-) -> list[tuple[int, tuple[int, int]]]:
-    if count <= 0 or not entries:
-        return []
-    pool = entries.copy()
-    result: list[tuple[int, tuple[int, int]]] = []
-
-    def entry_weight(entry: tuple[int, tuple[int, int]]) -> float:
-        if not weights:
-            return 1.0
-        combo = _normalize_combo(entry[1])
-        return max(0.0, float(weights.get(combo, 0.0)))
-
-    for _ in range(min(count, len(pool))):
-        totals = [entry_weight(entry) for entry in pool]
-        weight_sum = sum(totals)
-        if weight_sum <= 0.0:
-            chosen = rng.randrange(len(pool))
-        else:
-            target = rng.random() * weight_sum
-            cumulative = 0.0
-            chosen = len(pool) - 1
-            for idx, weight in enumerate(totals):
-                cumulative += weight
-                if cumulative >= target:
-                    chosen = idx
-                    break
-        result.append(pool.pop(chosen))
-
-    return result
-
-
-def _sample_range(
-    combos: Iterable[tuple[int, int]],
-    limit: int,
-    weights: Mapping[tuple[int, int], float] | None,
-    rng: random.Random | None,
-) -> list[tuple[int, int]]:
-    combos_list = list(combos)
-    total = len(combos_list)
-    if limit <= 0 or total <= limit:
-        return combos_list
-
-    local_rng = rng or random.Random()
-
-    buckets: dict[str, list[tuple[int, tuple[int, int]]]] = {
-        "pair": [],
-        "suited": [],
-        "offsuit": [],
-    }
-    for idx, combo in enumerate(combos_list):
-        buckets[_combo_category(combo)].append((idx, combo))
-
-    allocations: dict[str, int] = {"pair": 0, "suited": 0, "offsuit": 0}
-    remainders: list[tuple[float, str]] = []
-    assigned = 0
-    for cat, entries in buckets.items():
-        count = len(entries)
-        if count == 0:
-            continue
-        exact = limit * (count / total)
-        alloc = min(count, int(exact))
-        allocations[cat] = alloc
-        assigned += alloc
-        remainders.append((exact - alloc, cat))
-
-    remaining = limit - assigned
-    if remaining > 0:
-        remainders.sort(reverse=True)
-        for _, cat in remainders:
-            if remaining <= 0:
-                break
-            available = len(buckets[cat])
-            current = allocations[cat]
-            if current >= available:
-                continue
-            allocations[cat] += 1
-            remaining -= 1
-
-    if remaining > 0:
-        for cat in ("pair", "suited", "offsuit"):
-            if remaining <= 0:
-                break
-            available = len(buckets[cat])
-            if available == 0:
-                continue
-            alloc = allocations[cat]
-            extra = min(available - alloc, remaining)
-            if extra <= 0:
-                continue
-            allocations[cat] += extra
-            remaining -= extra
-
-    selected: list[tuple[int, tuple[int, int]]] = []
-    for cat in ("pair", "suited", "offsuit"):
-        entries = buckets[cat]
-        if not entries:
-            continue
-        take = allocations[cat]
-        if take <= 0:
-            continue
-        selected.extend(_weighted_sample(entries, take, weights, local_rng))
-
-    selected.sort(key=lambda item: item[0])
-    if len(selected) > limit:
-        selected = selected[:limit]
-
-    return [combo for _, combo in selected]
-
-
-def _subset_weights(
-    weights: Mapping[tuple[int, int], float] | None,
-    combos: Iterable[tuple[int, int]],
-) -> dict[tuple[int, int], float] | None:
-    if not weights:
-        return None
-    subset: dict[tuple[int, int], float] = {}
-    for combo in combos:
-        normalized = _normalize_combo(combo)
-        weight = weights.get(normalized, 0.0)
-        if weight > 0:
-            subset[normalized] = weight
-    if not subset:
-        return None
-    total = sum(subset.values())
-    if total <= 0:
-        return None
-    scale = 1.0 / total
-    return {combo: weight * scale for combo, weight in subset.items()}
-
-
-def _weighted_average(
-    values: Mapping[tuple[int, int], float],
-    weights: Mapping[tuple[int, int], float] | None,
-) -> float:
-    if not values:
-        return 0.0
-    if not weights:
-        return float(sum(values.values()) / len(values))
-    total_weight = 0.0
-    weighted_sum = 0.0
-    for combo, value in values.items():
-        weight = float(weights.get(combo, 0.0))
-        if weight <= 0:
-            continue
-        total_weight += weight
-        weighted_sum += weight * value
-    if total_weight <= 0:
-        return float(sum(values.values()) / len(values))
-    return float(weighted_sum / total_weight)
-
-
-def _equity_with_weights(
-    values: Mapping[tuple[int, int], float],
-    weights: Mapping[tuple[int, int], float] | None,
-) -> list[float | tuple[float, float]]:
-    if not weights:
-        return list(values.values())
-    return [(values[combo], weights.get(combo, 0.0)) for combo in values]
-
-
-def _top_weight_fraction(
-    weights: Mapping[tuple[int, int], float] | None,
-    fraction: float,
-) -> tuple[dict[tuple[int, int], float] | None, float]:
-    if not weights:
-        return None, 0.0
-    fraction = max(0.0, min(1.0, fraction))
-    if fraction <= 0.0:
-        return None, 0.0
-    sorted_weights = sorted(weights.items(), key=lambda item: item[1], reverse=True)
-    total_weight = sum(weights.values())
-    if total_weight <= 0:
-        return None, 0.0
-    target = total_weight * fraction
-    selected: dict[tuple[int, int], float] = {}
-    cumulative = 0.0
-    for combo, weight in sorted_weights:
-        if weight <= 0:
-            continue
-        selected[combo] = weight
-        cumulative += weight
-        if cumulative >= target:
-            break
-    if not selected:
-        return None, 0.0
-    selected_total = sum(selected.values())
-    if selected_total <= 0:
-        return None, 0.0
-    scale = 1.0 / selected_total
-    normalized = {combo: weight * scale for combo, weight in selected.items()}
-    return normalized, min(1.0, selected_total)
-
-
-def _weighted_equity(
-    equities: Mapping[tuple[int, int], float],
-    weights: Mapping[tuple[int, int], float] | None,
-) -> float:
-    if not equities:
-        return 0.0
-    if not weights:
-        return sum(equities.values()) / len(equities)
-    numerator = 0.0
-    denominator = 0.0
-    for combo, weight in weights.items():
-        equity = equities.get(combo)
-        if equity is None:
-            continue
-        numerator += equity * weight
-        denominator += weight
-    if denominator <= 0:
-        return sum(equities.values()) / len(equities)
-    return numerator / denominator
 
 
 def _default_open_size(node: Node) -> float:
@@ -916,16 +629,6 @@ def _bet_context_tag(node: Node, suffix: str) -> str:
     style = str(ctx.get("rival_style", ctx.get("style", "")))
     texture = str(ctx.get("texture", ctx.get("board_key", "")))
     return f"{suffix}|{facing}|{style}|{texture}"
-
-
-def _set_street_pot(hand_state: dict[str, Any], street: str, pot: float) -> None:
-    nodes = hand_state.get("nodes")
-    if not isinstance(nodes, dict):
-        return
-    node = nodes.get(street)
-    if isinstance(node, Node):
-        node.pot_bb = pot
-        node.effective_bb = _state_value(hand_state, "effective_stack", node.effective_bb)
 
 
 def _rebuild_turn_node(hand_state: dict[str, Any], pot: float) -> None:

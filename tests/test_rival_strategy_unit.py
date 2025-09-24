@@ -41,6 +41,22 @@ def test_decide_action_defaults_to_continue_without_profile() -> None:
     assert not decision.folds
 
 
+def test_board_draw_intensity_empty_board_is_neutral() -> None:
+    assert vs.board_draw_intensity([]) == 0.5
+
+
+def test_board_draw_intensity_detects_draw_heavy_board() -> None:
+    dry_board = [str_to_int("Ah"), str_to_int("7d"), str_to_int("2c")]
+    wet_board = [str_to_int("Th"), str_to_int("Jh"), str_to_int("Qh"), str_to_int("9h")]
+
+    dry_score = vs.board_draw_intensity(dry_board)
+    wet_score = vs.board_draw_intensity(wet_board)
+
+    assert wet_score > dry_score
+    assert 0.0 <= dry_score <= 1.0
+    assert 0.0 <= wet_score <= 1.0
+
+
 def test_board_texture_adjusts_fold_tendency() -> None:
     combos = [(0, 1), (12, 13), (24, 25), (36, 37), (40, 41)]
     profile = vs.build_profile(combos, fold_probability=0.45, continue_ratio=0.55)

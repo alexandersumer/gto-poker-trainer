@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 import random
 import secrets
 import string
 import threading
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, Callable
 
 from ...core.formatting import format_option_label
 from ...core.models import Option
@@ -34,6 +36,8 @@ __all__ = [
     "_ensure_options",
     "_summary_payload",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def _card_strings(cards: list[int]) -> list[str]:
@@ -208,6 +212,36 @@ class SessionManager:
 
     async def choose_async(self, session_id: str, choice_index: int) -> ChoiceResult:
         return await run_blocking(self.choose, session_id, choice_index)
+
+    def drive_session(
+        self,
+        session_id: str,
+        chooser: Callable[[Node, Sequence[Option], random.Random], int],
+        *,
+        cleanup: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Play out a session by delegating option selection to ``chooser``.
+
+        Returns a copy of the recorded hands for downstream analysis.  The
+        ``chooser`` callback receives the active node, its available options and
+        the session RNG, and must return the index of the chosen option.
+        """
+
+        while True:
+            with self._lock:
+                state = self._require_session(session_id)
+                node = _ensure_active_node(state)
+                if node is None:
+                    records = [dict(record) for record in state.records]
+                    if cleanup:
+                        self._sessions.pop(session_id, None)
+                    logger.debug("drive_session completed", extra={"session_id": session_id, "records": len(records)})
+                    return records
+                options = list(_ensure_options(state, node))
+                rng = state.engine.rng
+
+            choice_index = chooser(node, tuple(options), rng)
+            self.choose(session_id, choice_index)
 
     def summary(self, session_id: str) -> SummaryPayload:
         with self._lock:

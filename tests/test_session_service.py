@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import random
+from collections.abc import Sequence
+
 import pytest
 
 from gtotrainer.core.models import Option
@@ -397,3 +400,19 @@ def test_poor_choices_accumulate_ev_loss():
     assert summary.hits == 0
     assert summary.avg_ev_lost > 0.0
     assert summary.accuracy_pct == pytest.approx(0.0)
+
+
+def test_drive_session_replays_without_internal_access() -> None:
+    manager = SessionManager()
+    config = SessionConfig(hands=3, mc_trials=32, seed=2024)
+    session_id = manager.create_session(config)
+
+    def chooser(_node: Node, options: Sequence[Option], _rng: random.Random) -> int:
+        return max(range(len(options)), key=lambda idx: options[idx].ev)
+
+    records = manager.drive_session(session_id, chooser, cleanup=True)
+
+    assert len(records) >= config.hands
+    assert all("ev_loss" in record for record in records)
+    with pytest.raises(KeyError):
+        manager.summary(session_id)

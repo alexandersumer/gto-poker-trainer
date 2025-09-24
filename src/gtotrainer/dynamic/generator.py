@@ -16,6 +16,7 @@ from dataclasses import dataclass
 
 from .cards import Dealt, deal_hand_and_board, format_card_ascii
 from .episode import Episode, Node
+from .hand_state import recalculate_pot, update_effective_stack
 from .seating import BB, SB, SeatAssignment
 
 _SB_RIVAL_RANGE = "sb_open"
@@ -200,11 +201,8 @@ class EpisodeBuilder:
         hero_contrib, rival_contrib = self._initial_contributions(ctx)
         hero_stack = max(0.0, self._stacks - hero_contrib)
         rival_stack = max(0.0, self._stacks - rival_contrib)
-        pot = hero_contrib + rival_contrib
-        effective_stack = min(hero_stack, rival_stack)
 
-        return {
-            "pot": pot,
+        hand_state = {
             "hero_cards": tuple(ctx.hero_cards),
             "rival_cards": tuple(ctx.rival_cards),
             "full_board": tuple(ctx.board),
@@ -224,8 +222,12 @@ class EpisodeBuilder:
             "rival_contrib": rival_contrib,
             "hero_stack": hero_stack,
             "rival_stack": rival_stack,
-            "effective_stack": effective_stack,
         }
+
+        recalculate_pot(hand_state)
+        update_effective_stack(hand_state)
+
+        return hand_state
 
     def _node_context(
         self,

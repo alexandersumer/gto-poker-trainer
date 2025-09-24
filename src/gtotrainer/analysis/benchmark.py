@@ -12,11 +12,12 @@ import random
 from dataclasses import dataclass
 from typing import Sequence
 
-from ..core.scoring import SummaryStats, summarize_records
-from ..dynamic.generator import available_rival_styles
 from ..core.models import Option
+from ..core.scoring import SummaryStats, summarize_records
+from ..dynamic.episode import Node
+from ..dynamic.generator import available_rival_styles
 from ..dynamic.policy import reset_bet_sizing_state
-from ..features.session.service import SessionConfig, SessionManager, _ensure_active_node, _ensure_options
+from ..features.session.service import SessionConfig, SessionManager
 
 
 @dataclass(frozen=True)
@@ -152,20 +153,14 @@ def run_benchmark(config: BenchmarkConfig) -> BenchmarkResult:
                 rival_style=scenario.rival_style,
             )
         )
-        state = manager._sessions[session_id]
 
-        while True:
-            node = _ensure_active_node(state)
-            if node is None:
-                break
-            options = _ensure_options(state, node)
-            choice = policy.select(options, state.engine.rng)
-            manager.choose(session_id, choice)
+        def _chooser(node: Node, options: Sequence[Option], rng: random.Random) -> int:
+            return policy.select(options, rng)
 
-        run_records = [dict(record) for record in state.records]
+        run_records = manager.drive_session(session_id, _chooser, cleanup=True)
+
         all_records.extend(run_records)
         runs.append(BenchmarkRun(scenario=scenario, stats=summarize_records(run_records)))
-        manager._sessions.pop(session_id, None)
 
     combined = summarize_records(all_records)
     return BenchmarkResult(runs=tuple(runs), combined=combined)

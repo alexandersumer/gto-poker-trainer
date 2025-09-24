@@ -6,6 +6,10 @@
   board texture, and tracked hero aggression. No feature toggles required.
 - Summary stats now report `accuracy_pct`, `avg_ev_lost`, and `avg_loss_pct`
   to keep scoring, UI, and benchmarks aligned.
+- Range sampling and mutable hand-state helpers live in
+  `src/gtotrainer/dynamic/range_sampling.py` and
+  `src/gtotrainer/dynamic/hand_state.py`. Extend those modules instead of
+  inlining new dict math in the policy or generator layers.
 
 ## Benchmark Harness
 

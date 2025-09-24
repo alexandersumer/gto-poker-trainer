@@ -14,6 +14,14 @@ import random
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
+__all__ = [
+    "RivalDecision",
+    "PersonaTuning",
+    "board_draw_intensity",
+    "build_profile",
+    "decide_action",
+]
+
 # The profile dictionary stored on Option.meta uses only standard Python
 # container types (lists/dicts) so it can be copied or serialised in tests.
 from .hand_strength import combo_playability_score
@@ -51,7 +59,13 @@ def _encode_combo(combo: Sequence[int]) -> str:
     return f"{a}-{b}"
 
 
-def _board_draw_intensity(cards: Sequence[int] | None) -> float:
+def board_draw_intensity(cards: Sequence[int] | None) -> float:
+    """Return a normalised board texture score in ``[0, 1]``.
+
+    Empty boards produce the neutral value ``0.5``. The score increases with
+    coordinated ranks and flush potential so callers can adapt bet sizing or
+    continue frequencies consistently.
+    """
     if not cards:
         return 0.5
     ranks = sorted(card // 4 for card in cards)
@@ -427,7 +441,7 @@ def decide_action(
         board_cards = tuple(int(c) for c in board_meta)
     else:
         board_cards = None
-    texture = _board_draw_intensity(board_cards)
+    texture = board_draw_intensity(board_cards)
     temperature = max(0.035, temperature * (0.75 + 0.4 * texture))
     noise = min(0.12, max(0.0, 0.12 * (1.0 - continue_ratio) + 0.05 * texture))
     size_ratio = _bet_size_ratio(meta)
