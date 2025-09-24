@@ -19,7 +19,6 @@ from .preflop_mix import action_profile_for_combo, continue_combos
 from .range_model import load_range_with_weights, rival_bb_defend_range, rival_sb_open_range, tighten_range
 
 MAX_BET_OPTIONS = 4
-PREFERRED_FRACTIONS = (0.5, 1.0, 0.75, 0.33, 0.25, 0.66, 1.25, 1.5)
 
 
 def _fmt_pct(x: float, decimals: int = 0) -> str:
@@ -34,27 +33,36 @@ def _select_fractions(fractions: Iterable[float], limit: int) -> list[float]:
         return unique
 
     selected: list[float] = []
-    used: set[float] = set()
-    for target in PREFERRED_FRACTIONS:
-        match = next(
-            (value for value in unique if math.isclose(value, target, rel_tol=1e-6, abs_tol=1e-6)),
-            None,
-        )
-        if match is not None and match not in used:
-            selected.append(match)
-            used.add(match)
-            if len(selected) == limit:
-                return sorted(selected)
+    selected.append(unique[0])
+    used = {unique[0]}
 
-    for value in unique:
-        if value in used:
-            continue
-        selected.append(value)
-        used.add(value)
-        if len(selected) == limit:
+    if limit > 1:
+        selected.append(unique[-1])
+        used.add(unique[-1])
+
+    targets = [0.33, 0.5, 0.66, 0.75, 1.0, 1.25]
+    while len(selected) < limit:
+        candidate = None
+        best_distance = float("inf")
+        for value in unique:
+            if value in used:
+                continue
+            for target in targets:
+                distance = abs(value - target)
+                if distance < best_distance - 1e-6:
+                    best_distance = distance
+                    candidate = value
+            if candidate is None and value not in used:
+                candidate = value
+        if candidate is None:
             break
+        selected.append(candidate)
+        used.add(candidate)
 
-    return sorted(selected[:limit])
+    selected = sorted(selected[:limit])
+    if len(selected) > limit:
+        selected = selected[:limit]
+    return selected
 
 
 def _board_texture_score(board: Sequence[int]) -> float:
@@ -84,8 +92,8 @@ def _flop_fraction_candidates(board: Sequence[int], spr: float) -> Iterable[floa
     candidates.add(0.75)
     if spr > 3.2:
         candidates.add(1.0)
-    if spr > 4.5:
-        candidates.add(1.3)
+    if spr > 4.5 and texture < 0.35:
+        candidates.add(1.15)
     return candidates
 
 
