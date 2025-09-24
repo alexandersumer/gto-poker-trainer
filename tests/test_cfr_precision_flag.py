@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import random
 
+import pytest
+
 from gtotrainer.dynamic.generator import EpisodeBuilder, SeatAssignment
 from gtotrainer.dynamic.policy import options_for, reset_bet_sizing_state
 from gtotrainer.dynamic.seating import BB, SB
@@ -38,5 +40,7 @@ def test_cfr_baseline_ev_is_tracked() -> None:
         if not opt.meta or not opt.meta.get("supports_cfr"):
             continue
         baseline = opt.meta.get("baseline_ev")
+        avg_ev = opt.meta.get("cfr_avg_ev")
         assert baseline is not None
-        assert float(baseline) >= opt.ev - 1e-6
+        assert avg_ev is not None
+        assert opt.ev == pytest.approx(float(avg_ev), rel=1e-9)

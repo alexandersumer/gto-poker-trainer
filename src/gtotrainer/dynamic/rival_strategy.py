@@ -26,6 +26,17 @@ class RivalDecision:
     folds: bool
 
 
+@dataclass(frozen=True)
+class PersonaTuning:
+    name: str
+    fold_bias: float = 0.0
+    threshold_delta: float = 0.0
+    strength_scale: float = 1.0
+    aggression_scale: float = 1.0
+    call_bias: float = 0.0
+    noise_scale: float = 0.6
+
+
 def _combo_strength(combo: Sequence[int]) -> float:
     """Replicate the heuristic ranking used by range_model without importing private helpers."""
 
@@ -91,9 +102,39 @@ def _bet_size_ratio(meta: Mapping[str, object]) -> float:
     return max(0.0, min(2.5, risk / pot))
 
 
+PERSONA_LIBRARY: dict[str, PersonaTuning] = {
+    "balanced": PersonaTuning("balanced"),
+    "aggressive": PersonaTuning(
+        name="aggressive",
+        fold_bias=-0.05,
+        threshold_delta=-0.06,
+        strength_scale=1.12,
+        aggression_scale=1.2,
+        call_bias=0.04,
+        noise_scale=0.5,
+    ),
+    "passive": PersonaTuning(
+        name="passive",
+        fold_bias=0.07,
+        threshold_delta=0.07,
+        strength_scale=0.88,
+        aggression_scale=0.8,
+        call_bias=-0.05,
+        noise_scale=0.7,
+    ),
+}
+
+
 def _blend_probability(base: float, adjusted: float, weight: float) -> float:
     mix = max(0.0, min(1.0, weight))
     return (1.0 - mix) * base + mix * adjusted
+
+
+def _persona_for_meta(meta: Mapping[str, object] | None) -> PersonaTuning:
+    if not isinstance(meta, Mapping):
+        return PERSONA_LIBRARY["balanced"]
+    style = str(meta.get("rival_style") or meta.get("style") or "balanced").strip().lower()
+    return PERSONA_LIBRARY.get(style, PERSONA_LIBRARY["balanced"])
 
 
 def _calibrated_fold_probability(
@@ -356,6 +397,8 @@ def decide_action(
         return RivalDecision(folds=False)
 
     fold_prob = float(profile.get("fold_probability", 0.0))
+    persona = _persona_for_meta(meta)
+    fold_prob += persona.fold_bias
     threshold_strength = float(profile.get("threshold_strength", 0.0))
     bounds = profile.get("strength_bounds", (0.0, 1.0))
     if isinstance(bounds, Sequence) and len(bounds) == 2:
@@ -379,6 +422,7 @@ def decide_action(
     size_ratio = _bet_size_ratio(meta)
     fold_prob -= 0.14 * (texture - 0.5)
     fold_prob += 0.1 * (size_ratio - 0.7)
+    fold_prob -= persona.call_bias
 
     adapt = meta.get("rival_adapt") if isinstance(meta, Mapping) else None
     adapt_scale = 0.0
@@ -399,6 +443,7 @@ def decide_action(
     strength = None
     strength_norm = None
     threshold_norm = (threshold_strength - min_strength) / spread if spread > 0 else 0.5
+    threshold_norm = max(0.0, min(1.0, threshold_norm + persona.threshold_delta))
 
     if rival_cards is not None:
         strength = _strength_for_combo(profile, rival_cards)
@@ -409,14 +454,14 @@ def decide_action(
 
     if strength is not None:
         strength_norm = (strength - min_strength) / spread if spread > 0 else 0.5
-        delta = strength_norm - threshold_norm
-        bias_scale = min(0.45, max(0.18, (1.0 - fold_prob) * 0.5 + 0.18))
+        delta = (strength_norm - threshold_norm) * persona.strength_scale
+        bias_scale = min(0.45, max(0.18, (1.0 - fold_prob) * 0.5 + 0.18)) * persona.aggression_scale
         slope = max(0.02, temperature)
         shift = math.tanh(delta / slope)
         fold_prob -= shift * bias_scale
 
     if adapt_scale:
-        fold_prob -= 0.6 * adapt_scale
+        fold_prob -= 0.6 * adapt_scale * persona.aggression_scale
 
     fold_prob = _calibrated_fold_probability(
         fold_prob,
@@ -424,11 +469,11 @@ def decide_action(
         threshold_norm=threshold_norm,
         texture=texture,
         size_ratio=size_ratio,
-        adapt_scale=adapt_scale,
+        adapt_scale=adapt_scale * persona.aggression_scale,
         continue_ratio=continue_ratio,
     )
 
-    noise *= 0.6
+    noise *= persona.noise_scale
 
     if noise > 0:
         fold_prob += (rng.random() - 0.5) * 2.0 * noise

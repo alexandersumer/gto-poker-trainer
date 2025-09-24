@@ -57,6 +57,59 @@ def _select_fractions(fractions: Iterable[float], limit: int) -> list[float]:
     return sorted(selected[:limit])
 
 
+def _board_texture_score(board: Sequence[int]) -> float:
+    try:
+        return float(rival_strategy._board_draw_intensity(board))  # type: ignore[attr-defined]
+    except AttributeError:
+        # Fallback: treat missing helper as neutral texture.
+        return 0.5
+
+
+def _effective_spr(hand_state: Mapping[str, Any], pot: float) -> float:
+    stack = _state_value(hand_state, "effective_stack", pot)
+    return stack / max(pot, 1e-6)
+
+
+def _flop_fraction_candidates(board: Sequence[int], spr: float) -> Iterable[float]:
+    texture = _board_texture_score(board)
+    candidates: set[float] = set()
+
+    if texture < 0.45:
+        candidates.add(0.25)
+    candidates.add(0.33)
+    if texture > 0.6:
+        candidates.add(0.5)
+    medium = 0.66 if spr > 2.2 else 0.5
+    candidates.add(medium)
+    candidates.add(0.75)
+    if spr > 3.2:
+        candidates.add(1.0)
+    if spr > 4.5:
+        candidates.add(1.3)
+    return candidates
+
+
+def _turn_probe_candidates(texture: float, spr: float) -> Iterable[float]:
+    candidates: set[float] = {0.5}
+    if texture < 0.55:
+        candidates.add(0.4)
+    candidates.add(0.75 if spr > 2.0 else 0.6)
+    if spr > 3.5:
+        candidates.add(1.0)
+    return candidates
+
+
+def _river_lead_candidates(texture: float, spr: float) -> Iterable[float]:
+    candidates: set[float] = {0.5, 0.85}
+    if spr > 1.6:
+        candidates.add(1.0)
+    if spr > 2.8:
+        candidates.add(1.35)
+    if texture < 0.4 and spr > 3.5:
+        candidates.add(1.6)
+    return candidates
+
+
 def _board_texture_key(cards: Iterable[int]) -> str:
     board = [format_card_ascii(card, upper=True) for card in cards]
     if not board:
@@ -1112,10 +1165,15 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
 
     base_probe_sizes = tuple(hand_state.get("style_turn_probe_sizes", (0.45, 0.75, 1.1)))
     probe_context = _bet_context_tag(node, "turn_probe")
+    texture = _board_texture_score(board)
+    spr = _effective_spr(hand_state, pot)
+    probe_candidates = set(_turn_probe_candidates(texture, spr))
+    if base_probe_sizes:
+        probe_candidates.update(float(size) for size in base_probe_sizes)
     probe_sizes = BET_SIZING.postflop_bet_fractions(
         street="turn",
         context=probe_context,
-        base_fractions=base_probe_sizes or (0.5, 0.8),
+        base_fractions=tuple(sorted(probe_candidates)),
     )
     for pct in _select_fractions(probe_sizes, MAX_BET_OPTIONS):
         bet = round(pot * pct, 2)
@@ -1232,10 +1290,12 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     ]
 
     cbet_context = _bet_context_tag(node, "flop_cbet")
+    spr = _effective_spr(hand_state, pot)
+    base_candidates = _flop_fraction_candidates(board, spr)
     cbet_fractions = BET_SIZING.postflop_bet_fractions(
         street="flop",
         context=cbet_context,
-        base_fractions=(0.25, 0.33, 0.5, 0.75, 1.0),
+        base_fractions=tuple(sorted(base_candidates)),
     )
     for pct in _select_fractions(cbet_fractions, MAX_BET_OPTIONS):
         bet = round(pot * pct, 2)
@@ -1603,10 +1663,13 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
     ]
 
     river_context = _bet_context_tag(node, "river_lead")
+    texture = _board_texture_score(board)
+    spr = _effective_spr(hand_state, pot)
+    lead_candidates = set(_river_lead_candidates(texture, spr))
     river_fractions = BET_SIZING.postflop_bet_fractions(
         street="river",
         context=river_context,
-        base_fractions=(0.5, 1.0, 1.4),
+        base_fractions=tuple(sorted(lead_candidates)),
     )
     for pct in _select_fractions(river_fractions, MAX_BET_OPTIONS):
         bet = round(pot * pct, 2)
