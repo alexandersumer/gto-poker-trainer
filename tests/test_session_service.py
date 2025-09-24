@@ -197,7 +197,7 @@ def test_invalid_session_errors():
 
 
 def test_summary_scoring_matches_decision_scores():
-    from gtotrainer.core.scoring import decision_score
+    from gtotrainer.core.scoring import decision_loss_ratio, decision_score
     from gtotrainer.features.session.service import _summary_payload
 
     records = [
@@ -237,10 +237,16 @@ def test_summary_scoring_matches_decision_scores():
     assert summary.decisions == 2
     assert summary.hits == 0
     assert summary.ev_lost == pytest.approx(0.9)
+    assert summary.avg_ev_lost == pytest.approx(0.45)
     pots = [float(r.get("pot_bb", 0.0)) for r in records]
     weights = [p if p > 0 else 1.0 for p in pots]
     expected = sum(decision_score(r) * w for r, w in zip(records, weights, strict=False)) / sum(weights)
+    expected_loss_pct = 100.0 * (
+        sum(decision_loss_ratio(r) * w for r, w in zip(records, weights, strict=False)) / sum(weights)
+    )
     assert summary.score == pytest.approx(expected, rel=1e-3)
+    assert summary.avg_loss_pct == pytest.approx(expected_loss_pct, rel=1e-3)
+    assert summary.accuracy_pct == pytest.approx(0.0)
 
 
 def test_summary_counts_unique_hands():
@@ -362,6 +368,8 @@ def test_optimal_play_produces_zero_ev_loss():
     assert summary.decisions >= summary.hands
     assert summary.ev_lost == pytest.approx(0.0, abs=1e-9)
     assert summary.score == pytest.approx(100.0)
+    assert summary.avg_ev_lost == pytest.approx(0.0, abs=1e-9)
+    assert summary.accuracy_pct == pytest.approx(100.0)
 
 
 def test_session_manager_normalises_rival_style():
@@ -387,3 +395,5 @@ def test_poor_choices_accumulate_ev_loss():
     assert summary.ev_lost > 0.0
     assert summary.score < 100.0
     assert summary.hits == 0
+    assert summary.avg_ev_lost > 0.0
+    assert summary.accuracy_pct == pytest.approx(0.0)

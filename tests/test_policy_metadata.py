@@ -35,3 +35,4 @@ def test_flop_options_attach_bet_context_and_fraction() -> None:
     assert len(bet_opts) >= 3
     fractions = [float(opt.meta.get("sizing_fraction", 0.0)) for opt in bet_opts]
     assert any(frac >= 0.95 for frac in fractions)
+    assert all(opt.meta.get("rival_style") == "balanced" for opt in bet_opts)

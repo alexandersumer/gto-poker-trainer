@@ -134,7 +134,16 @@ class _SessionController:
         session_id: str | None = None,
     ) -> Response:
         if payload.done:
-            summary = payload.summary or SummaryPayload(hands=0, decisions=0, hits=0, ev_lost=0.0, score=0.0)
+            summary = payload.summary or SummaryPayload(
+                hands=0,
+                decisions=0,
+                hits=0,
+                ev_lost=0.0,
+                score=0.0,
+                avg_ev_lost=0.0,
+                avg_loss_pct=0.0,
+                accuracy_pct=0.0,
+            )
             return self._summary_fragment(request, summary)
         node = payload.node or NodePayload(
             street="preflop",

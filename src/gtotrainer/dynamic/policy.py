@@ -65,6 +65,15 @@ def _select_fractions(fractions: Iterable[float], limit: int) -> list[float]:
     return selected
 
 
+def _current_rival_style(hand_state: Mapping[str, Any] | None) -> str:
+    if not isinstance(hand_state, Mapping):
+        return "balanced"
+    style = hand_state.get("rival_style") or hand_state.get("style")
+    if isinstance(style, str) and style.strip():
+        return style.strip().lower()
+    return "balanced"
+
+
 def _board_texture_score(board: Sequence[int]) -> float:
     try:
         return float(rival_strategy._board_draw_intensity(board))  # type: ignore[attr-defined]
@@ -691,6 +700,15 @@ def _ensure_board_metadata(node: Node, options: Iterable[Option]) -> None:
         opt.meta = existing
 
 
+def _ensure_rival_style_metadata(node: Node, options: Iterable[Option]) -> None:
+    style = _current_rival_style(_hand_state(node))
+    for opt in options:
+        existing = opt.meta or {}
+        if "rival_style" not in existing:
+            existing["rival_style"] = style
+            opt.meta = existing
+
+
 def _attach_cfr_meta(
     meta: dict[str, Any],
     *,
@@ -995,7 +1013,12 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             f"Fold now and lose nothing extra. Recommended {fold_freq:.0%} of the time versus this open.",
             gto_freq=fold_freq,
             ends_hand=True,
-            meta={"street": "preflop", "action": "fold", "solver_mix": {"fold": fold_freq}},
+            meta={
+                "street": "preflop",
+                "action": "fold",
+                "solver_mix": {"fold": fold_freq},
+                "rival_style": _current_rival_style(hand_state),
+            },
         ),
     ]
 
@@ -1017,6 +1040,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
                     "action": "call",
                     "call_cost": call_cost,
                     "solver_mix": {"call": call_freq},
+                    "rival_style": _current_rival_style(hand_state),
                 },
             )
         )
@@ -1070,6 +1094,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_continue_ratio": continue_ratio,
             "solver_mix": {"threebet": threebet_freq},
             "sizing_key": round(raise_to, 2),
+            "rival_style": _current_rival_style(hand_state),
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1122,6 +1147,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_continue_ratio": continue_ratio,
             "solver_mix": {"jam": jam_freq},
             "sizing_key": round(jam_to, 2),
+            "rival_style": _current_rival_style(hand_state),
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1167,7 +1193,11 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
             "Check",
             avg_eq * pot,
             f"Take the free card with {_fmt_pct(avg_eq, 1)} equity.",
-            meta={"street": "turn", "action": "check"},
+            meta={
+                "street": "turn",
+                "action": "check",
+                "rival_style": _current_rival_style(hand_state),
+            },
         )
     ]
 
@@ -1217,6 +1247,7 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
             "rival_continue_ratio": continue_ratio,
             "sizing_fraction": float(pct),
             "bet_context": probe_context,
+            "rival_style": _current_rival_style(hand_state),
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1249,6 +1280,7 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
             "pot_before": pot,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
+            "rival_style": _current_rival_style(hand_state),
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1293,7 +1325,11 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "Check",
             avg_eq * pot,
             f"Realize equity {_fmt_pct(avg_eq, 1)} in-position.",
-            meta={"street": "flop", "action": "check"},
+            meta={
+                "street": "flop",
+                "action": "check",
+                "rival_style": _current_rival_style(hand_state),
+            },
         ),
     ]
 
@@ -1341,6 +1377,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "rival_continue_ratio": continue_ratio,
             "sizing_fraction": float(pct),
             "bet_context": cbet_context,
+            "rival_style": _current_rival_style(hand_state),
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1374,6 +1411,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "pot_before": pot,
             "rival_fe": fe,
             "rival_continue_ratio": continue_ratio,
+            "rival_style": _current_rival_style(hand_state),
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1425,7 +1463,12 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
             0.0,
             "Cut losses and fold river.",
             ends_hand=True,
-            meta={"street": "river", "action": "fold", "rival_bet": rival_bet},
+            meta={
+                "street": "river",
+                "action": "fold",
+                "rival_bet": rival_bet,
+                "rival_style": _current_rival_style(hand_state),
+            },
         )
     ]
 
@@ -1434,6 +1477,7 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
         "action": "call",
         "rival_bet": rival_bet,
         **precision.to_meta(),
+        "rival_style": _current_rival_style(hand_state),
     }
     call_ev = avg_eq * pot_after_bet - (1 - avg_eq) * rival_bet
     options.append(
@@ -1474,6 +1518,7 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
         "pot_before": pot_after_bet,
         "rival_fe": fe,
         "rival_continue_ratio": continue_ratio,
+        "rival_style": _current_rival_style(hand_state),
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, raise_profile, continue_range)
@@ -1513,6 +1558,7 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
             "pot_before": pot_after_bet,
             "rival_fe": fe_ai,
             "rival_continue_ratio": continue_ratio_ai,
+            "rival_style": _current_rival_style(hand_state),
         }
         jam_meta.update(precision.to_meta())
         _apply_profile_meta(jam_meta, profile_ai, continue_range_ai)
@@ -1568,7 +1614,12 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             0.0,
             "Fold and wait for a better spot.",
             ends_hand=True,
-            meta={"street": "turn", "action": "fold", "rival_bet": rival_bet},
+            meta={
+                "street": "turn",
+                "action": "fold",
+                "rival_bet": rival_bet,
+                "rival_style": _current_rival_style(hand_state),
+            },
         )
     ]
 
@@ -1578,6 +1629,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         "street": "turn",
         "action": "call",
         "rival_bet": rival_bet,
+        "rival_style": _current_rival_style(hand_state),
     }
     call_meta.update(precision.to_meta())
     options.append(
@@ -1627,6 +1679,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         "pot_before": pot_start,
         "rival_fe": fe,
         "rival_continue_ratio": continue_ratio,
+        "rival_style": _current_rival_style(hand_state),
     }
     raise_meta.update(precision.to_meta())
     _apply_profile_meta(raise_meta, profile, continue_range)
@@ -1666,7 +1719,12 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "Check",
             avg_eq * pot,
             f"Showdown equity {_fmt_pct(avg_eq, 1)} vs check range.",
-            meta={"street": "river", "action": "check", **precision.to_meta()},
+            meta={
+                "street": "river",
+                "action": "check",
+                **precision.to_meta(),
+                "rival_style": _current_rival_style(hand_state),
+            },
         )
     ]
 
@@ -1734,6 +1792,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
             "hero_call_vs_raise": hero_call_ev,
             "sizing_fraction": float(pct),
             "bet_context": river_context,
+            "rival_style": _current_rival_style(hand_state),
         }
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
@@ -1804,6 +1863,7 @@ def options_for(node: Node, rng: random.Random, mc_trials: int) -> list[Option]:
     refined = _refine_with_cfr(node, options)
     _record_bet_sizing_feedback(node, refined)
     _ensure_board_metadata(node, refined)
+    _ensure_rival_style_metadata(node, refined)
     return refined
 
 

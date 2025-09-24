@@ -62,3 +62,25 @@ def test_board_texture_adjusts_fold_tendency() -> None:
     wet_folds = sum(vs.decide_action(wet_meta, None, random.Random(10_000 + i)).folds for i in range(120))
 
     assert wet_folds < dry_folds
+
+
+def test_bet_size_pressure_increases_fold_rate() -> None:
+    combos = [(0, 1), (8, 9), (20, 21), (32, 33)]
+    profile = vs.build_profile(combos, fold_probability=0.4, continue_ratio=0.6)
+    board = [str_to_int("Ah"), str_to_int("7d"), str_to_int("2c")]
+
+    def _rate(bet: float) -> float:
+        meta = {
+            "rival_profile": profile,
+            "pot_before": 4.0,
+            "bet": bet,
+            "board_cards": board,
+        }
+        seeds = [random.Random(20 + i) for i in range(200)]
+        folds = sum(vs.decide_action(meta, None, rng).folds for rng in seeds)
+        return folds / len(seeds)
+
+    small = _rate(1.0)
+    large = _rate(5.0)
+
+    assert large > small + 0.04

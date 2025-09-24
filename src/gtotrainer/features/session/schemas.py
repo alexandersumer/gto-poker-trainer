@@ -59,6 +59,9 @@ class SummaryPayload(_APIModel):
     hits: int
     ev_lost: float
     score: float
+    avg_ev_lost: float
+    avg_loss_pct: float
+    accuracy_pct: float
 
 
 class FeedbackPayload(_APIModel):

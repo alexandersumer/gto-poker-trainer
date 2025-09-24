@@ -106,21 +106,21 @@ PERSONA_LIBRARY: dict[str, PersonaTuning] = {
     "balanced": PersonaTuning("balanced"),
     "aggressive": PersonaTuning(
         name="aggressive",
-        fold_bias=-0.22,
-        threshold_delta=-0.12,
-        strength_scale=1.25,
-        aggression_scale=1.35,
-        call_bias=0.12,
-        noise_scale=0.45,
+        fold_bias=-0.18,
+        threshold_delta=-0.07,
+        strength_scale=1.18,
+        aggression_scale=1.25,
+        call_bias=0.07,
+        noise_scale=0.5,
     ),
     "passive": PersonaTuning(
         name="passive",
-        fold_bias=0.16,
-        threshold_delta=0.12,
-        strength_scale=0.78,
-        aggression_scale=0.65,
-        call_bias=-0.1,
-        noise_scale=0.75,
+        fold_bias=0.2,
+        threshold_delta=0.1,
+        strength_scale=0.8,
+        aggression_scale=0.68,
+        call_bias=-0.12,
+        noise_scale=0.78,
     ),
 }
 
@@ -151,7 +151,9 @@ def _calibrated_fold_probability(
     logit = math.log(clamped / (1.0 - clamped))
 
     texture_adj = (texture - 0.5) * 0.9
-    size_adj = (size_ratio - 0.75) * 1.1
+    size_deviation = size_ratio - 0.85
+    size_scale = 1.2 + 0.3 * (1.0 - continue_ratio)
+    size_adj = math.tanh(size_deviation * 1.35) * size_scale
     logit += size_adj - texture_adj
 
     if strength_norm is not None:
@@ -165,11 +167,20 @@ def _calibrated_fold_probability(
     logit = max(-12.0, min(12.0, logit))
     adjusted = 1.0 / (1.0 + math.exp(-logit))
     shift = adjusted - clamped
-    max_shift = 0.15 + 0.1 * (1.0 - continue_ratio)
+    size_pressure = max(-0.75, min(1.75, size_ratio - 0.7))
+    max_shift = 0.12 + 0.12 * (1.0 - continue_ratio)
+    if size_pressure > 0:
+        max_shift += 0.14 * min(size_pressure, 1.0)
+    else:
+        max_shift *= 1.0 + 0.5 * size_pressure
+    max_shift = max(0.05, min(0.5, max_shift))
     adjusted = clamped + max(-max_shift, min(max_shift, shift))
     adjusted = max(1e-4, min(1.0 - 1e-4, adjusted))
     # Blend back towards the base value to keep aggregate frequencies stable.
     blend_weight = 0.45 + 0.25 * (1.0 - continue_ratio)
+    if size_ratio > 1.0:
+        blend_weight += 0.12 * min(size_ratio - 1.0, 1.0)
+    blend_weight = max(0.25, min(0.95, blend_weight))
     return _blend_probability(clamped, adjusted, blend_weight)
 
 

@@ -319,10 +319,14 @@ def _snapshot(node: Node, option: Option) -> ActionSnapshot:
 
 def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
     stats: SummaryStats = summarize_records(records)
+    accuracy_pct = (100.0 * stats.hits / stats.decisions) if stats.decisions else 0.0
     return SummaryPayload(
         hands=stats.hands,
         decisions=stats.decisions,
         hits=stats.hits,
         ev_lost=stats.total_ev_lost,
         score=stats.score_pct,
+        avg_ev_lost=stats.avg_ev_lost,
+        avg_loss_pct=stats.avg_loss_pct,
+        accuracy_pct=accuracy_pct,
     )

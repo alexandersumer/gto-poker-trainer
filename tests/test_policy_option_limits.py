@@ -34,3 +34,4 @@ def test_bet_option_cap_per_street() -> None:
                 if opt.meta:
                     assert "board_key" in opt.meta
                     assert "board_cards" in opt.meta
+                    assert opt.meta.get("rival_style") in {"balanced", "aggressive", "passive"}
