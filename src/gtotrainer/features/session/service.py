@@ -108,7 +108,7 @@ class SessionManager:
         self._lock = threading.Lock()
 
     def create_session(self, config: SessionConfig) -> str:
-        seed = config.seed or secrets.SystemRandom().getrandbits(32)
+        seed = config.seed if config.seed is not None else secrets.SystemRandom().getrandbits(32)
         rng = random.Random(seed)
         rotation = SeatRotation()
         style = (config.rival_style or "balanced").strip().lower()

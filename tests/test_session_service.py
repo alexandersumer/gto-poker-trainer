@@ -199,6 +199,106 @@ def test_invalid_session_errors():
         manager.choose(sid, 999)
 
 
+def test_turn_rebuild_preserves_check_metadata():
+    manager = SessionManager()
+    sid = manager.create_session(SessionConfig(hands=1, mc_trials=40, seed=1001))
+
+    manager.get_node(sid)
+    manager.choose(sid, 1)  # Call preflop to reach the flop
+    manager.get_node(sid)
+    manager.choose(sid, 0)  # Check back the flop to trigger the rebuild
+
+    state = manager._sessions[sid]
+    turn_node = state.episodes[0].nodes[2]
+    hand_state = turn_node.context["hand_state"]
+
+    assert hand_state["turn_mode"] == "check"
+    assert turn_node.context["facing"] == "check"
+    assert "bet" not in turn_node.context
+    assert turn_node.description.endswith("checks.")
+
+
+def test_turn_rebuild_preserves_stored_bet_size():
+    manager = SessionManager()
+    sid = manager.create_session(SessionConfig(hands=1, mc_trials=40, seed=999))
+
+    manager.get_node(sid)
+    manager.choose(sid, 1)  # Call preflop
+    manager.get_node(sid)
+    manager.choose(sid, 0)  # Check flop, forcing the rebuild
+
+    state = manager._sessions[sid]
+    turn_node = state.episodes[0].nodes[2]
+    hand_state = turn_node.context["hand_state"]
+    stored_bet = hand_state.get("turn_bet_size")
+
+    assert hand_state["turn_mode"] == "bet"
+    assert stored_bet is not None
+    assert turn_node.context["facing"] == "bet"
+    assert turn_node.context["bet"] == pytest.approx(float(stored_bet))
+    assert f"{float(stored_bet):.2f}bb" in turn_node.description
+
+
+def test_river_rebuild_preserves_lead_metadata():
+    manager = SessionManager()
+    sid = manager.create_session(SessionConfig(hands=1, mc_trials=40, seed=2002))
+
+    manager.get_node(sid)
+    manager.choose(sid, 1)  # Call preflop
+    manager.get_node(sid)
+    manager.choose(sid, 0)  # Check flop
+    manager.get_node(sid)
+    manager.choose(sid, 1)  # Call the turn bet to reach the river
+
+    state = manager._sessions[sid]
+    river_node = state.episodes[0].nodes[3]
+    hand_state = river_node.context["hand_state"]
+    lead_size = hand_state.get("river_lead_size")
+
+    assert hand_state["river_mode"] == "lead"
+    assert lead_size is not None
+    assert river_node.context["facing"] == "bet"
+    assert river_node.context["bet"] == pytest.approx(float(lead_size))
+    assert "leads" in river_node.description
+
+
+def test_river_rebuild_keeps_check_context():
+    manager = SessionManager()
+    sid = manager.create_session(SessionConfig(hands=1, mc_trials=40, seed=2001))
+
+    manager.get_node(sid)
+    manager.choose(sid, 1)  # Call preflop
+    manager.get_node(sid)
+    manager.choose(sid, 0)  # Check flop
+    manager.get_node(sid)
+    manager.choose(sid, 0)  # Check turn to advance
+
+    payload = manager.get_node(sid)
+    river_node = payload.node
+    assert river_node is not None
+    assert river_node.context["facing"] == "oop-check"
+    assert "bet" not in river_node.context
+    assert river_node.description.endswith("choose your bet.")
+
+
+def test_create_session_uses_explicit_zero_seed():
+    manager = SessionManager()
+    cfg = SessionConfig(hands=1, mc_trials=40, seed=0)
+
+    sid_one = manager.create_session(cfg)
+    first_one = manager.get_node(sid_one).to_dict()
+    state_one = manager._sessions[sid_one]
+
+    sid_two = manager.create_session(cfg)
+    first_two = manager.get_node(sid_two).to_dict()
+    state_two = manager._sessions[sid_two]
+
+    assert state_one.config.seed == 0
+    assert state_two.config.seed == 0
+    assert first_one["node"] == first_two["node"]
+    assert first_one["options"] == first_two["options"]
+
+
 def test_summary_scoring_matches_decision_scores():
     from gtotrainer.core.scoring import decision_loss_ratio, decision_score
     from gtotrainer.features.session.service import _summary_payload

@@ -640,14 +640,24 @@ def _rebuild_turn_node(hand_state: dict[str, Any], pot: float) -> None:
         return
     turn_node.pot_bb = pot
     turn_node.effective_bb = _state_value(hand_state, "effective_stack", turn_node.effective_bb)
-    bet_turn = round(0.5 * pot, 2)
-    turn_node.context["facing"] = "bet"
-    turn_node.context["bet"] = bet_turn
+    mode = str(hand_state.get("turn_mode") or turn_node.context.get("facing") or "bet").lower()
     board_turn = turn_node.board
     turn_node.context["board_key"] = _board_texture_key(board_turn)
     board_str = " ".join(format_card_ascii(c, upper=True) for c in board_turn)
     rival_seat = str(hand_state.get("rival_seat", "SB"))
-    turn_node.description = f"{board_str}; Rival ({rival_seat}) bets {bet_turn:.2f}bb into {pot:.2f}bb."
+    if mode == "bet":
+        stored_bet = hand_state.get("turn_bet_size")
+        bet_turn = float(stored_bet) if isinstance(stored_bet, (int, float)) else turn_node.context.get("bet")
+        if not isinstance(bet_turn, (int, float)):
+            bet_turn = round(0.5 * pot, 2)
+        bet_turn = round(float(bet_turn), 2)
+        turn_node.context["facing"] = "bet"
+        turn_node.context["bet"] = bet_turn
+        turn_node.description = f"{board_str}; Rival ({rival_seat}) bets {bet_turn:.2f}bb into {pot:.2f}bb."
+    else:
+        turn_node.context["facing"] = "check"
+        turn_node.context.pop("bet", None)
+        turn_node.description = f"{board_str}; Rival ({rival_seat}) checks."
 
 
 def _rebuild_river_node(hand_state: dict[str, Any], pot: float) -> None:
@@ -660,11 +670,23 @@ def _rebuild_river_node(hand_state: dict[str, Any], pot: float) -> None:
     river_node.pot_bb = pot
     river_node.effective_bb = _state_value(hand_state, "effective_stack", river_node.effective_bb)
     board_river = river_node.board
-    board_str = " ".join(format_card_ascii(c, upper=True) for c in board_river)
-    river_node.description = f"{board_str}; choose your bet."
-    river_node.context["facing"] = "oop-check"
     river_node.context["board_key"] = _board_texture_key(board_river)
-    river_node.context.pop("bet", None)
+    board_str = " ".join(format_card_ascii(c, upper=True) for c in board_river)
+    mode = str(hand_state.get("river_mode") or river_node.context.get("facing") or "oop-check").lower()
+    rival_seat = str(hand_state.get("rival_seat", "SB"))
+    if mode == "lead":
+        stored_lead = hand_state.get("river_lead_size")
+        lead_size = float(stored_lead) if isinstance(stored_lead, (int, float)) else river_node.context.get("bet")
+        if not isinstance(lead_size, (int, float)):
+            lead_size = round(0.75 * pot, 2)
+        lead_size = round(float(lead_size), 2)
+        river_node.context["facing"] = "bet"
+        river_node.context["bet"] = lead_size
+        river_node.description = f"{board_str}; Rival ({rival_seat}) leads {lead_size:.2f}bb into {pot:.2f}bb."
+    else:
+        river_node.context["facing"] = "oop-check"
+        river_node.context.pop("bet", None)
+        river_node.description = f"{board_str}; choose your bet."
 
 
 def _showdown_outcome(hero: list[int], board: list[int], rival: tuple[int, int]) -> float:
