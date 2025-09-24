@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from ..core import feature_flags
 from ..core.models import Option
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -81,11 +82,21 @@ class LinearCFRBackend:
         return options
 
 
-def refine_options(node: Node | None, options: list[Option]) -> list[Option]:
-    return _SOLVER.refine(node, options)
-
-
 _SOLVER = LinearCFRBackend()
+_SOLVER_PRECISE = LinearCFRBackend(
+    LinearCFRConfig(
+        iterations=1200,
+        minimum_actions=2,
+        extra_iterations_per_action=400,
+        linear_weight_pow=1.7,
+        regret_floor=1e-10,
+    )
+)
+
+
+def refine_options(node: Node | None, options: list[Option]) -> list[Option]:
+    solver = _SOLVER_PRECISE if feature_flags.is_enabled("solver.high_precision_cfr") else _SOLVER
+    return solver.refine(node, options)
 
 
 @dataclass(slots=True)

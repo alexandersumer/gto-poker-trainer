@@ -17,6 +17,7 @@ from dataclasses import dataclass
 # The profile dictionary stored on Option.meta uses only standard Python
 # container types (lists/dicts) so it can be copied or serialised in tests.
 from .hand_strength import combo_playability_score
+from ..core import feature_flags
 
 
 @dataclass(frozen=True)
@@ -89,6 +90,46 @@ def _bet_size_ratio(meta: Mapping[str, object]) -> float:
     if pot <= 0.0:
         pot = 1.0
     return max(0.0, min(2.5, risk / pot))
+
+
+def _blend_probability(base: float, adjusted: float, weight: float) -> float:
+    mix = max(0.0, min(1.0, weight))
+    return (1.0 - mix) * base + mix * adjusted
+
+
+def _calibrated_fold_probability(
+    base: float,
+    *,
+    strength_norm: float | None,
+    threshold_norm: float,
+    texture: float,
+    size_ratio: float,
+    adapt_scale: float,
+    continue_ratio: float,
+) -> float:
+    if not feature_flags.is_enabled("rival.texture_v2"):
+        return base
+
+    clamped = max(1e-4, min(1.0 - 1e-4, base))
+    logit = math.log(clamped / (1.0 - clamped))
+
+    texture_adj = (texture - 0.5) * 1.35
+    size_adj = (size_ratio - 0.75) * 1.6
+    logit += size_adj - texture_adj
+
+    if strength_norm is not None:
+        delta = strength_norm - threshold_norm
+        precision = 2.4 + 0.6 * (1.0 - continue_ratio)
+        logit -= delta * precision
+
+    if adapt_scale:
+        logit -= 2.2 * adapt_scale
+
+    logit = max(-12.0, min(12.0, logit))
+    adjusted = 1.0 / (1.0 + math.exp(-logit))
+    # Blend back towards the base value to keep aggregate frequencies stable.
+    blend_weight = 0.55 + 0.2 * (1.0 - continue_ratio)
+    return _blend_probability(clamped, adjusted, blend_weight)
 
 
 def build_profile(
@@ -356,6 +397,9 @@ def decide_action(
         adapt_scale = max(-0.3, min(0.3, 0.12 * deviation * sample_weight))
 
     strength = None
+    strength_norm = None
+    threshold_norm = (threshold_strength - min_strength) / spread if spread > 0 else 0.5
+
     if rival_cards is not None:
         strength = _strength_for_combo(profile, rival_cards)
     else:
@@ -364,8 +408,7 @@ def decide_action(
             strength = _strength_for_combo(profile, sampled)
 
     if strength is not None:
-        strength_norm = (strength - min_strength) / spread
-        threshold_norm = (threshold_strength - min_strength) / spread
+        strength_norm = (strength - min_strength) / spread if spread > 0 else 0.5
         delta = strength_norm - threshold_norm
         bias_scale = min(0.45, max(0.18, (1.0 - fold_prob) * 0.5 + 0.18))
         slope = max(0.02, temperature)
@@ -374,6 +417,16 @@ def decide_action(
 
     if adapt_scale:
         fold_prob -= adapt_scale
+
+    fold_prob = _calibrated_fold_probability(
+        fold_prob,
+        strength_norm=strength_norm,
+        threshold_norm=threshold_norm,
+        texture=texture,
+        size_ratio=size_ratio,
+        adapt_scale=adapt_scale,
+        continue_ratio=continue_ratio,
+    )
 
     if noise > 0:
         fold_prob += (rng.random() - 0.5) * 2.0 * noise
