@@ -196,7 +196,7 @@ def test_feedback_breakdown_after_action() -> None:
         )
 
         breakdown_html = page.inner_html("#feedback-breakdown").lower()
-        assert "play: gto" in breakdown_html or "gto match" in breakdown_html
+        assert "solver line" in breakdown_html or "matched line" in breakdown_html
         assert "feedback-breakdown__row" in breakdown_html
 
         assert not console_errors, f"Console errors captured: {console_errors}"

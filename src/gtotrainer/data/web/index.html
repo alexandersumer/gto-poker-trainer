@@ -1911,21 +1911,48 @@
         display: none;
       }
       .feedback-breakdown__row {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: flex-start;
-        justify-content: space-between;
         gap: 12px;
-        padding: 8px 12px;
+        padding: 10px 12px;
         border-radius: var(--radius-sm);
-        border: 1px solid color-mix(in srgb, var(--outline) 65%, transparent);
-        background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+        border: 1px solid color-mix(in srgb, var(--outline) 60%, transparent);
+        background: color-mix(in srgb, var(--surface-1) 94%, transparent);
       }
       .feedback-breakdown__main {
         display: flex;
         flex-direction: column;
         gap: 4px;
         min-width: 0;
-        color: var(--text-secondary);
+      }
+      .feedback-breakdown__tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-secondary) 75%, transparent);
+        background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+        border: 1px solid color-mix(in srgb, var(--outline) 50%, transparent);
+      }
+      .feedback-breakdown__tag--solver {
+        color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+      }
+      .feedback-breakdown__tag--player {
+        color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+      }
+      .feedback-breakdown__tag--match {
+        color: var(--feedback-success-ev);
+        background: color-mix(in srgb, var(--feedback-success-stripe) 18%, transparent);
+        border-color: color-mix(in srgb, var(--feedback-success-outline) 45%, transparent);
+      }
+      .feedback-breakdown__tag--alt {
+        color: color-mix(in srgb, var(--text-secondary) 68%, transparent);
       }
       .feedback-breakdown__label {
         font-weight: 600;
@@ -1938,49 +1965,8 @@
         color: var(--text-primary);
         white-space: nowrap;
       }
-      .feedback-breakdown__chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 12px;
-        border-radius: 999px;
-        font-size: 0.74rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
-        background: color-mix(in srgb, var(--surface-1) 94%, transparent);
-        border: 1px solid color-mix(in srgb, var(--outline) 55%, transparent);
-      }
-      .feedback-breakdown__chip--gto {
-        color: color-mix(in srgb, var(--text-secondary) 75%, transparent);
-      }
-      .feedback-breakdown__chip--player {
-        color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
-      }
-      .feedback-breakdown__chip--match {
-        color: var(--feedback-success-ev);
-        border-color: color-mix(in srgb, var(--feedback-success-outline) 40%, transparent);
-        background: color-mix(in srgb, var(--feedback-success-stripe) 12%, transparent);
-      }
-      .feedback-breakdown__chip--alt {
-        color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
-      }
       .feedback-breakdown__row--match .feedback-breakdown__ev {
         color: var(--feedback-success-ev);
-      }
-      #feedback-breakdown[data-state="warning"] .feedback-breakdown__chip--player,
-      #feedback-breakdown[data-state="danger"] .feedback-breakdown__chip--player,
-      #feedback-breakdown[data-state="blunder"] .feedback-breakdown__chip--player {
-        color: var(--feedback-danger-ev);
-        border-color: color-mix(in srgb, var(--feedback-danger-outline) 40%, transparent);
-        background: color-mix(in srgb, var(--feedback-danger-stripe) 12%, transparent);
-      }
-      #feedback-breakdown[data-state="success"] .feedback-breakdown__chip--player,
-      #feedback-breakdown[data-state="gain"] .feedback-breakdown__chip--player {
-        color: var(--feedback-success-ev);
-        border-color: color-mix(in srgb, var(--feedback-success-outline) 40%, transparent);
-        background: color-mix(in srgb, var(--feedback-success-stripe) 12%, transparent);
       }
       #feedback-breakdown[data-state="warning"] .feedback-breakdown__row--player .feedback-breakdown__ev,
       #feedback-breakdown[data-state="danger"] .feedback-breakdown__row--player .feedback-breakdown__ev,
@@ -1998,12 +1984,12 @@
       }
       :root[data-theme="dark"] .feedback-breakdown__row {
         background: color-mix(in srgb, var(--surface-2) 94%, transparent);
-        border-color: color-mix(in srgb, var(--outline) 55%, transparent);
-      }
-      :root[data-theme="dark"] .feedback-breakdown__chip {
-        background: color-mix(in srgb, var(--surface-2) 92%, transparent);
-        color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
         border-color: color-mix(in srgb, var(--outline) 50%, transparent);
+      }
+      :root[data-theme="dark"] .feedback-breakdown__tag {
+        background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+        border-color: color-mix(in srgb, var(--outline) 45%, transparent);
+        color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
       }
       #panel-play .panel-soft {
         display: flex;
@@ -3651,15 +3637,16 @@
       const renderFeedbackBreakdown = (feedback) => {
         if(!feedback) return '';
         const rows = [];
-        const makeRow = (variant, label, opt) => {
+        const makeRow = (variant, tagText, opt) => {
           if(!opt) return;
           const evDisplay = typeof opt.ev === 'number' ? formatBb(opt.ev) : '—';
           const choiceLabel = opt.key || opt.label || '—';
           const whyText = opt.why ? `<div class="feedback-breakdown__why">${withCardMarkup(opt.why)}</div>` : '';
+          const tagClass = `feedback-breakdown__tag feedback-breakdown__tag--${variant}`;
           rows.push(`
             <div class="feedback-breakdown__row feedback-breakdown__row--${variant}">
               <div class="feedback-breakdown__main">
-                <span class="feedback-breakdown__chip feedback-breakdown__chip--${variant}">${escapeHtml(label)}</span>
+                <span class="${tagClass}">${escapeHtml(tagText)}</span>
                 <span class="feedback-breakdown__label">${withCardMarkup(choiceLabel)}</span>
                 ${whyText}
               </div>
@@ -3675,27 +3662,15 @@
         if(sameLine){
           // Collapse to a single confirmation row for perfect matches.
           const opt = best || chosen;
-          const evDisplay = typeof opt?.ev === 'number' ? formatBb(opt.ev) : '—';
-          const choiceLabel = opt?.key || opt?.label || '—';
-          const whyText = opt?.why ? `<div class="feedback-breakdown__why">${withCardMarkup(opt.why)}</div>` : '';
-          rows.push(`
-            <div class="feedback-breakdown__row feedback-breakdown__row--match">
-              <div class="feedback-breakdown__main">
-                <span class="feedback-breakdown__chip feedback-breakdown__chip--match">GTO match</span>
-                <span class="feedback-breakdown__label">${withCardMarkup(choiceLabel)}</span>
-                ${whyText}
-              </div>
-              <div class="feedback-breakdown__ev">${withCardMarkup(evDisplay)}</div>
-            </div>
-          `);
+          makeRow('match', 'MATCHED LINE', opt);
         } else {
-          makeRow('gto', 'Play: GTO', best);
-          makeRow('player', 'Play: Yours', chosen);
+          makeRow('solver', 'SOLVER LINE', best);
+          makeRow('player', 'YOUR LINE', chosen);
           const altSource = Array.isArray(feedback.alternatives)
             ? feedback.alternatives
             : feedback.options;
           const altOptions = Array.isArray(altSource) ? altSource : [];
-          altOptions.forEach((opt) => makeRow('alt', 'Play: Alternative', opt));
+          altOptions.forEach((opt, index) => makeRow('alt', altOptions.length > 1 ? `ALTERNATIVE ${index + 1}` : 'ALTERNATIVE', opt));
         }
 
         return rows.join('');
