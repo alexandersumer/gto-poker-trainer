@@ -1952,6 +1952,7 @@
         background: color-mix(in srgb, var(--surface-1) 92%, transparent);
         border: 1px solid color-mix(in srgb, var(--outline) 60%, transparent);
       }
+      .feedback-breakdown__chip--match,
       .feedback-breakdown__chip--best {
         color: var(--feedback-success-ev);
         border-color: color-mix(in srgb, var(--feedback-success-outline) 45%, transparent);
@@ -1965,6 +1966,7 @@
       .feedback-breakdown__chip--alt {
         color: var(--text-secondary);
       }
+      .feedback-breakdown__row--match .feedback-breakdown__ev,
       .feedback-breakdown__row--best .feedback-breakdown__ev {
         color: var(--feedback-success-ev);
       }
@@ -3653,13 +3655,37 @@
             </div>
           `);
         };
-        makeRow('best', 'GTO recommendation', feedback.best);
-        makeRow('chosen', 'Your action', feedback.chosen);
-        const altSource = Array.isArray(feedback.alternatives)
-          ? feedback.alternatives
-          : feedback.options;
-        const altOptions = Array.isArray(altSource) ? altSource : [];
-        altOptions.forEach((opt) => makeRow('alt', 'Alternative line', opt));
+
+        const best = feedback.best;
+        const chosen = feedback.chosen;
+        const sameLine = best && chosen && best.key && chosen.key && best.key === chosen.key;
+
+        if(sameLine){
+          // Collapse to a single confirmation row for perfect matches.
+          const opt = best || chosen;
+          const evDisplay = typeof opt?.ev === 'number' ? formatBb(opt.ev) : '—';
+          const choiceLabel = opt?.key || opt?.label || '—';
+          const whyText = opt?.why ? `<div class="feedback-breakdown__why">${withCardMarkup(opt.why)}</div>` : '';
+          rows.push(`
+            <div class="feedback-breakdown__row feedback-breakdown__row--match">
+              <div class="feedback-breakdown__main">
+                <span class="feedback-breakdown__chip feedback-breakdown__chip--match">Chosen line (GTO match)</span>
+                <span class="feedback-breakdown__label">${withCardMarkup(choiceLabel)}</span>
+                ${whyText}
+              </div>
+              <div class="feedback-breakdown__ev">${withCardMarkup(evDisplay)}</div>
+            </div>
+          `);
+        } else {
+          makeRow('best', 'GTO recommendation', best);
+          makeRow('chosen', 'Your action', chosen);
+          const altSource = Array.isArray(feedback.alternatives)
+            ? feedback.alternatives
+            : feedback.options;
+          const altOptions = Array.isArray(altSource) ? altSource : [];
+          altOptions.forEach((opt) => makeRow('alt', 'Alternative line', opt));
+        }
+
         return rows.join('');
       };
 
