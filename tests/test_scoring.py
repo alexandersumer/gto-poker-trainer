@@ -100,7 +100,7 @@ def test_ev_band_accuracy_curve_respects_warning_band():
 
     def accuracy_for(loss: float) -> float:
         record = make_record(loss, idx=int(loss * 100))
-        stats = scoring.summarize_records_with_scheme([record], accuracy_scheme=scoring.AccuracyScheme.EV_BANDS)
+        stats = scoring.summarize_records([record])
         return stats.accuracy_pct
 
     assert accuracy_for(0.0) == pytest.approx(100.0)
@@ -108,12 +108,3 @@ def test_ev_band_accuracy_curve_respects_warning_band():
     assert accuracy_for(0.5) == pytest.approx(71.9644465063, rel=1e-9)
     assert accuracy_for(1.5) == pytest.approx(31.8814075811, rel=1e-9)
     assert accuracy_for(12.0) == pytest.approx(0.0)
-
-
-def test_active_accuracy_scheme_defaults_to_ev_bands(monkeypatch):
-    monkeypatch.delenv("GTOTRAINER_ACCURACY_SCHEME", raising=False)
-    scoring.clear_accuracy_scheme_cache_for_tests()
-    try:
-        assert scoring.active_accuracy_scheme() is scoring.AccuracyScheme.EV_BANDS
-    finally:
-        scoring.clear_accuracy_scheme_cache_for_tests()

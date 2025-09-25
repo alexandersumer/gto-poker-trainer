@@ -56,9 +56,7 @@ Every `uv` command intentionally includes `--no-config` so local configuration c
 - `MC` — Monte Carlo sample count per evaluation.
 
 Session accuracy is noise-aware: small EV gaps earn partial credit so the
-headline number mirrors solver tolerances. To fall back to strict hit counting
-for troubleshooting, set `GTOTRAINER_ACCURACY_SCHEME=legacy` before launching
-the app.
+headline number mirrors solver tolerances.
 
 ### HTTP API
 

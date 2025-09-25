@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import math
-import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from enum import Enum
-from functools import lru_cache
 from typing import Any
 
 MIN_POT = 1e-6
@@ -28,15 +25,6 @@ MIN_YELLOW_BAND = 0.08
 YELLOW_GAMMA = 0.75
 RED_DECAY = 18.0
 HARD_MISTAKE_RATIO = 0.5
-
-
-class AccuracyScheme(str, Enum):
-    LEGACY = "legacy"
-    EV_BANDS = "ev_bands"
-
-
-ACCURACY_SCHEME_ENV = "GTOTRAINER_ACCURACY_SCHEME"
-DEFAULT_ACCURACY_SCHEME = AccuracyScheme.EV_BANDS
 
 
 @dataclass(frozen=True)
@@ -96,13 +84,14 @@ def decision_score(record: Mapping[str, Any]) -> float:
     return min(score_ev, score_ratio)
 
 
-def decision_accuracy(record: Mapping[str, Any], *, accuracy_scheme: AccuracyScheme | None = None) -> float:
-    scheme = accuracy_scheme or active_accuracy_scheme()
+def decision_accuracy(record: Mapping[str, Any]) -> float:
     pot = _extract_pot(record)
     ev_loss = _ev_loss(record)
     score = decision_score(record)
     within_noise = _within_noise(record, score=score)
-    return _accuracy_credit(ev_loss=ev_loss, pot=pot, within_noise=within_noise, scheme=scheme)
+    if within_noise:
+        return 1.0
+    return _ev_band_credit(ev_loss=ev_loss, pot=pot)
 
 
 def _score_for_ratio(ratio: float, *, noise_floor: float, decay: float = RATIO_DECAY) -> float:
@@ -144,16 +133,7 @@ def _within_noise(record: Mapping[str, Any], *, score: float | None = None) -> b
     return ev_loss <= ev_tolerance and ratio <= ratio_tolerance
 
 
-def summarize_records(
-    records: Sequence[Mapping[str, Any]], *, accuracy_scheme: AccuracyScheme | None = None
-) -> SummaryStats:
-    scheme = accuracy_scheme or active_accuracy_scheme()
-    return summarize_records_with_scheme(records, accuracy_scheme=scheme)
-
-
-def summarize_records_with_scheme(
-    records: Sequence[Mapping[str, Any]], *, accuracy_scheme: AccuracyScheme
-) -> SummaryStats:
+def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
     if not records:
         return SummaryStats(
             hands=0,
@@ -202,12 +182,7 @@ def summarize_records_with_scheme(
         if within_noise:
             hits += 1
 
-        accuracy_points += _accuracy_credit(
-            ev_loss=ev_loss,
-            pot=pot,
-            within_noise=within_noise,
-            scheme=accuracy_scheme,
-        )
+        accuracy_points += decision_accuracy(record)
 
     total_weight = sum(weights)
     weighted_loss_ratio = sum(ratio * weight for ratio, weight in zip(loss_ratios, weights, strict=False))
@@ -244,37 +219,6 @@ def _ratio_noise_floor(pot: float) -> float:
     pot_scaled = max(pot, MIN_POT)
     floor = RATIO_NOISE_FLOOR_BASE + RATIO_NOISE_FLOOR_PCT * pot_scaled
     return min(floor, 0.99)
-
-
-def active_accuracy_scheme() -> AccuracyScheme:
-    return _cached_active_accuracy_scheme()
-
-
-@lru_cache(maxsize=1)
-def _cached_active_accuracy_scheme() -> AccuracyScheme:
-    return parse_accuracy_scheme(os.getenv(ACCURACY_SCHEME_ENV), default=DEFAULT_ACCURACY_SCHEME)
-
-
-def clear_accuracy_scheme_cache_for_tests() -> None:
-    _cached_active_accuracy_scheme.cache_clear()
-
-
-def parse_accuracy_scheme(value: str | None, *, default: AccuracyScheme = AccuracyScheme.LEGACY) -> AccuracyScheme:
-    if not value:
-        return default
-    normalized = value.strip().lower()
-    for scheme in AccuracyScheme:
-        if normalized == scheme.value:
-            return scheme
-    return default
-
-
-def _accuracy_credit(*, ev_loss: float, pot: float, within_noise: bool, scheme: AccuracyScheme) -> float:
-    if scheme is AccuracyScheme.LEGACY:
-        return 1.0 if within_noise else 0.0
-    if scheme is AccuracyScheme.EV_BANDS:
-        return _ev_band_credit(ev_loss=ev_loss, pot=pot)
-    return 1.0 if within_noise else 0.0
 
 
 def _ev_band_credit(*, ev_loss: float, pot: float) -> float:
