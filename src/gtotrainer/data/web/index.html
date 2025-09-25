@@ -3646,11 +3646,21 @@
       const renderFeedbackBreakdown = (feedback) => {
         if(!feedback) return '';
         const rows = [];
+        const freqTextFor = (opt) => {
+          const freq = typeof opt?.gto_freq === 'number' ? opt.gto_freq : null;
+          if(freq == null || freq <= 0 || freq >= 0.995) return '';
+          const pct = normalizePercent(`${fmt(freq * 100, freq * 100 >= 10 ? 0 : 1)}%`);
+          return `(${pct})`;
+        };
+        const formatEvLabel = (prefix, value) => (value != null ? `${prefix} ${formatSignedBb(value)}` : `${prefix} —`);
         const makeRow = (variant, tagText, opt, metaText = '', evOverride = null) => {
           if(!opt) return;
           const rawEv = typeof opt.ev === 'number' ? opt.ev : null;
-          const evDisplay = evOverride ?? (rawEv != null ? formatBb(rawEv) : '—');
+          const evLabel = evOverride ?? formatEvLabel('EV', rawEv);
           const choiceLabel = opt.key || opt.label || '—';
+          const freqText = freqTextFor(opt);
+          const freqMarkup = freqText ? ` ${escapeHtml(freqText)}` : '';
+          const labelHtml = `${withCardMarkup(choiceLabel)}${freqMarkup} · ${escapeHtml(evLabel)}`;
           const whyText = opt.why ? `<div class="feedback-breakdown__why">${withCardMarkup(opt.why)}</div>` : '';
           const metaMarkup = metaText ? `<div class="feedback-breakdown__meta">${escapeHtml(metaText)}</div>` : '';
           const tagClass = `feedback-breakdown__tag feedback-breakdown__tag--${variant}`;
@@ -3658,11 +3668,11 @@
             <div class="feedback-breakdown__row feedback-breakdown__row--${variant}">
               <div class="feedback-breakdown__main">
                 <span class="${tagClass}">${escapeHtml(tagText)}</span>
-                <span class="feedback-breakdown__label">${withCardMarkup(choiceLabel)}</span>
+                <span class="feedback-breakdown__label">${labelHtml}</span>
                 ${whyText}
                 ${metaMarkup}
               </div>
-              <div class="feedback-breakdown__ev">${withCardMarkup(evDisplay)}</div>
+              <div class="feedback-breakdown__ev">${escapeHtml(evLabel)}</div>
             </div>
           `);
         };
@@ -3676,20 +3686,17 @@
         const approxZero = (value) => value != null && Math.abs(value) < 1e-6;
 
         if(sameLine){
-          const metaText = bestEv != null ? 'No EV lost' : '';
-          const evLabel = bestEv != null ? `EV: ${formatSignedBb(bestEv)}` : 'EV: —';
-          makeRow('match', 'GTO MATCHED', best || chosen, metaText, evLabel);
+          const metaText = bestEv != null ? 'Impact: no EV lost.' : '';
+          makeRow('match', 'GTO MATCHED', best || chosen, metaText, formatEvLabel('EV', bestEv));
         } else {
-          const solverEvLabel = bestEv != null ? `EV: ${formatSignedBb(bestEv)}` : 'EV: —';
-          makeRow('solver', 'SOLVER LINE', best, '', solverEvLabel);
+          makeRow('solver', 'SOLVER LINE', best, '', formatEvLabel('EV', bestEv));
 
           const playerMeta = (() => {
             if(delta == null) return '';
-            if(approxZero(delta)) return 'No EV lost';
-            return delta > 0 ? `Gains ${formatBb(delta)}` : `Loses ${formatBb(Math.abs(delta))}`;
+            if(approxZero(delta)) return 'Impact: no EV lost.';
+            return delta > 0 ? `Impact: gains ${formatBb(delta)}.` : `Impact: loses ${formatBb(Math.abs(delta))}.`;
           })();
-          const playerEvLabel = delta != null ? `ΔEV: ${formatSignedBb(delta)}` : 'ΔEV: —';
-          makeRow('player', 'YOUR LINE', chosen, playerMeta, playerEvLabel);
+          makeRow('player', 'YOUR LINE', chosen, playerMeta, formatEvLabel('ΔEV', delta));
 
           const altSource = Array.isArray(feedback.alternatives)
             ? feedback.alternatives
@@ -3701,13 +3708,12 @@
             const altLabel = altOptions.length > 1 ? `ALTERNATIVE ${index + 1}` : 'ALTERNATIVE';
             const altMeta = altDelta != null
               ? (approxZero(altDelta)
-                ? 'No EV lost'
+                ? 'Context: within solver tolerance.'
                 : altDelta > 0
-                  ? `Gains ${formatBb(altDelta)}`
-                  : `Loses ${formatBb(Math.abs(altDelta))}`)
+                  ? `Context: gains ${formatBb(altDelta)}.`
+                  : `Context: loses ${formatBb(Math.abs(altDelta))}.`)
               : '';
-            const altEvLabel = altDelta != null ? `ΔEV: ${formatSignedBb(altDelta)}` : 'ΔEV: —';
-            makeRow('alt', altLabel, opt, altMeta, altEvLabel);
+            makeRow('alt', altLabel, opt, altMeta, formatEvLabel('ΔEV', altDelta));
           });
 
           if(altOptions.length > 1){
