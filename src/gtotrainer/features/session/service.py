@@ -11,7 +11,7 @@ from typing import Any, Callable
 
 from ...core.formatting import format_option_label
 from ...core.models import Option
-from ...core.scoring import SummaryStats, summarize_records
+from ...core.scoring import SummaryStats, decision_accuracy, summarize_records
 from ...dynamic.cards import format_card_ascii
 from ...dynamic.generator import Episode, Node, available_rival_styles
 from ...dynamic.policy import options_for, resolve_for
@@ -186,6 +186,7 @@ class SessionManager:
                 "pot_bb": float(getattr(node, "pot_bb", 0.0)),
             }
             state.records.append(record)
+            accuracy_credit = decision_accuracy(record)
             ends = getattr(chosen_feedback, "ends_hand", False)
             episode = state.episodes[state.hand_index]
             state.current_index = len(episode.nodes) if ends else state.current_index + 1
@@ -207,6 +208,7 @@ class SessionManager:
             chosen=_snapshot(node, chosen_feedback),
             best=_snapshot(node, best),
             ended=ends,
+            accuracy=accuracy_credit,
         )
         return ChoiceResult(feedback=feedback, next_payload=next_payload)
 
@@ -353,7 +355,7 @@ def _snapshot(node: Node, option: Option) -> ActionSnapshot:
 
 def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
     stats: SummaryStats = summarize_records(records)
-    accuracy_pct = (100.0 * stats.hits / stats.decisions) if stats.decisions else 0.0
+    accuracy_pct = stats.accuracy_pct
     return SummaryPayload(
         hands=stats.hands,
         decisions=stats.decisions,

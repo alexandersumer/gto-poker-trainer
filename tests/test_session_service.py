@@ -5,6 +5,7 @@ from collections.abc import Sequence
 
 import pytest
 
+from gtotrainer.core import scoring
 from gtotrainer.core.models import Option
 from gtotrainer.dynamic.episode import Node
 from gtotrainer.features.session import (
@@ -18,6 +19,7 @@ from gtotrainer.features.session.service import (
     _ensure_active_node,
     _ensure_options,
     _node_payload,
+    _summary_payload,
     _view_context,
 )
 
@@ -46,6 +48,8 @@ def test_session_manager_basic_flow():
     assert "feedback" in choice_payload
     feedback = choice_payload["feedback"]
     assert "chosen" in feedback and "label" in feedback["chosen"]
+    assert "accuracy" in feedback
+    assert 0.0 <= feedback["accuracy"] <= 1.0
     next_payload = choice_payload["next"]
     assert "done" in next_payload
 
@@ -64,6 +68,122 @@ def test_session_manager_basic_flow():
     # Summary endpoint mirrors the same content
     summary_direct = manager.summary(session_id).to_dict()
     assert summary_direct == summary
+
+
+def test_summary_payload_accuracy_uses_hits_ratio(monkeypatch):
+    records = [
+        {
+            "best_ev": 1.5,
+            "chosen_ev": 1.5,
+            "pot_bb": 4.0,
+            "best_key": "bet",
+            "chosen_key": "bet",
+            "hand_index": 0,
+        },
+        {
+            "best_ev": 2.0,
+            "chosen_ev": 1.99,
+            "pot_bb": 5.0,
+            "best_key": "raise",
+            "chosen_key": "raise",
+            "hand_index": 0,
+        },
+        {
+            "best_ev": 3.0,
+            "chosen_ev": 2.1,
+            "pot_bb": 6.0,
+            "best_key": "raise",
+            "chosen_key": "call",
+            "hand_index": 1,
+        },
+    ]
+
+    monkeypatch.setenv("GTOTRAINER_ACCURACY_SCHEME", "legacy")
+    scoring.clear_accuracy_scheme_cache_for_tests()
+    try:
+        payload = _summary_payload(records)
+    finally:
+        monkeypatch.delenv("GTOTRAINER_ACCURACY_SCHEME", raising=False)
+        scoring.clear_accuracy_scheme_cache_for_tests()
+
+    assert payload.decisions == 3
+    assert payload.hits == 2  # only the large EV mistake is counted as a miss
+    expected_accuracy = (100.0 * payload.hits) / payload.decisions
+    assert payload.accuracy_pct == pytest.approx(expected_accuracy)
+
+
+def test_summary_payload_accuracy_feature_flag(monkeypatch):
+    records = [
+        {
+            "best_ev": 1.0,
+            "chosen_ev": 0.9,
+            "pot_bb": 20.0,
+            "best_key": "bet",
+            "chosen_key": "call",
+            "hand_index": 0,
+        },
+        {
+            "best_ev": 2.5,
+            "chosen_ev": 1.5,
+            "pot_bb": 20.0,
+            "best_key": "raise",
+            "chosen_key": "call",
+            "hand_index": 1,
+        },
+    ]
+
+    monkeypatch.setenv("GTOTRAINER_ACCURACY_SCHEME", "legacy")
+    scoring.clear_accuracy_scheme_cache_for_tests()
+    try:
+        legacy = _summary_payload(records)
+    finally:
+        monkeypatch.delenv("GTOTRAINER_ACCURACY_SCHEME", raising=False)
+        scoring.clear_accuracy_scheme_cache_for_tests()
+
+    assert legacy.accuracy_pct == pytest.approx((100.0 * legacy.hits) / legacy.decisions)
+
+    monkeypatch.setenv("GTOTRAINER_ACCURACY_SCHEME", "ev_bands")
+    scoring.clear_accuracy_scheme_cache_for_tests()
+    try:
+        updated = _summary_payload(records)
+    finally:
+        monkeypatch.delenv("GTOTRAINER_ACCURACY_SCHEME", raising=False)
+        scoring.clear_accuracy_scheme_cache_for_tests()
+
+    expected_stats = scoring.summarize_records_with_scheme(records, accuracy_scheme=scoring.AccuracyScheme.EV_BANDS)
+    assert updated.accuracy_pct == pytest.approx(expected_stats.accuracy_pct)
+    assert updated.accuracy_pct != legacy.accuracy_pct
+
+
+def test_summary_payload_accuracy_defaults_to_ev_bands(monkeypatch):
+    records = [
+        {
+            "best_ev": 1.0,
+            "chosen_ev": 0.9,
+            "pot_bb": 20.0,
+            "best_key": "bet",
+            "chosen_key": "call",
+            "hand_index": 0,
+        },
+        {
+            "best_ev": 2.0,
+            "chosen_ev": 1.2,
+            "pot_bb": 30.0,
+            "best_key": "raise",
+            "chosen_key": "call",
+            "hand_index": 1,
+        },
+    ]
+
+    monkeypatch.delenv("GTOTRAINER_ACCURACY_SCHEME", raising=False)
+    scoring.clear_accuracy_scheme_cache_for_tests()
+    try:
+        payload = _summary_payload(records)
+    finally:
+        scoring.clear_accuracy_scheme_cache_for_tests()
+
+    expected_stats = scoring.summarize_records_with_scheme(records, accuracy_scheme=scoring.AccuracyScheme.EV_BANDS)
+    assert payload.accuracy_pct == pytest.approx(expected_stats.accuracy_pct)
 
 
 def test_view_context_normalizes_core_fields():
@@ -300,7 +420,12 @@ def test_create_session_uses_explicit_zero_seed():
 
 
 def test_summary_scoring_matches_decision_scores():
-    from gtotrainer.core.scoring import decision_loss_ratio, decision_score
+    from gtotrainer.core.scoring import (
+        AccuracyScheme,
+        decision_loss_ratio,
+        decision_score,
+        summarize_records_with_scheme,
+    )
     from gtotrainer.features.session.service import _summary_payload
 
     records = [
@@ -349,7 +474,8 @@ def test_summary_scoring_matches_decision_scores():
     )
     assert summary.score == pytest.approx(expected, rel=1e-3)
     assert summary.avg_loss_pct == pytest.approx(expected_loss_pct, rel=1e-3)
-    assert summary.accuracy_pct == pytest.approx(0.0)
+    expected_accuracy = summarize_records_with_scheme(records, accuracy_scheme=AccuracyScheme.EV_BANDS).accuracy_pct
+    assert summary.accuracy_pct == pytest.approx(expected_accuracy)
 
 
 def test_summary_counts_unique_hands():

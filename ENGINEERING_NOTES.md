@@ -10,6 +10,9 @@
   `src/gtotrainer/dynamic/range_sampling.py` and
   `src/gtotrainer/dynamic/hand_state.py`. Extend those modules instead of
   inlining new dict math in the policy or generator layers.
+- Accuracy defaults to the EV-band scheme (partial credit for yellow
+  feedback). Set `GTOTRAINER_ACCURACY_SCHEME=legacy` to revert to strict
+  hit counting during rollback or troubleshooting.
 
 ## Benchmark Harness
 

@@ -67,6 +67,7 @@ class SummaryPayload(_APIModel):
 class FeedbackPayload(_APIModel):
     correct: bool
     ev_loss: float
+    accuracy: float
     chosen: ActionSnapshot
     best: ActionSnapshot
     ended: bool

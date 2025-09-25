@@ -15,7 +15,7 @@ from textual.widgets import Button, Footer, Header, Label, Static
 from ..core.engine_core import run_core
 from ..core.interfaces import EpisodeGenerator, OptionProvider, Presenter
 from ..core.models import Option
-from ..core.scoring import summarize_records
+from ..core.scoring import decision_accuracy, summarize_records
 from ..dynamic.cards import canonical_hand_abbrev, format_card_ascii
 from ..dynamic.generator import Node, generate_episode
 from ..dynamic.policy import options_for, resolve_for
@@ -334,6 +334,7 @@ class TrainerApp(App[None]):
     _total_hands: int = 0
     _decisions_played: int = 0
     _best_hits: int = 0
+    _accuracy_points: float = 0.0
     _total_ev_lost: float = 0.0
 
     def __init__(self, *, hands: int = 1, mc_trials: int = 120, solver_csv: str | None = None) -> None:
@@ -347,6 +348,7 @@ class TrainerApp(App[None]):
         self._total_hands = 0
         self._decisions_played = 0
         self._best_hits = 0
+        self._accuracy_points = 0.0
         self._total_ev_lost = 0.0
 
     # --- Compose UI ---
@@ -402,11 +404,11 @@ class TrainerApp(App[None]):
     def _session_perf_fragment(self) -> str | None:
         if self._decisions_played <= 0:
             return None
-        accuracy_pct = (100.0 * self._best_hits) / self._decisions_played if self._decisions_played else 0.0
+        accuracy_pct = (100.0 * self._accuracy_points) / self._decisions_played if self._decisions_played else 0.0
         ev_delta = -self._total_ev_lost
         return (
             f"[#2d3b62]ΔEV {ev_delta:+.2f} bb[/]"
-            f"  [dim]{accuracy_pct:.0f}% hits ({self._best_hits}/{self._decisions_played})[/]"
+            f"  [dim]{accuracy_pct:.0f}% accuracy ({self._best_hits}/{self._decisions_played})[/]"
         )
 
     def _headline_for_state(
@@ -549,6 +551,7 @@ class TrainerApp(App[None]):
         self._current_hand_index = 0
         self._decisions_played = 0
         self._best_hits = 0
+        self._accuracy_points = 0.0
         self._total_ev_lost = 0.0
         self._apply_preparing_placeholders()
         if self._headline_label:
@@ -663,9 +666,18 @@ class TrainerApp(App[None]):
     def show_step_feedback(self, _node: Node, chosen: Option, best: Option) -> None:
         correct = chosen.key == best.key
         ev_loss = best.ev - chosen.ev
+        record = {
+            "best_ev": best.ev,
+            "chosen_ev": chosen.ev,
+            "best_key": best.key,
+            "chosen_key": chosen.key,
+            "pot_bb": float(getattr(_node, "pot_bb", 0.0)),
+        }
+        accuracy_credit = decision_accuracy(record)
         self._decisions_played += 1
         if correct:
             self._best_hits += 1
+        self._accuracy_points += accuracy_credit
         self._total_ev_lost += max(0.0, ev_loss)
         lines = ["[b #1b2d55]Decision grade[/]"]
         if correct:
@@ -718,6 +730,10 @@ class TrainerApp(App[None]):
                 )
             return
         stats = summarize_records(records)
+        self._decisions_played = stats.decisions
+        self._best_hits = stats.hits
+        self._accuracy_points = stats.accuracy_points
+        self._total_ev_lost = stats.total_ev_lost
         total_ev_chosen = stats.total_ev_chosen
         total_ev_best = stats.total_ev_best
         total_ev_lost = stats.total_ev_lost
@@ -726,13 +742,15 @@ class TrainerApp(App[None]):
         hands_answered = stats.hands
         score_pct = stats.score_pct
         avg_loss_pct = stats.avg_loss_pct
+        accuracy_pct = stats.accuracy_pct
         msg = (
             f"[b #1b2d55]Session summary[/]\n"
             f"Total EV lost: {total_ev_lost:.2f} bb\n"
             f"Avg EV lost/decision: {avg_ev_lost:.2f} bb\n"
             f"Avg EV lost (% pot): {avg_loss_pct:.2f}%\n"
             f"Hands answered: {hands_answered}\n"
-            f"Best choices hit: {hits} ({(100.0 * hits / len(records)):.0f}%)\n"
+            f"Best choices hit: {hits} ({(100.0 * hits / max(1, len(records))):.0f}%)\n"
+            f"Accuracy (0–100): {accuracy_pct:.0f}%\n"
             f"Total EV (chosen): {total_ev_chosen:.2f} bb\n"
             f"Total EV (best): {total_ev_best:.2f} bb\n"
             f"Score (0–100): {score_pct:.0f}"

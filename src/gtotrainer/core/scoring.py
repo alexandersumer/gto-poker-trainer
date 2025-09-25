@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import math
+import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from enum import Enum
+from functools import lru_cache
 from typing import Any
 
 MIN_POT = 1e-6
@@ -18,12 +21,31 @@ EV_NOISE_FLOOR_BASE = 0.02  # Ignore < 0.02 bb diffs as solver noise
 EV_NOISE_FLOOR_PCT = 0.0025  # Additional tolerance (0.25% of pot in bb)
 EV_DECAY = 2.0  # Higher = harsher punishment for bigger EV mistakes
 
+# Accuracy weighting curve parameters.
+YELLOW_POT_MULTIPLIER = 0.05
+YELLOW_FALLBACK = 0.35
+MIN_YELLOW_BAND = 0.08
+YELLOW_GAMMA = 0.75
+RED_DECAY = 18.0
+HARD_MISTAKE_RATIO = 0.5
+
+
+class AccuracyScheme(str, Enum):
+    LEGACY = "legacy"
+    EV_BANDS = "ev_bands"
+
+
+ACCURACY_SCHEME_ENV = "GTOTRAINER_ACCURACY_SCHEME"
+DEFAULT_ACCURACY_SCHEME = AccuracyScheme.EV_BANDS
+
 
 @dataclass(frozen=True)
 class SummaryStats:
     hands: int
     decisions: int
     hits: int
+    accuracy_points: float
+    accuracy_pct: float
     total_ev_chosen: float
     total_ev_best: float
     total_ev_lost: float
@@ -74,6 +96,15 @@ def decision_score(record: Mapping[str, Any]) -> float:
     return min(score_ev, score_ratio)
 
 
+def decision_accuracy(record: Mapping[str, Any], *, accuracy_scheme: AccuracyScheme | None = None) -> float:
+    scheme = accuracy_scheme or active_accuracy_scheme()
+    pot = _extract_pot(record)
+    ev_loss = _ev_loss(record)
+    score = decision_score(record)
+    within_noise = _within_noise(record, score=score)
+    return _accuracy_credit(ev_loss=ev_loss, pot=pot, within_noise=within_noise, scheme=scheme)
+
+
 def _score_for_ratio(ratio: float, *, noise_floor: float, decay: float = RATIO_DECAY) -> float:
     adjusted = max(0.0, ratio - noise_floor)
     raw = 100.0 * math.exp(-decay * adjusted)
@@ -113,12 +144,23 @@ def _within_noise(record: Mapping[str, Any], *, score: float | None = None) -> b
     return ev_loss <= ev_tolerance and ratio <= ratio_tolerance
 
 
-def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
+def summarize_records(
+    records: Sequence[Mapping[str, Any]], *, accuracy_scheme: AccuracyScheme | None = None
+) -> SummaryStats:
+    scheme = accuracy_scheme or active_accuracy_scheme()
+    return summarize_records_with_scheme(records, accuracy_scheme=scheme)
+
+
+def summarize_records_with_scheme(
+    records: Sequence[Mapping[str, Any]], *, accuracy_scheme: AccuracyScheme
+) -> SummaryStats:
     if not records:
         return SummaryStats(
             hands=0,
             decisions=0,
             hits=0,
+            accuracy_points=0.0,
+            accuracy_pct=0.0,
             total_ev_chosen=0.0,
             total_ev_best=0.0,
             total_ev_lost=0.0,
@@ -132,6 +174,7 @@ def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
     total_ev_chosen = sum(_as_float(r.get("chosen_ev", 0.0)) for r in records)
     total_ev_lost = 0.0
     hits = 0
+    accuracy_points = 0.0
     hand_ids = {r.get("hand_index", idx) for idx, r in enumerate(records)}
     hands = len(hand_ids) if hand_ids else decisions
 
@@ -155,8 +198,16 @@ def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
         score = min(score_ev, score_ratio)
         decision_scores.append(score)
 
-        if _within_noise(record, score=score):
+        within_noise = _within_noise(record, score=score)
+        if within_noise:
             hits += 1
+
+        accuracy_points += _accuracy_credit(
+            ev_loss=ev_loss,
+            pot=pot,
+            within_noise=within_noise,
+            scheme=accuracy_scheme,
+        )
 
     total_weight = sum(weights)
     weighted_loss_ratio = sum(ratio * weight for ratio, weight in zip(loss_ratios, weights, strict=False))
@@ -167,11 +218,14 @@ def summarize_records(records: Sequence[Mapping[str, Any]]) -> SummaryStats:
     score_pct = (weighted_score / total_weight) if total_weight > 0 else 0.0
 
     avg_ev_lost = total_ev_lost / decisions
+    accuracy_pct = (100.0 * accuracy_points / decisions) if decisions else 0.0
 
     return SummaryStats(
         hands=hands,
         decisions=decisions,
         hits=hits,
+        accuracy_points=accuracy_points,
+        accuracy_pct=accuracy_pct,
         total_ev_chosen=total_ev_chosen,
         total_ev_best=total_ev_best,
         total_ev_lost=total_ev_lost,
@@ -190,3 +244,61 @@ def _ratio_noise_floor(pot: float) -> float:
     pot_scaled = max(pot, MIN_POT)
     floor = RATIO_NOISE_FLOOR_BASE + RATIO_NOISE_FLOOR_PCT * pot_scaled
     return min(floor, 0.99)
+
+
+def active_accuracy_scheme() -> AccuracyScheme:
+    return _cached_active_accuracy_scheme()
+
+
+@lru_cache(maxsize=1)
+def _cached_active_accuracy_scheme() -> AccuracyScheme:
+    return parse_accuracy_scheme(os.getenv(ACCURACY_SCHEME_ENV), default=DEFAULT_ACCURACY_SCHEME)
+
+
+def clear_accuracy_scheme_cache_for_tests() -> None:
+    _cached_active_accuracy_scheme.cache_clear()
+
+
+def parse_accuracy_scheme(value: str | None, *, default: AccuracyScheme = AccuracyScheme.LEGACY) -> AccuracyScheme:
+    if not value:
+        return default
+    normalized = value.strip().lower()
+    for scheme in AccuracyScheme:
+        if normalized == scheme.value:
+            return scheme
+    return default
+
+
+def _accuracy_credit(*, ev_loss: float, pot: float, within_noise: bool, scheme: AccuracyScheme) -> float:
+    if scheme is AccuracyScheme.LEGACY:
+        return 1.0 if within_noise else 0.0
+    if scheme is AccuracyScheme.EV_BANDS:
+        return _ev_band_credit(ev_loss=ev_loss, pot=pot)
+    return 1.0 if within_noise else 0.0
+
+
+def _ev_band_credit(*, ev_loss: float, pot: float) -> float:
+    pot = max(pot, MIN_POT)
+    if ev_loss <= 0.0:
+        return 1.0
+
+    noise_floor = _ev_noise_floor(pot)
+    if ev_loss <= noise_floor:
+        return 1.0
+
+    yellow_upper = max(YELLOW_POT_MULTIPLIER * pot, YELLOW_FALLBACK)
+    if yellow_upper <= noise_floor:
+        yellow_upper = noise_floor + MIN_YELLOW_BAND
+
+    if ev_loss <= yellow_upper:
+        span = max(yellow_upper - noise_floor, MIN_POT)
+        t = (ev_loss - noise_floor) / span
+        return max(0.0, min(1.0, 1.0 - 0.5 * (t**YELLOW_GAMMA)))
+
+    over = ev_loss - yellow_upper
+    ratio = over / pot
+    if ratio >= HARD_MISTAKE_RATIO:
+        return 0.0
+
+    credit = 0.5 * math.exp(-RED_DECAY * ratio)
+    return max(0.0, min(1.0, credit))

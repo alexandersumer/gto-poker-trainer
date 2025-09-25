@@ -2634,6 +2634,7 @@
       let nextHandButton = null;
       let totalEvLost = 0;
       let correctDecisions = 0;
+      let accuracyPoints = 0;
       let sessionHands = 0;
       let activeNode = null;
       let jamConfirmTimeout = null;
@@ -3081,7 +3082,7 @@
         metricSegments.push(`ΔEV ${evDisplay}`);
 
         const accPct = answered > 0
-          ? Math.round((correctDecisions / Math.max(1, answered)) * 100)
+          ? Math.round((accuracyPoints / Math.max(1, answered)) * 100)
           : null;
         metricSegments.push(`Accuracy ${accPct !== null ? `${accPct}%` : '--'}`);
 
@@ -3854,6 +3855,13 @@
         if(feedback?.correct){
           correctDecisions += 1;
         }
+        const rawAccuracy = typeof feedback?.accuracy === 'number' ? feedback.accuracy : null;
+        if(rawAccuracy != null && Number.isFinite(rawAccuracy)){
+          const clamped = Math.max(0, Math.min(1, rawAccuracy));
+          accuracyPoints += clamped;
+        } else if(feedback?.correct){
+          accuracyPoints += 1;
+        }
         const bestLabel = feedback?.best?.key || 'Best';
         const evLossRaw = typeof feedback?.ev_loss === 'number' ? feedback.ev_loss : null;
         const lossMagnitude = evLossRaw == null ? null : Math.abs(evLossRaw);
@@ -4249,6 +4257,7 @@
           sid = data.session;
           answered = 0;
           correctDecisions = 0;
+          accuracyPoints = 0;
           totalEvLost = 0;
           sessionHands = hands;
           pending = false;
@@ -4414,11 +4423,19 @@
         const s = prefetched || await api(`/api/v1/session/${sid}/summary`);
         const decisions = s.decisions ?? answered;
         const totalDecisions = typeof decisions === 'number' ? decisions : 0;
-        const accuracyPct = totalDecisions ? Math.round((s.hits / totalDecisions) * 100) : 0;
+        const rawAccuracyPct = typeof s.accuracy_pct === 'number'
+          ? s.accuracy_pct
+          : (totalDecisions ? (100 * (s.hits / totalDecisions)) : 0);
+        const normalizedAccuracyPct = Number.isFinite(rawAccuracyPct) ? rawAccuracyPct : 0;
+        const accuracyPct = Math.round(normalizedAccuracyPct);
         const hitsDisplay = `${s.hits || 0}/${totalDecisions || 0}`;
         const summaryEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
         const deltaEv = -summaryEvLost;
         const avgDelta = s.hands ? deltaEv / s.hands : deltaEv;
+        if(totalDecisions > 0){
+          accuracyPoints = (normalizedAccuracyPct / 100) * totalDecisions;
+        }
+        correctDecisions = s.hits || 0;
 
         if(summaryHeroScore){
           const scoreValue = Number.isFinite(s.score) ? Math.round(s.score) : 0;
@@ -4484,6 +4501,9 @@
           answered = 0;
           pending = false;
           pendingSummary = null;
+          correctDecisions = 0;
+          accuracyPoints = 0;
+          totalEvLost = 0;
           resetFeedback();
           setStartButtonState(false);
           setSummaryAvailability(false);

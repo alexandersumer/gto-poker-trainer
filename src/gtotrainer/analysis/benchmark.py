@@ -115,7 +115,7 @@ class BenchmarkRun:
 
     @property
     def accuracy_pct(self) -> float:
-        return (100.0 * self.stats.hits / self.stats.decisions) if self.stats.decisions else 0.0
+        return self.stats.accuracy_pct
 
     @property
     def exploitability_bb(self) -> float:
@@ -129,7 +129,7 @@ class BenchmarkResult:
 
     @property
     def accuracy_pct(self) -> float:
-        return (100.0 * self.combined.hits / self.combined.decisions) if self.combined.decisions else 0.0
+        return self.combined.accuracy_pct
 
     @property
     def exploitability_bb(self) -> float:

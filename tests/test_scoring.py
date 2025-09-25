@@ -85,3 +85,35 @@ def test_summary_tracks_hits_and_ev_loss_with_noise_floor():
     assert summary.hits == 2
     assert summary.total_ev_lost == pytest.approx(1.02, rel=1e-6)
     assert summary.avg_ev_lost == pytest.approx(1.02 / 3, rel=1e-6)
+
+
+def test_ev_band_accuracy_curve_respects_warning_band():
+    def make_record(loss: float, *, pot: float = 20.0, idx: int = 0) -> dict:
+        return {
+            "best_ev": 1.0,
+            "chosen_ev": 1.0 - loss,
+            "pot_bb": pot,
+            "best_key": f"best_{idx}",
+            "chosen_key": f"choice_{idx}",
+            "hand_index": idx,
+        }
+
+    def accuracy_for(loss: float) -> float:
+        record = make_record(loss, idx=int(loss * 100))
+        stats = scoring.summarize_records_with_scheme([record], accuracy_scheme=scoring.AccuracyScheme.EV_BANDS)
+        return stats.accuracy_pct
+
+    assert accuracy_for(0.0) == pytest.approx(100.0)
+    assert accuracy_for(0.1) == pytest.approx(96.1941757068, rel=1e-9)
+    assert accuracy_for(0.5) == pytest.approx(71.9644465063, rel=1e-9)
+    assert accuracy_for(1.5) == pytest.approx(31.8814075811, rel=1e-9)
+    assert accuracy_for(12.0) == pytest.approx(0.0)
+
+
+def test_active_accuracy_scheme_defaults_to_ev_bands(monkeypatch):
+    monkeypatch.delenv("GTOTRAINER_ACCURACY_SCHEME", raising=False)
+    scoring.clear_accuracy_scheme_cache_for_tests()
+    try:
+        assert scoring.active_accuracy_scheme() is scoring.AccuracyScheme.EV_BANDS
+    finally:
+        scoring.clear_accuracy_scheme_cache_for_tests()
