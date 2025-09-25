@@ -44,6 +44,7 @@ const results = cases.map((sample)=>{{
     tone: output.tone,
     evLossBb: output.evLossBb,
     thresholds: output.thresholds,
+    isGtoMatch: output.isGtoMatch,
   }}}};
 }});
 process.stdout.write(JSON.stringify(results));
@@ -144,3 +145,26 @@ def test_feedback_classifier_gain_tinting():
     results = _run_node(cases)
     assert results["gain_case"]["state"] == "gain"
     assert abs(results["gain_case"]["evLossBb"] - 0.05) < 1e-9
+
+
+def test_feedback_classifier_gto_match_flag():
+    cases = [
+        {
+            "id": "exact_zero",
+            "args": {"feedback": {}, "node": {"pot_bb": 10}, "evLossRaw": 0.0},
+        },
+        {
+            "id": "tiny_within",
+            "args": {"feedback": {}, "node": {"pot_bb": 10}, "evLossRaw": 0.0004},
+        },
+        {
+            "id": "outside_noise",
+            "args": {"feedback": {}, "node": {"pot_bb": 10}, "evLossRaw": 0.01},
+        },
+    ]
+
+    results = _run_node(cases)
+
+    assert results["exact_zero"]["isGtoMatch"] is True
+    assert results["tiny_within"]["isGtoMatch"] is True  # treated as zero-loss match
+    assert results["outside_noise"]["isGtoMatch"] is False
