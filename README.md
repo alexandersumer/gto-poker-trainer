@@ -1,123 +1,82 @@
 # gtotrainer
 
-Heads-up no-limit hold’em training built on FastAPI with a responsive web UI. The engine simulates full hands, evaluates every decision, and reports EV loss so you can drill and review.
+Heads-up no-limit hold'em training built with FastAPI and a responsive web UI. Full hands are simulated, every decision is scored, and EV deltas make it easy to drill and review.
 
 Hosted app: [gto.alexandersumer.com](https://gto.alexandersumer.com/)
 
-## Contents
+## Prerequisites
 
-- [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Local Development](#local-development)
-  - [Web UI](#web-ui)
-  - [HTTP API](#http-api)
-- [Tooling](#tooling)
-  - [Git Hooks](#git-hooks)
-  - [Make Targets](#make-targets)
-- [Tests](#tests)
-- [Architecture](#architecture)
-- [License](#license)
-
-## Requirements
-
-- Python **3.13.7** (matches CI and container images; manage with `pyenv` or similar).
+- Python **3.13.7** (matches CI and the published container images).
 - [uv](https://docs.astral.sh/uv/) for dependency and tool management.
 
-## Quick Start
+## Set Up
 
-1. Install uv if it is not already available.
+1. Install uv (if not already available).
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
-2. Sync dependencies with the locked dev environment.
+2. Sync the locked development environment.
    ```bash
    uv sync --no-config --locked --extra dev --no-build-isolation-package eval7
    ```
-3. Run the trainer locally.
-   ```bash
-   uv run --no-config --locked --extra dev -- uvicorn gtotrainer.web.app:app --reload
-   ```
+   `--no-config` keeps local uv settings from drifting off the locked resolver.
 
-Common follow-ups:
+## Run The Trainer Locally
 
-- Run tests: `uv run --no-config --locked --extra dev -- pytest -q`
+Start the FastAPI app with live reload:
+```bash
+uv run --no-config --locked --extra dev -- uvicorn gtotrainer.web.app:app --reload
+```
+The app serves the full web UI at `http://127.0.0.1:8000`.
+
+Optional environment variables:
+
+- `HANDS` - default number of scenarios to queue in a session.
+- `MC` - Monte Carlo sample count per evaluation.
+
+## Tests & Quality Gates
+
+- Unit + integration tests: `uv run --no-config --locked --extra dev -- pytest -q`
 - Lint: `uv run --no-config --locked --extra dev -- ruff check .`
 - Format: `uv run --no-config --locked --extra dev -- ruff format .`
+- CI parity (Playwright + full suite):
+  ```bash
+  uv run --no-config --locked --extra dev -- python -m playwright install --with-deps chromium
+  uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh
+  ```
 
-Every `uv` command intentionally includes `--no-config` so local configuration cannot override the locked resolver settings.
+## HTTP API
 
-## Local Development
-
-### Web UI
-
-`uvicorn` serves the full web experience at `http://127.0.0.1:8000`. Set optional environment variables to seed sessions:
-
-- `HANDS` — default number of scenarios in a session.
-- `MC` — Monte Carlo sample count per evaluation.
-
-Session accuracy is noise-aware: small EV gaps earn partial credit so the
-headline number mirrors solver tolerances.
-
-### HTTP API
-
-All routes are versioned under `/api/v1`.
+All routes live under `/api/v1`:
 
 | Method & Path | Purpose |
 | --- | --- |
-| `POST /api/v1/session` | Create a session (`{"session": "..."}`). |
-| `GET /api/v1/session/{id}/node` | Fetch the current node payload and available options. |
-| `POST /api/v1/session/{id}/choose` | Submit a decision and receive the next node. |
-| `GET /api/v1/session/{id}/summary` | Retrieve the aggregated session summary. |
+| `POST /api/v1/session` | Start a session (`{"session": "..."}`). |
+| `GET /api/v1/session/{id}/node` | Retrieve the current node payload and available options. |
+| `POST /api/v1/session/{id}/choose` | Submit a decision and fetch the next node. |
+| `GET /api/v1/session/{id}/summary` | Return aggregated session results. |
 
-Include `HX-Request: true` to receive HTML partials (node panel, feedback, summary) for HTMX swaps. JSON is returned when the header is absent.
+Add `HX-Request: true` to get HTML partials (for HTMX swaps); omit it for JSON.
 
-## Tooling
+## Developer Tooling
 
-### Git Hooks
+- Git hooks live in `.githooks`. Enable them with `git config core.hooksPath .githooks`.
+- Helpful Make targets:
 
-Point Git to the repo-managed hooks so local commits mirror CI checks:
+  | Target | Description |
+  | --- | --- |
+  | `make install-dev` | Runs the uv sync command above. |
+  | `make check` | Runs Ruff lint and pytest (CI parity). |
+  | `make lint` / `make format` | Ruff lint and formatter. |
+  | `make test` | `pytest -q`. |
+  | `make render-smoke` | Build the Render image and hit `/healthz`. |
 
-```bash
-git config core.hooksPath .githooks
-```
+## Architecture Highlights
 
-The `pre-commit` hook formats staged Python files, runs Ruff format and lint, then executes pytest via uv. On success it writes `.git/.precommit_passed`, which the `pre-push` hook requires before allowing pushes.
-
-### Make Targets
-
-| Target | Description |
-| --- | --- |
-| `make install-dev` | Run the uv sync command with dev extras. |
-| `make check` | Run Ruff lint and pytest (CI parity). |
-| `make test` | Run `pytest -q`. |
-| `make lint` | Run Ruff lint. |
-| `make format` | Run the Ruff formatter. |
-| `make render-smoke` | Build the Render image and call `/healthz`. |
-
-## Tests
-
-CI installs Playwright, runs Ruff format/lint, and executes the full pytest suite (unit, solver, calibration, browser). To mirror that flow:
-
-```bash
-uv run --no-config --locked --extra dev -- python -m playwright install --with-deps chromium
-uv run --no-config --locked --extra dev -- scripts/run_ci_tests.sh
-```
-
-Helpful shortcuts:
-
-- `make check` – Ruff + full pytest (CI parity).
-- `pytest -m "not browser"` – skip the Playwright runs when iterating quickly.
-- `pytest tests/calibration` – lock regression output against saved solver snapshots.
-
-## Architecture
-
-- **Episode generation** – `dynamic.generator` assembles preflop-to-river node trees using sampled seat assignments and rival profiles from `_STYLE_LIBRARY`.
-- **Ranges & equities** – `dynamic.range_model`, `dynamic.hand_strength`, and `dynamic.preflop_mix` maintain weighted combo ranges street-to-street; `dynamic.equity` batches Monte Carlo trials through `eval7`, NumPy, and Numba with deterministic caching.
-- **Decision policy** – `dynamic.policy` exposes `options_for` / `resolve_for`, carrying range weights into postflop, building river subgames (fold/call/jam branches), and feeding them into the CFR backend (`dynamic.cfr.LocalCFRBackend`) with multi-action payoffs.
-- **Rival modelling** – `dynamic.rival_strategy` consumes the stored weights to bias fold/call decisions, sample jams, and adapt to repeated hero aggression without peeking at hero cards.
-- **Session flow** – `features.session.service.SessionManager` drives the hand loop, formats options, aggregates results, and serves both JSON and HTML fragments via FastAPI routers. Blocking work runs in an async-aware worker pool (`features.session.concurrency`).
-- **Solver data** – `solver.oracle.CSVStrategyOracle` loads optional preflop charts and falls back to the dynamic policy when no chart applies; `CompositeOptionProvider` swaps between them per node.
-- **Calibration guardrails** – `tests/calibration` locks select solver outputs so regressions in EV, fold rates, or rival mixes are caught automatically.
+- **Episode generation** - `dynamic.generator` builds preflop-to-river trees with sampled seats and rival profiles.
+- **Ranges & equities** - `dynamic.range_model`, `dynamic.hand_strength`, and `dynamic.preflop_mix` keep combo weights updated; `dynamic.equity` batches Monte Carlo trials through `eval7`, NumPy, and Numba.
+- **Decision policy** - `dynamic.policy` resolves options via the CFR backend (`dynamic.cfr.LocalCFRBackend`) and returns multi-action payoffs.
+- **Session flow** - `features.session.service.SessionManager` orchestrates the loop, formats responses, and serves both JSON and HTML fragments.
 
 ## License
 
