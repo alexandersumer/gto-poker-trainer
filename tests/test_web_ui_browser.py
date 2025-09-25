@@ -166,7 +166,7 @@ def test_start_button_state_transitions() -> None:
         browser.close()
 
 
-def test_feedback_drawer_after_action() -> None:
+def test_feedback_breakdown_after_action() -> None:
     console_errors: list[str] = []
     page_errors: list[str] = []
 
@@ -190,16 +190,14 @@ def test_feedback_drawer_after_action() -> None:
             "() => !document.querySelector('#feedback-banner').classList.contains('hidden')",
             timeout=15_000,
         )
-
-        page.click("#feedback-detail")
         page.wait_for_function(
-            "() => !document.querySelector('#feedback-drawer').classList.contains('hidden')",
+            "() => document.querySelector('#feedback-breakdown') && !document.querySelector('#feedback-breakdown').classList.contains('hidden')",
             timeout=10_000,
         )
 
-        drawer_html = page.inner_html("#feedback-drawer-body").lower()
-        assert "gto recommendation" in drawer_html
-        assert "drawer-row" in drawer_html
+        breakdown_html = page.inner_html("#feedback-breakdown").lower()
+        assert "gto recommendation" in breakdown_html
+        assert "feedback-breakdown__row" in breakdown_html
 
         assert not console_errors, f"Console errors captured: {console_errors}"
         assert not page_errors, f"Page errors captured: {page_errors}"
