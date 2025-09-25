@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Sequence
-import math
 
 import pytest
 
@@ -50,6 +50,9 @@ def test_session_manager_basic_flow():
     feedback = choice_payload["feedback"]
     assert "chosen" in feedback and "label" in feedback["chosen"]
     assert "accuracy" in feedback
+    assert "cumulative_ev_lost" in feedback
+    assert "cumulative_accuracy" in feedback
+    assert "decisions" in feedback
     assert 0.0 <= feedback["accuracy"] <= 1.0
     next_payload = choice_payload["next"]
     assert "done" in next_payload
@@ -104,6 +107,7 @@ def test_summary_payload_accuracy_matches_backend():
     assert payload.decisions == 3
     assert payload.hits == stats.hits
     assert payload.accuracy_pct == pytest.approx(stats.accuracy_pct)
+    assert payload.accuracy_points == pytest.approx(stats.accuracy_points)
     hits_ratio = (100.0 * payload.hits) / payload.decisions
     assert not math.isclose(payload.accuracy_pct, hits_ratio)
 
@@ -131,6 +135,7 @@ def test_summary_payload_accuracy_partial_credit():
     payload = _summary_payload(records)
     assert 0.0 < payload.accuracy_pct < 100.0
     assert payload.accuracy_pct != pytest.approx((100.0 * payload.hits) / payload.decisions)
+    assert payload.accuracy_points == pytest.approx(scoring.summarize_records(records).accuracy_points)
 
 
 def test_view_context_normalizes_core_fields():

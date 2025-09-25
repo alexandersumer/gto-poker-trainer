@@ -62,12 +62,16 @@ class SummaryPayload(_APIModel):
     avg_ev_lost: float
     avg_loss_pct: float
     accuracy_pct: float
+    accuracy_points: float
 
 
 class FeedbackPayload(_APIModel):
     correct: bool
     ev_loss: float
     accuracy: float
+    cumulative_ev_lost: float
+    cumulative_accuracy: float
+    decisions: int
     chosen: ActionSnapshot
     best: ActionSnapshot
     ended: bool

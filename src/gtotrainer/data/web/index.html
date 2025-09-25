@@ -3849,7 +3849,9 @@
         if(!feedbackBanner || !feedbackRecommendation || !feedbackChoice){
           return;
         }
-        if(typeof feedback?.ev_loss === 'number'){
+        if(typeof feedback?.cumulative_ev_lost === 'number'){
+          totalEvLost = Math.max(0, feedback.cumulative_ev_lost);
+        } else if(typeof feedback?.ev_loss === 'number'){
           totalEvLost += Math.max(0, feedback.ev_loss);
         }
         if(feedback?.correct){
@@ -3858,9 +3860,16 @@
         const rawAccuracy = typeof feedback?.accuracy === 'number' ? feedback.accuracy : null;
         if(rawAccuracy != null && Number.isFinite(rawAccuracy)){
           const clamped = Math.max(0, Math.min(1, rawAccuracy));
-          accuracyPoints += clamped;
+          if(typeof feedback?.cumulative_accuracy === 'number'){
+            accuracyPoints = Math.max(0, feedback.cumulative_accuracy);
+          } else {
+            accuracyPoints += clamped;
+          }
         } else if(feedback?.correct){
           accuracyPoints += 1;
+        }
+        if(typeof feedback?.decisions === 'number'){
+          answered = feedback.decisions;
         }
         const bestLabel = feedback?.best?.key || 'Best';
         const evLossRaw = typeof feedback?.ev_loss === 'number' ? feedback.ev_loss : null;
@@ -4432,8 +4441,12 @@
         const summaryEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
         const deltaEv = -summaryEvLost;
         const avgDelta = s.hands ? deltaEv / s.hands : deltaEv;
+        totalEvLost = summaryEvLost;
         if(totalDecisions > 0){
           accuracyPoints = (normalizedAccuracyPct / 100) * totalDecisions;
+        }
+        if(typeof s.accuracy_points === 'number'){
+          accuracyPoints = s.accuracy_points;
         }
         correctDecisions = s.hits || 0;
 
@@ -4481,7 +4494,7 @@
         if(!sid || pending) return;
         try{
           const summary = await api(`/api/v1/session/${sid}/summary`);
-          answered = summary.hands || answered;
+          answered = typeof summary.decisions === 'number' ? summary.decisions : answered;
           await showSummary(summary);
         } catch(err){
           console.error(err);

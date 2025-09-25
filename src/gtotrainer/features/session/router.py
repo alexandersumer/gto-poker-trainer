@@ -143,6 +143,7 @@ class _SessionController:
                 avg_ev_lost=0.0,
                 avg_loss_pct=0.0,
                 accuracy_pct=0.0,
+                accuracy_points=0.0,
             )
             return self._summary_fragment(request, summary)
         node = payload.node or NodePayload(

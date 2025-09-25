@@ -9,6 +9,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable
 
+from ...core.ev import effective_option_ev
 from ...core.formatting import format_option_label
 from ...core.models import Option
 from ...core.scoring import SummaryStats, decision_accuracy, summarize_records
@@ -98,6 +99,9 @@ class SessionState:
     current_index: int = 0
     records: list[dict[str, Any]] = field(default_factory=list)
     cached_options: dict[int, list[Option]] = field(default_factory=dict)
+    total_ev_lost: float = 0.0
+    accuracy_points: float = 0.0
+    decisions: int = 0
 
 
 class SessionManager:
@@ -187,6 +191,9 @@ class SessionManager:
             }
             state.records.append(record)
             accuracy_credit = decision_accuracy(record)
+            state.total_ev_lost += record["ev_loss"]
+            state.accuracy_points += accuracy_credit
+            state.decisions += 1
             ends = getattr(chosen_feedback, "ends_hand", False)
             episode = state.episodes[state.hand_index]
             state.current_index = len(episode.nodes) if ends else state.current_index + 1
@@ -209,6 +216,9 @@ class SessionManager:
             best=_snapshot(node, best),
             ended=ends,
             accuracy=accuracy_credit,
+            cumulative_ev_lost=state.total_ev_lost,
+            cumulative_accuracy=state.accuracy_points,
+            decisions=state.decisions,
         )
         return ChoiceResult(feedback=feedback, next_payload=next_payload)
 
@@ -294,18 +304,7 @@ def _ensure_options(state: SessionState, node: Node) -> list[Option]:
 
 
 def _effective_ev(option: Option) -> float:
-    meta = option.meta or {}
-    baseline = meta.get("baseline_ev")
-    try:
-        option_ev = float(option.ev)
-    except (TypeError, ValueError):
-        option_ev = float(meta.get("baseline_ev", 0.0))
-    if baseline is None:
-        return option_ev
-    try:
-        return max(option_ev, float(baseline))
-    except (TypeError, ValueError):
-        return option_ev
+    return effective_option_ev(option)
 
 
 def _node_payload(state: SessionState, node: Node) -> NodePayload:
@@ -365,4 +364,5 @@ def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
         avg_ev_lost=stats.avg_ev_lost,
         avg_loss_pct=stats.avg_loss_pct,
         accuracy_pct=accuracy_pct,
+        accuracy_points=stats.accuracy_points,
     )

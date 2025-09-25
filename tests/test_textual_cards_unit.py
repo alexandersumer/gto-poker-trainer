@@ -6,6 +6,7 @@ import pytest
 
 pytest.importorskip("textual")
 
+from gtotrainer.core.models import Option
 from gtotrainer.dynamic.episode import Node
 from gtotrainer.ui.textual_app import TrainerApp
 
@@ -110,6 +111,26 @@ def test_session_perf_fragment_reports_accuracy_and_ev():
     assert fragment is not None
     assert "ΔEV -1.25 bb" in fragment
     assert "75%" in fragment
+
+
+def test_show_step_feedback_counts_within_noise_hits():
+    app = TrainerApp()
+    node = Node(
+        street="flop",
+        description="Test",
+        pot_bb=12.0,
+        effective_bb=80.0,
+        hero_cards=[1, 2],
+        board=[3, 4, 5],
+        actor="BTN",
+    )
+    best = Option("raise", 1.00, "", meta={"baseline_ev": 1.00})
+    chosen = Option("call", 0.98, "", meta={"baseline_ev": 0.98})
+
+    assert app._best_hits == 0
+    app.show_step_feedback(node, chosen, best)
+    assert app._best_hits == 1
+    assert pytest.approx(app._accuracy_points, rel=1e-9) >= 0.99
 
 
 def test_preparing_text_includes_hint():

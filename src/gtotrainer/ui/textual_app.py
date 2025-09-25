@@ -675,7 +675,7 @@ class TrainerApp(App[None]):
         }
         accuracy_credit = decision_accuracy(record)
         self._decisions_played += 1
-        if correct:
+        if accuracy_credit >= 0.999:
             self._best_hits += 1
         self._accuracy_points += accuracy_credit
         self._total_ev_lost += max(0.0, ev_loss)
