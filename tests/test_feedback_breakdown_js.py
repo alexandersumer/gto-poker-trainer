@@ -95,6 +95,9 @@ def test_breakdown_collapses_for_gto_match_with_different_keys():
     results = _run_breakdown(cases)
     html = results["mixed_zero_loss"].lower()
     assert "solver matched" in html
+    assert "feedback-breakdown__detail" in html
+    assert "gto matched; no ev loss." in html
+    assert "feedback-breakdown__divider" not in html
     assert "solver best line" not in html
     assert "your decision" not in html
 
@@ -104,8 +107,8 @@ def test_breakdown_shows_both_rows_when_not_matched():
         {
             "id": "miss",
             "feedback": {
-                "best": {"key": "bet_pot", "label": "Bet pot", "ev": 1.40},
-                "chosen": {"key": "call", "label": "Call", "ev": 1.10},
+                "best": {"key": "bet_pot", "label": "Bet pot", "ev": 1.40, "why": "Apply pressure"},
+                "chosen": {"key": "call", "label": "Call", "ev": 1.10, "why": "Control pot"},
                 "alternatives": [],
             },
             "classification": {"isGtoMatch": False},
@@ -115,6 +118,9 @@ def test_breakdown_shows_both_rows_when_not_matched():
     html = results["miss"].lower()
     assert "solver best line" in html
     assert "your decision" in html
+    assert "feedback-breakdown__detail" in html
+    assert "feedback-breakdown__divider" in html
+    assert "loses ev versus solver line." in html
 
 
 def test_breakdown_handles_exact_match_without_classification():
@@ -132,6 +138,9 @@ def test_breakdown_handles_exact_match_without_classification():
     results = _run_breakdown(cases)
     html = results["same_key_zero"].lower()
     assert "solver matched" in html
+    assert "feedback-breakdown__detail" in html
+    assert "gto matched; no ev loss." in html
+    assert "feedback-breakdown__divider" not in html
     assert "solver best line" not in html
     assert "your decision" not in html
 
@@ -151,5 +160,30 @@ def test_breakdown_treats_same_key_without_ev_data_as_match():
     results = _run_breakdown(cases)
     html = results["same_key_missing_ev"].lower()
     assert "solver matched" in html
+    assert "feedback-breakdown__detail" in html
+    assert "gto matched; no ev loss." in html
+    assert "feedback-breakdown__divider" not in html
     assert "solver best line" not in html
     assert "your decision" not in html
+
+
+def test_breakdown_includes_alt_footnote_when_present():
+    cases = [
+        {
+            "id": "alts",
+            "feedback": {
+                "best": {"key": "bet_pot", "label": "Bet pot", "ev": 1.50, "why": "Apply pressure"},
+                "chosen": {"key": "call", "label": "Call", "ev": 1.30, "why": "Control pot"},
+                "alternatives": [
+                    {"key": "bet_half", "label": "Bet 1/2 pot", "ev": 1.45},
+                    {"key": "check", "label": "Check", "ev": 1.42},
+                ],
+            },
+            "classification": {"isGtoMatch": False},
+        }
+    ]
+    results = _run_breakdown(cases)
+    html = results["alts"].lower()
+    assert "close alternative 1" in html
+    assert "alternatives remain within solver tolerance." in html
+    assert "behind solver mix." in html

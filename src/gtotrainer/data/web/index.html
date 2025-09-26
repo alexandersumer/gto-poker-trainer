@@ -1904,7 +1904,7 @@
       .feedback-breakdown {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
         margin-top: 8px;
       }
       .feedback-breakdown.hidden {
@@ -1914,8 +1914,8 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: flex-start;
-        gap: 12px;
-        padding: 10px 12px;
+        gap: 10px;
+        padding: 8px 12px;
         border-radius: var(--radius-sm);
         border: 1px solid color-mix(in srgb, var(--outline) 60%, transparent);
         background: color-mix(in srgb, var(--surface-1) 94%, transparent);
@@ -1923,7 +1923,7 @@
       .feedback-breakdown__main {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 3px;
         min-width: 0;
       }
       .feedback-breakdown__tag {
@@ -1977,19 +1977,27 @@
       #feedback-breakdown[data-state="gain"] .feedback-breakdown__row--player .feedback-breakdown__ev {
         color: var(--feedback-success-ev);
       }
-      .feedback-breakdown__why {
-        font-size: 0.8rem;
+      .feedback-breakdown__detail {
+        font-size: 0.78rem;
         line-height: 1.35;
-        color: var(--text-secondary);
+        color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+      }
+      .feedback-breakdown__divider {
+        display: inline-flex;
+        align-items: center;
+        margin: 0 0.45em;
+        color: color-mix(in srgb, var(--text-secondary) 65%, transparent);
+        font-size: 0.72rem;
       }
       .feedback-breakdown__meta {
         font-size: 0.72rem;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+        color: color-mix(in srgb, var(--text-secondary) 68%, transparent);
       }
       .feedback-breakdown__meta--alt {
         padding: 0 12px;
+        margin-top: 2px;
       }
       :root[data-theme="dark"] .feedback-breakdown__row {
         background: color-mix(in srgb, var(--surface-2) 94%, transparent);
@@ -3657,20 +3665,27 @@
           if(!opt) return;
           const rawEv = typeof opt.ev === 'number' ? opt.ev : null;
           const evLabel = evOverride ?? formatEvLabel('EV', rawEv);
-          const choiceLabel = opt.key || opt.label || '—';
+          const choiceLabel = opt.label || opt.key || '—';
           const freqText = freqTextFor(opt);
           const freqMarkup = freqText ? ` ${escapeHtml(freqText)}` : '';
           const labelHtml = `${withCardMarkup(choiceLabel)}${freqMarkup}`;
-          const whyText = opt.why ? `<div class="feedback-breakdown__why">${withCardMarkup(opt.why)}</div>` : '';
-          const metaMarkup = metaText ? `<div class="feedback-breakdown__meta">${escapeHtml(metaText)}</div>` : '';
+          const detailParts = [];
+          if(opt.why){
+            detailParts.push(withCardMarkup(opt.why));
+          }
+          if(metaText){
+            detailParts.push(escapeHtml(metaText));
+          }
+          const detailHtml = detailParts.length
+            ? `<div class="feedback-breakdown__detail">${detailParts.join('<span class=\"feedback-breakdown__divider\">•</span>')}</div>`
+            : '';
           const tagClass = `feedback-breakdown__tag feedback-breakdown__tag--${variant}`;
           rows.push(`
             <div class="feedback-breakdown__row feedback-breakdown__row--${variant}">
               <div class="feedback-breakdown__main">
                 <span class="${tagClass}">${escapeHtml(tagText)}</span>
                 <span class="feedback-breakdown__label">${labelHtml}</span>
-                ${whyText}
-                ${metaMarkup}
+                ${detailHtml}
               </div>
               <div class="feedback-breakdown__ev">${escapeHtml(evLabel)}</div>
             </div>
@@ -3689,15 +3704,15 @@
 
         if(treatAsMatch){
           const matchEv = bestEv != null ? bestEv : chosenEv;
-          const metaText = matchEv != null ? 'GTO matched; EV loss 0.' : '';
+          const metaText = matchEv != null ? 'GTO matched; no EV loss.' : '';
           makeRow('match', 'Solver Matched', best || chosen, metaText, formatEvLabel('EV', matchEv));
         } else {
           makeRow('solver', 'Solver Best Line', best, '', formatEvLabel('EV', bestEv));
 
           const playerMeta = (() => {
             if(delta == null) return '';
-            if(approxZero(delta)) return 'EV gap is negligible.';
-            return delta > 0 ? 'Slightly ahead of the solver mix.' : 'Costs EV versus the solver line.';
+            if(approxZero(delta)) return 'EV gap negligible.';
+            return delta > 0 ? 'Slightly ahead of solver mix.' : 'Loses EV versus solver line.';
           })();
           makeRow('player', 'Your Decision', chosen, playerMeta, formatEvLabel('ΔEV', delta));
 
@@ -3711,16 +3726,16 @@
             const altLabel = altOptions.length > 1 ? `Close Alternative ${index + 1}` : 'Close Alternative';
             const altMeta = altDelta != null
               ? (approxZero(altDelta)
-                ? 'EV difference stays inside solver tolerance.'
+                ? 'Within solver tolerance.'
                 : altDelta > 0
-                  ? 'Outperforms the solver mix.'
-                  : 'Behind the solver mix.')
+                  ? 'Outperforms solver mix.'
+                  : 'Behind solver mix.')
               : '';
             makeRow('alt', altLabel, opt, altMeta, formatEvLabel('ΔEV', altDelta));
           });
 
           if(altOptions.length > 1){
-            rows.push('<div class="feedback-breakdown__meta feedback-breakdown__meta--alt">Alternatives cluster inside solver tolerance.</div>');
+            rows.push('<div class="feedback-breakdown__meta feedback-breakdown__meta--alt">Alternatives remain within solver tolerance.</div>');
           }
         }
 
