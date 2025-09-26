@@ -364,7 +364,7 @@ def _solve_combo_profile(
         Option(
             key="Fold",
             ev=0.0,
-            why="Fold preflop.",
+            why="Fold preflop to avoid defending a losing combo.",
             ends_hand=True,
             meta={
                 "supports_cfr": True,
@@ -384,7 +384,10 @@ def _solve_combo_profile(
         Option(
             key="Call",
             ev=call_ev,
-            why="Call the open raise.",
+            why=(
+                f"Pot odds: call {call_cost:.2f} bb to contest a {final_pot_call:.2f} bb pot. "
+                f"This combo realises about {avg_eq * 100:.1f}% equity versus the open."
+            ),
             meta={
                 "supports_cfr": True,
                 "hero_ev_fold": call_ev,
@@ -422,7 +425,10 @@ def _solve_combo_profile(
             Option(
                 key=f"3-bet to {raise_to:.2f}bb",
                 ev=ev,
-                why=f"Three-bet to {raise_to:.2f}bb.",
+                why=(
+                    f"3-bet to {raise_to:.2f} bb. Villain folds roughly {fe * 100:.0f}% and, when called, "
+                    f"you carry about {avg_eq_called * 100:.1f}% equity for {hero_ev_continue:.2f} bb EV."
+                ),
                 meta={
                     "supports_cfr": True,
                     "hero_ev_fold": hero_ev_fold,
@@ -452,7 +458,10 @@ def _solve_combo_profile(
                 Option(
                     key="All-in",
                     ev=ev,
-                    why="Jam all-in.",
+                    why=(
+                        f"Jam all-in to leverage fold equity (about {fe * 100:.0f}% folds). "
+                        f"If called you still hold roughly {avg_eq_called * 100:.1f}% equity for {hero_ev_continue:.2f} bb EV."
+                    ),
                     ends_hand=True,
                     meta={
                         "supports_cfr": True,

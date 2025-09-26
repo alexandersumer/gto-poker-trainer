@@ -735,7 +735,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         Option(
             "Fold",
             0.0,
-            f"Fold now and lose nothing extra. Recommended {fold_freq:.0%} of the time versus this open.",
+            f"Folding keeps your stack intact. Solver folds about {fold_freq:.0%} against this open.",
             gto_freq=fold_freq,
             ends_hand=True,
             meta={
@@ -755,9 +755,9 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
                 "Call",
                 avg_range_eq * final_pot_call - call_cost,
                 (
-                    f"Pot odds: call {call_cost:.2f} bb to win {final_pot_call:.2f} bb. "
-                    f"Need ≈{_fmt_pct(be_call_eq, 1)} equity, hand has {_fmt_pct(avg_range_eq, 1)}. "
-                    f"Solver mix suggests calling {call_freq:.0%}."
+                    f"Pot odds: call {call_cost:.2f} bb to play for {final_pot_call:.2f} bb. "
+                    f"You need about {_fmt_pct(be_call_eq, 1)} equity and this combo shows {_fmt_pct(avg_range_eq, 1)}. "
+                    f"Solver calls roughly {call_freq:.0%}."
                 ),
                 gto_freq=call_freq,
                 meta={
@@ -795,9 +795,8 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
         why = (
-            f"Rival folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
-            f"When called (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(avg_eq_when_called, 1)} equity "
-            f"→ EV {ev_called:.2f} bb."
+            f"Villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)} to continue). "
+            f"When called (~{_fmt_pct(continue_ratio)}) you keep {_fmt_pct(avg_eq_when_called, 1)} equity, for a continue EV of {ev_called:.2f} bb."
         )
         profile, continue_range = _rival_profile(
             sampled_range,
@@ -828,7 +827,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             Option(
                 f"3-bet to {raise_to:.2f}bb",
                 ev,
-                why + f" Solver mix uses this sizing {raise_share:.0%} of the time.",
+                why + f" Solver takes this size about {raise_share:.0%} of the time.",
                 gto_freq=raise_share,
                 meta=meta,
             )
@@ -848,9 +847,8 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
         why_jam = (
-            f"Rival folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
-            f"When called (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(avg_eq_when_called, 1)} equity "
-            f"→ EV {ev_called:.2f} bb."
+            f"Villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)} to call). "
+            f"When called (~{_fmt_pct(continue_ratio)}) you hold {_fmt_pct(avg_eq_when_called, 1)} equity, which yields {ev_called:.2f} bb EV."
         )
         profile, continue_range = _rival_profile(
             sampled_range,
@@ -882,7 +880,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             Option(
                 "All-in",
                 ev,
-                why_jam + f" Solver mix jams {jam_freq:.0%}.",
+                why_jam + f" Solver jams here about {jam_freq:.0%}.",
                 gto_freq=jam_freq,
                 ends_hand=True,
                 meta=meta,
@@ -917,7 +915,7 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
         Option(
             "Check",
             avg_eq * pot,
-            f"Take the free card with {_fmt_pct(avg_eq, 1)} equity.",
+            f"Checking takes the free card and realises about {_fmt_pct(avg_eq, 1)} equity.",
             meta={
                 "street": "turn",
                 "action": "check",
@@ -951,8 +949,8 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
         ev_called = eq_call * final_pot - bet if continue_ratio else -bet
         ev = fe * pot + (1 - fe) * ev_called
         why = (
-            f"Bet {int(pct * 100)}%: rival folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
-            f"Calls (~{_fmt_pct(continue_ratio)}) give {_fmt_pct(eq_call, 1)} equity → EV {ev_called:.2f} bb."
+            f"Bet {int(pct * 100)}% pot. Villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)} to continue). "
+            f"When called (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(eq_call, 1)} equity and the plan nets {ev_called:.2f} bb EV."
         )
         profile, continue_range = _rival_profile(
             sampled_range,
@@ -1016,8 +1014,8 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
                 "All-in",
                 ev,
                 (
-                    f"All-in: rival folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
-                    f"Calls (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(eq_call, 1)} → EV {ev_called:.2f} bb."
+                    f"Shove puts max pressure: villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)} to call). "
+                    f"When called (~{_fmt_pct(continue_ratio)}) you carry {_fmt_pct(eq_call, 1)} equity for {ev_called:.2f} bb EV."
                 ),
                 ends_hand=True,
                 meta=meta,
@@ -1049,7 +1047,7 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         Option(
             "Check",
             avg_eq * pot,
-            f"Realize equity {_fmt_pct(avg_eq, 1)} in-position.",
+            f"Checking keeps the pot small and realises about {_fmt_pct(avg_eq, 1)} equity.",
             meta={
                 "street": "flop",
                 "action": "check",
@@ -1079,11 +1077,10 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         ev_called = eq_call * final_pot - bet if continue_ratio else -bet
         ev = fe * pot + (1 - fe) * ev_called
         why = (
-            f"{int(pct * 100)}% pot: rival folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
-            f"Continuing range (~{_fmt_pct(continue_ratio)}) gives you {_fmt_pct(eq_call, 1)} equity "
-            f"→ EV {ev_called:.2f} bb."
+            f"Bet {int(pct * 100)}% pot. Villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)} to continue). "
+            f"When called (~{_fmt_pct(continue_ratio)}) you keep {_fmt_pct(eq_call, 1)} equity for {ev_called:.2f} bb EV. "
+            f"Size is {bet:.2f} bb, roughly {int(pct * 100)}% of the pot."
         )
-        why += f" Additional sizing detail: {bet:.2f} bb (equals {int(pct * 100)}% pot)."
         profile, continue_range = _rival_profile(
             sampled_range,
             tag=_rival_range_tag(node),
@@ -1147,8 +1144,8 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
                 "All-in",
                 ev,
                 (
-                    f"Full stack shove: rival folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
-                    f"When called you have {_fmt_pct(eq_call, 1)} → EV {ev_called:.2f} bb."
+                    f"Shove to apply max pressure: villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)} to call). "
+                    f"When called you still have {_fmt_pct(eq_call, 1)} equity and earn {ev_called:.2f} bb EV."
                 ),
                 ends_hand=True,
                 meta=meta,
@@ -1186,7 +1183,7 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
         Option(
             "Fold",
             0.0,
-            "Cut losses and fold river.",
+            "Fold now to save the river bet and reset for the next hand.",
             ends_hand=True,
             meta={
                 "street": "river",
@@ -1209,7 +1206,7 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
         Option(
             "Call",
             call_ev,
-            f"Calling invests {rival_bet:.2f}bb with {_fmt_pct(avg_eq, 1)} showdown equity.",
+            f"Pot odds: call {rival_bet:.2f} bb to see showdown with about {_fmt_pct(avg_eq, 1)} equity.",
             meta=call_meta,
         )
     )
@@ -1252,7 +1249,10 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
         Option(
             f"Raise to {raise_to:.2f} bb",
             ev,
-            f"Raise: FE {_fmt_pct(fe)}; EV {ev:.2f}bb.",
+            (
+                f"Raise to {raise_to:.2f} bb. Villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
+                f"When called (~{_fmt_pct(continue_ratio)}) you keep {_fmt_pct(eq_call, 1)} equity for {ev_called:.2f} bb EV."
+            ),
             meta=raise_meta,
         )
     )
@@ -1293,9 +1293,8 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
                 "All-in",
                 ev_ai,
                 (
-                    f"Jam: rival folds {_fmt_pct(fe_ai)} needing eq {_fmt_pct(be_threshold_allin, 1)}. "
-                    f"Calls (~{_fmt_pct(continue_ratio_ai)}) give {_fmt_pct(eq_call_ai, 1)} equity "
-                    f"→ EV {ev_called_ai:.2f} bb."
+                    f"Jam to apply max pressure: villain folds about {_fmt_pct(fe_ai)} (needs eq {_fmt_pct(be_threshold_allin, 1)} to call). "
+                    f"Calls (~{_fmt_pct(continue_ratio_ai)}) give {_fmt_pct(eq_call_ai, 1)} equity for {ev_called_ai:.2f} bb EV."
                 ),
                 ends_hand=True,
                 meta=jam_meta,
@@ -1337,7 +1336,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         Option(
             "Fold",
             0.0,
-            "Fold and wait for a better spot.",
+            "Fold now and preserve chips for a stronger spot.",
             ends_hand=True,
             meta={
                 "street": "turn",
@@ -1362,8 +1361,8 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
             "Call",
             avg_eq * final_pot_call - rival_bet,
             (
-                f"Pot odds: call {rival_bet:.2f} bb to win {final_pot_call:.2f} bb. "
-                f"Need {_fmt_pct(be_call_eq, 1)} equity, hand has {_fmt_pct(avg_eq, 1)}."
+                f"Pot odds: call {rival_bet:.2f} bb to play for {final_pot_call:.2f} bb. "
+                f"Need about {_fmt_pct(be_call_eq, 1)} equity and this hand shows {_fmt_pct(avg_eq, 1)}."
             ),
             meta=call_meta,
         )
@@ -1382,10 +1381,9 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     ev = fe * pot_before_action + (1 - fe) * ev_called
     fe_break_even = risk / (risk + pot_before_action) if (risk + pot_before_action) > 0 else 1.0
     why_raise = (
-        f"Rival folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
-        f"break-even FE {_fmt_pct(fe_break_even)}. "
-        f"Continuing (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(eq_call, 1)} equity → "
-        f"EV {ev_called:.2f} bb."
+        f"Villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)} to continue). "
+        f"Break-even FE {_fmt_pct(fe_break_even)} (break-even FE target). "
+        f"When called (~{_fmt_pct(continue_ratio)}) you have {_fmt_pct(eq_call, 1)} equity for {ev_called:.2f} bb EV."
     )
     profile, continue_range = _rival_profile(
         sampled_range,
@@ -1443,7 +1441,7 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         Option(
             "Check",
             avg_eq * pot,
-            f"Showdown equity {_fmt_pct(avg_eq, 1)} vs check range.",
+            f"Check to reach showdown; you have about {_fmt_pct(avg_eq, 1)} equity versus the check range.",
             meta={
                 "street": "river",
                 "action": "check",
@@ -1487,15 +1485,15 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
 
         ev = fe * pot + call_share * ev_called + jam_mass * hero_best_vs_jam
         why = (
-            f"Bet {int(pct * 100)}%: rival folds {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)}). "
-            f"Calls (~{_fmt_pct(continue_ratio)}) give you {_fmt_pct(eq_call, 1)} equity → EV {ev_called:.2f} bb."
+            f"Bet {int(pct * 100)}% pot. Villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)} to continue). "
+            f"When called (~{_fmt_pct(continue_ratio)}) you keep {_fmt_pct(eq_call, 1)} equity for {ev_called:.2f} bb EV."
         )
         if jam_mass > 0:
             why += (
-                f" Check-raise jams (~{_fmt_pct(jam_mass)}) best response EV {hero_best_vs_jam:.2f} bb"
-                f" (call EV {hero_call_ev:.2f} bb)."
+                f" Expect check-raise jams about {_fmt_pct(jam_mass)} of the time; best response EV is {hero_best_vs_jam:.2f} bb"
+                f" and calling the jam would be {hero_call_ev:.2f} bb."
             )
-        why += f" Additional sizing detail: {bet:.2f} bb (equals {int(pct * 100)}% pot)."
+        why += f" Size lands at {bet:.2f} bb, around {int(pct * 100)}% pot."
         profile, continue_range = _rival_profile(
             sampled_range,
             tag=_rival_range_tag(node),
@@ -1563,8 +1561,8 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
                 "All-in",
                 ev,
                 (
-                    f"All-in: rival folds {_fmt_pct(fe)} needing eq {_fmt_pct(be_threshold, 1)}. "
-                    f"Calls (~{_fmt_pct(continue_ratio)}) give you {_fmt_pct(eq_call, 1)} → EV {ev_called:.2f} bb."
+                    f"Shove to end the hand: villain folds about {_fmt_pct(fe)} (needs eq {_fmt_pct(be_threshold, 1)} to call). "
+                    f"Calls (~{_fmt_pct(continue_ratio)}) give you {_fmt_pct(eq_call, 1)} equity for {ev_called:.2f} bb EV."
                 ),
                 ends_hand=True,
                 meta=meta,

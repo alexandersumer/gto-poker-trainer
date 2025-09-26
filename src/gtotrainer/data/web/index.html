@@ -3688,7 +3688,7 @@
         const treatAsMatch = matchedClassification || (sameLine && approxZero(delta));
 
         if(treatAsMatch){
-          const metaText = bestEv != null ? 'Same decision as solver; EV loss 0.' : '';
+          const metaText = bestEv != null ? 'GTO matched; EV loss 0.' : '';
           makeRow('match', 'Solver Match', best || chosen, metaText, formatEvLabel('EV', bestEv));
         } else {
           makeRow('solver', 'Solver Best Line', best, '', formatEvLabel('EV', bestEv));
