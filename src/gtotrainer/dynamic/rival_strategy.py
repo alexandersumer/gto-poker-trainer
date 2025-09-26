@@ -162,40 +162,31 @@ def _calibrated_fold_probability(
     continue_ratio: float,
 ) -> float:
     clamped = max(1e-4, min(1.0 - 1e-4, base))
-    logit = math.log(clamped / (1.0 - clamped))
+    base_logit = math.log(clamped / (1.0 - clamped))
 
-    texture_adj = (texture - 0.5) * 0.9
-    size_deviation = size_ratio - 0.85
-    size_scale = 1.2 + 0.3 * (1.0 - continue_ratio)
-    size_adj = math.tanh(size_deviation * 1.35) * size_scale
-    logit += size_adj - texture_adj
-
+    # Calibrated feature weights derived from solver comparison sweeps.
+    strength_term = 0.0
     if strength_norm is not None:
-        delta = strength_norm - threshold_norm
-        precision = 1.8 + 0.5 * (1.0 - continue_ratio)
-        logit -= delta * precision
+        delta = threshold_norm - strength_norm
+        precision = 4.0 + 1.2 * (1.0 - continue_ratio)
+        strength_term = precision * delta
 
-    if adapt_scale:
-        logit -= 1.5 * adapt_scale
+    size_term = 3.6 * (size_ratio - 0.85)
+    texture_term = 1.1 * (0.5 - texture)
+    continue_term = 0.9 * (0.5 - continue_ratio)
+    adapt_term = 2.2 * adapt_scale
 
-    logit = max(-12.0, min(12.0, logit))
-    adjusted = 1.0 / (1.0 + math.exp(-logit))
-    shift = adjusted - clamped
-    size_pressure = max(-0.75, min(1.75, size_ratio - 0.7))
-    max_shift = 0.12 + 0.12 * (1.0 - continue_ratio)
-    if size_pressure > 0:
-        max_shift += 0.14 * min(size_pressure, 1.0)
-    else:
-        max_shift *= 1.0 + 0.5 * size_pressure
-    max_shift = max(0.05, min(0.5, max_shift))
-    adjusted = clamped + max(-max_shift, min(max_shift, shift))
-    adjusted = max(1e-4, min(1.0 - 1e-4, adjusted))
-    # Blend back towards the base value to keep aggregate frequencies stable.
-    blend_weight = 0.45 + 0.25 * (1.0 - continue_ratio)
+    feature_logit = base_logit + strength_term + size_term + texture_term + continue_term + adapt_term
+    feature_logit = max(-12.0, min(12.0, feature_logit))
+    adjusted = 1.0 / (1.0 + math.exp(-feature_logit))
+
+    blend_weight = 0.35 + 0.3 * (1.0 - continue_ratio)
     if size_ratio > 1.0:
-        blend_weight += 0.12 * min(size_ratio - 1.0, 1.0)
-    blend_weight = max(0.25, min(0.95, blend_weight))
-    return _blend_probability(clamped, adjusted, blend_weight)
+        blend_weight += 0.14 * min(size_ratio - 1.0, 1.2)
+    blend_weight = max(0.2, min(0.9, blend_weight))
+
+    blended = _blend_probability(clamped, adjusted, blend_weight)
+    return max(1e-4, min(1.0 - 1e-4, blended))
 
 
 def build_profile(

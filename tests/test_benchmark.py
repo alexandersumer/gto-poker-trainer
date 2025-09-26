@@ -21,6 +21,7 @@ def test_benchmark_deterministic_small_run() -> None:
 
     assert len(result_one.runs) == 1
     assert result_one.runs[0].scenario.name == "tiny"
+    assert result_one.runs[0].street_stats
     assert result_one.combined.hands == 5
     assert result_two.combined.hands == 5
     assert result_one.combined.decisions == result_two.combined.decisions

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 import random
+import logging
+import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
@@ -28,6 +30,9 @@ class EquityEstimate:
     equity: float
     std_error: float
     trials: int
+
+
+logger = logging.getLogger(__name__)
 
 
 class _Eval7MonteCarlo:
@@ -147,6 +152,13 @@ _LAST_MONTE_TRIALS = 0
 _LAST_MONTE_STD_ERROR = float("inf")
 
 
+def _stable_seed(*values: object) -> int:
+    hasher = hashlib.blake2b(digest_size=8)
+    for value in values:
+        hasher.update(repr(value).encode("utf-8"))
+    return int.from_bytes(hasher.digest(), "big") & 0xFFFFFFFF
+
+
 def estimate_equity(
     hero: list[int],
     board: list[int],
@@ -190,7 +202,7 @@ def _cached_equity(
 ) -> float:
     if len(board) >= 3:
         return _enumerate_remaining(hero, board, rival)
-    seed = hash((hero, board, rival, trials, round(target_std_error or 0.0, 4))) & 0xFFFFFFFF
+    seed = _stable_seed(hero, board, rival, trials, round(target_std_error or 0.0, 4))
     rng = random.Random(seed)
     hero_list = list(hero)
     board_list = list(board)
@@ -268,6 +280,8 @@ def _adaptive_monte_carlo(
     wins = 0
     ties = 0
     total_trials = 0
+    sum_payoff = 0.0
+    sum_sq = 0.0
     std_error = float("inf")
 
     while total_trials < max_trials:
@@ -286,23 +300,54 @@ def _adaptive_monte_carlo(
         ties += chunk_ties
         total_trials += chunk_total
 
-        equity = (wins + 0.5 * ties) / total_trials if total_trials else 0.0
-        variance = max(equity * (1 - equity), 0.0)
-        std_error = math.sqrt(variance / total_trials) if total_trials else float("inf")
+        sum_payoff += chunk_wins + 0.5 * chunk_ties
+        sum_sq += chunk_wins + 0.25 * chunk_ties
+
+        if total_trials > 0:
+            equity = sum_payoff / total_trials
+            if total_trials > 1:
+                numerator = sum_sq - total_trials * equity * equity
+                if numerator < 0 and abs(numerator) < 1e-12:
+                    numerator = 0.0
+                sample_variance = max(0.0, numerator / (total_trials - 1))
+                std_error = math.sqrt(sample_variance / total_trials)
+            else:
+                std_error = float("inf")
+        else:
+            equity = 0.0
+            std_error = float("inf")
 
         if total_trials >= min_trials and std_error <= target:
             break
 
-    equity = (wins + 0.5 * ties) / max(1, total_trials)
-    if total_trials and (not math.isfinite(std_error) or std_error < 0):
-        variance = max(equity * (1 - equity), 0.0)
-        std_error = math.sqrt(variance / total_trials)
-    if not total_trials:
+    if total_trials > 0:
+        equity = sum_payoff / total_trials
+        if (not math.isfinite(std_error) or std_error < 0) and total_trials > 1:
+            numerator = sum_sq - total_trials * equity * equity
+            if numerator < 0 and abs(numerator) < 1e-12:
+                numerator = 0.0
+            sample_variance = max(0.0, numerator / (total_trials - 1))
+            std_error = math.sqrt(sample_variance / total_trials)
+        elif total_trials == 1:
+            std_error = float("inf")
+    else:
+        equity = 0.0
         std_error = float("inf")
 
     global _LAST_MONTE_TRIALS, _LAST_MONTE_STD_ERROR
     _LAST_MONTE_TRIALS = total_trials
     _LAST_MONTE_STD_ERROR = std_error
+
+    if target_std_error is not None and math.isfinite(std_error) and std_error > target_std_error + 1e-6:
+        logger.warning(
+            "Monte Carlo equity estimate exceeded target precision",
+            extra={
+                "equity": equity,
+                "std_error": std_error,
+                "target": target_std_error,
+                "trials": total_trials,
+            },
+        )
 
     if return_stats:
         return EquityEstimate(equity=equity, std_error=std_error, trials=total_trials)
@@ -351,7 +396,7 @@ def hero_equity_vs_combo_stats(
         board_list,
         rival_list,
         base_trials=trials,
-        rng=random.Random(hash((hero_canon, board_canon, rival_canon, trials, round(target or 0.0, 4))) & 0xFFFFFFFF),
+        rng=random.Random(_stable_seed(hero_canon, board_canon, rival_canon, trials, round(target or 0.0, 4))),
         target_std_error=target,
         return_stats=True,
     )

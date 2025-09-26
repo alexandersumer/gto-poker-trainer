@@ -1,0 +1,30 @@
+{
+  "config": {
+    "hands": 40,
+    "seeds": [101, 202, 303],
+    "mc_trials": 96,
+    "rival_style": "balanced"
+  },
+  "combined": {
+    "avg_ev_lost": 1.322898,
+    "accuracy_pct": 60.3973
+  },
+  "street": {
+    "flop": {
+      "avg_ev_lost": 0.380635,
+      "accuracy_pct": 65.9782
+    },
+    "preflop": {
+      "avg_ev_lost": 0.264381,
+      "accuracy_pct": 67.7303
+    },
+    "river": {
+      "avg_ev_lost": 5.369254,
+      "accuracy_pct": 19.6071
+    },
+    "turn": {
+      "avg_ev_lost": 0.751836,
+      "accuracy_pct": 77.1475
+    }
+  }
+}

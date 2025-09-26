@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
+from collections import defaultdict
 from typing import Sequence
 
 from ..core.models import Option
@@ -112,6 +113,7 @@ class BenchmarkConfig:
 class BenchmarkRun:
     scenario: BenchmarkScenario
     stats: SummaryStats
+    street_stats: dict[str, SummaryStats]
 
     @property
     def accuracy_pct(self) -> float:
@@ -126,6 +128,7 @@ class BenchmarkRun:
 class BenchmarkResult:
     runs: tuple[BenchmarkRun, ...]
     combined: SummaryStats
+    combined_by_street: dict[str, SummaryStats]
 
     @property
     def accuracy_pct(self) -> float:
@@ -140,6 +143,7 @@ def run_benchmark(config: BenchmarkConfig) -> BenchmarkResult:
     scenarios = _expand_scenarios(config)
     runs: list[BenchmarkRun] = []
     all_records: list[dict] = []
+    combined_street_records: defaultdict[str, list[dict]] = defaultdict(list)
 
     for scenario in scenarios:
         policy = _HeroPolicy(scenario.hero_policy)
@@ -160,10 +164,33 @@ def run_benchmark(config: BenchmarkConfig) -> BenchmarkResult:
         run_records = manager.drive_session(session_id, _chooser, cleanup=True)
 
         all_records.extend(run_records)
-        runs.append(BenchmarkRun(scenario=scenario, stats=summarize_records(run_records)))
+        street_stats = _summarize_by_street(run_records)
+        for record in run_records:
+            street_key = str(record.get("street", "")).lower() or "unknown"
+            combined_street_records[street_key].append(record)
+        runs.append(
+            BenchmarkRun(
+                scenario=scenario,
+                stats=summarize_records(run_records),
+                street_stats=street_stats,
+            )
+        )
 
     combined = summarize_records(all_records)
-    return BenchmarkResult(runs=tuple(runs), combined=combined)
+    combined_by_street = {street: summarize_records(records) for street, records in combined_street_records.items()}
+    return BenchmarkResult(
+        runs=tuple(runs),
+        combined=combined,
+        combined_by_street=combined_by_street,
+    )
+
+
+def _summarize_by_street(records: Sequence[dict]) -> dict[str, SummaryStats]:
+    grouped: defaultdict[str, list[dict]] = defaultdict(list)
+    for record in records:
+        key = str(record.get("street", "")).lower() or "unknown"
+        grouped[key].append(record)
+    return {street: summarize_records(group) for street, group in grouped.items()}
 
 
 def _expand_scenarios(config: BenchmarkConfig) -> tuple[BenchmarkScenario, ...]:

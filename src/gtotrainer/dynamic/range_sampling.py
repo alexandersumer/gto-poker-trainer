@@ -124,11 +124,29 @@ def sample_range(
     allocations: dict[str, int] = {"pair": 0, "suited": 0, "offsuit": 0}
     remainders: list[tuple[float, str]] = []
     assigned = 0
+
+    def _bucket_weight(entries: list[tuple[int, tuple[int, int]]]) -> float:
+        if not entries:
+            return 0.0
+        if not weights:
+            return float(len(entries))
+        total_weight = 0.0
+        for _, combo in entries:
+            combo_key = normalize_combo(combo)
+            total_weight += max(0.0, float(weights.get(combo_key, 0.0)))
+        if total_weight <= 0.0:
+            return float(len(entries))
+        return total_weight
+
+    bucket_weights = {cat: _bucket_weight(entries) for cat, entries in buckets.items()}
+    total_weight = sum(bucket_weights.values()) or float(total)
+
     for cat, entries in buckets.items():
         count = len(entries)
         if count == 0:
             continue
-        exact = limit * (count / total)
+        weight = bucket_weights.get(cat, 0.0)
+        exact = limit * (weight / total_weight) if total_weight > 0 else limit * (count / total)
         alloc = min(count, int(exact))
         allocations[cat] = alloc
         assigned += alloc

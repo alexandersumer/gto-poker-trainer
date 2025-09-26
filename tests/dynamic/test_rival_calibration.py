@@ -4,7 +4,6 @@ import random
 
 from gtotrainer.dynamic.rival_strategy import build_profile, decide_action
 
-
 SAMPLED_RANGE = [(0, 1), (2, 3), (4, 5), (6, 7), (8, 9), (10, 11)]
 STRENGTHS = [
     ((0, 1), 0.92),

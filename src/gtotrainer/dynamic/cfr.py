@@ -350,6 +350,7 @@ def _row_from_payoff_dict(payoffs: dict) -> tuple[list[float] | None, list[float
         return None, None, None
     if any(not math.isfinite(v) for v in hero_row + rival_row):
         return None, None, None
+    rival_row = [-value for value in hero_row]
     return hero_row, rival_row, labels
 
 
