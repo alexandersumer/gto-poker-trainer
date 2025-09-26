@@ -94,7 +94,7 @@ def test_breakdown_collapses_for_gto_match_with_different_keys():
     ]
     results = _run_breakdown(cases)
     html = results["mixed_zero_loss"].lower()
-    assert "solver match" in html
+    assert "solver matched" in html
     assert "solver best line" not in html
     assert "your decision" not in html
 
@@ -131,6 +131,25 @@ def test_breakdown_handles_exact_match_without_classification():
     ]
     results = _run_breakdown(cases)
     html = results["same_key_zero"].lower()
-    assert "solver match" in html
+    assert "solver matched" in html
+    assert "solver best line" not in html
+    assert "your decision" not in html
+
+
+def test_breakdown_treats_same_key_without_ev_data_as_match():
+    cases = [
+        {
+            "id": "same_key_missing_ev",
+            "feedback": {
+                "best": {"key": "call", "label": "Call"},
+                "chosen": {"key": "call", "label": "Call", "ev": 1.0},
+                "alternatives": [],
+            },
+            "classification": {"isGtoMatch": False},
+        }
+    ]
+    results = _run_breakdown(cases)
+    html = results["same_key_missing_ev"].lower()
+    assert "solver matched" in html
     assert "solver best line" not in html
     assert "your decision" not in html

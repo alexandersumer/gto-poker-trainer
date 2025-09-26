@@ -3685,11 +3685,12 @@
         const delta = bestEv != null && chosenEv != null ? chosenEv - bestEv : null;
         const approxZero = (value) => value != null && Math.abs(value) < 1e-6;
         const matchedClassification = classification?.isGtoMatch === true;
-        const treatAsMatch = matchedClassification || (sameLine && approxZero(delta));
+        const treatAsMatch = matchedClassification || sameLine || approxZero(delta);
 
         if(treatAsMatch){
-          const metaText = bestEv != null ? 'GTO matched; EV loss 0.' : '';
-          makeRow('match', 'Solver Match', best || chosen, metaText, formatEvLabel('EV', bestEv));
+          const matchEv = bestEv != null ? bestEv : chosenEv;
+          const metaText = matchEv != null ? 'GTO matched; EV loss 0.' : '';
+          makeRow('match', 'Solver Matched', best || chosen, metaText, formatEvLabel('EV', matchEv));
         } else {
           makeRow('solver', 'Solver Best Line', best, '', formatEvLabel('EV', bestEv));
 
