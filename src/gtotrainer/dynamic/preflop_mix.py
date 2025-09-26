@@ -364,7 +364,7 @@ def _solve_combo_profile(
         Option(
             key="Fold",
             ev=0.0,
-            why="Fold preflop to avoid defending a losing combo.",
+            why="Fold now to keep your stack intact; this combo loses versus the open.",
             ends_hand=True,
             meta={
                 "supports_cfr": True,
@@ -380,13 +380,14 @@ def _solve_combo_profile(
     call_cost = max(0.0, open_size - _BB_CONTRIBUTION)
     final_pot_call = pot + call_cost
     call_ev = avg_eq * final_pot_call - call_cost
+    be_call_eq = call_cost / final_pot_call if final_pot_call > 0 else 1.0
     options.append(
         Option(
             key="Call",
             ev=call_ev,
             why=(
-                f"Pot odds: call {call_cost:.2f} bb to contest a {final_pot_call:.2f} bb pot. "
-                f"This combo realises about {avg_eq * 100:.1f}% equity versus the open."
+                f"Pot odds: call {call_cost:.2f} bb to play for {final_pot_call:.2f} bb. "
+                f"Need about {be_call_eq * 100:.1f}% equity; this hand shows {avg_eq * 100:.1f}%."
             ),
             meta={
                 "supports_cfr": True,
@@ -426,8 +427,9 @@ def _solve_combo_profile(
                 key=f"3-bet to {raise_to:.2f}bb",
                 ev=ev,
                 why=(
-                    f"3-bet to {raise_to:.2f} bb. Villain folds roughly {fe * 100:.0f}% and, when called, "
-                    f"you carry about {avg_eq_called * 100:.1f}% equity for {hero_ev_continue:.2f} bb EV."
+                    f"3-bet to {raise_to:.2f} bb. Folds about {fe * 100:.0f}% deny the pot; "
+                    f"calls (~{continue_ratio * 100:.0f}%) leave {avg_eq_called * 100:.1f}% equity for {hero_ev_continue:.2f} bb EV. "
+                    f"Villain needs {be_threshold * 100:.1f}% equity to continue."
                 ),
                 meta={
                     "supports_cfr": True,
@@ -459,8 +461,9 @@ def _solve_combo_profile(
                     key="All-in",
                     ev=ev,
                     why=(
-                        f"Jam all-in to leverage fold equity (about {fe * 100:.0f}% folds). "
-                        f"If called you still hold roughly {avg_eq_called * 100:.1f}% equity for {hero_ev_continue:.2f} bb EV."
+                        f"Jam all-in to apply max pressure: {fe * 100:.0f}% folds bank the pot. "
+                        f"Calls (~{continue_ratio * 100:.0f}%) still give {avg_eq_called * 100:.1f}% equity worth {hero_ev_continue:.2f} bb EV. "
+                        f"Villain needs {be_threshold * 100:.1f}% equity to call."
                     ),
                     ends_hand=True,
                     meta={

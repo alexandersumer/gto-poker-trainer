@@ -3695,8 +3695,8 @@
 
           const playerMeta = (() => {
             if(delta == null) return '';
-            if(approxZero(delta)) return 'Within noise—no meaningful EV change.';
-            return delta > 0 ? 'Slightly higher EV than solver line.' : 'Loses EV versus solver line.';
+            if(approxZero(delta)) return 'EV gap is negligible.';
+            return delta > 0 ? 'Slightly ahead of the solver mix.' : 'Costs EV versus the solver line.';
           })();
           makeRow('player', 'Your Decision', chosen, playerMeta, formatEvLabel('ΔEV', delta));
 
@@ -3710,16 +3710,16 @@
             const altLabel = altOptions.length > 1 ? `Close Alternative ${index + 1}` : 'Close Alternative';
             const altMeta = altDelta != null
               ? (approxZero(altDelta)
-                ? 'EV within solver tolerance band.'
+                ? 'EV difference stays inside solver tolerance.'
                 : altDelta > 0
-                  ? 'Beats solver recommendation.'
-                  : 'Trails solver recommendation.')
+                  ? 'Outperforms the solver mix.'
+                  : 'Behind the solver mix.')
               : '';
             makeRow('alt', altLabel, opt, altMeta, formatEvLabel('ΔEV', altDelta));
           });
 
           if(altOptions.length > 1){
-            rows.push('<div class="feedback-breakdown__meta feedback-breakdown__meta--alt">All alternatives fall within solver tolerance.</div>');
+            rows.push('<div class="feedback-breakdown__meta feedback-breakdown__meta--alt">Alternatives cluster inside solver tolerance.</div>');
           }
         }
 

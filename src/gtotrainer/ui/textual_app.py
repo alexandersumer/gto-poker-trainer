@@ -681,15 +681,15 @@ class TrainerApp(App[None]):
         self._total_ev_lost += max(0.0, ev_loss)
         lines = ["[b #1b2d55]Decision grade[/]"]
         if correct:
-            lines.append(f"[green]Optimal[/] — {chosen.key} (EV {chosen.ev:.2f} bb)")
+            lines.append(f"[green]Solver match[/] — {chosen.key} (EV {chosen.ev:.2f} bb)")
         else:
-            lines.append(f"[red]{ev_loss:.2f} bb[/] behind optimal.")
-            lines.append(f"Your action: {chosen.key} (EV {chosen.ev:.2f} bb)")
-            lines.append(f"Best action: {best.key} (EV {best.ev:.2f} bb)")
+            lines.append(f"[red]{ev_loss:.2f} bb[/] EV behind solver best.")
+            lines.append(f"Your play: {chosen.key} | EV {chosen.ev:.2f} bb")
+            lines.append(f"Solver play: {best.key} | EV {best.ev:.2f} bb")
         if chosen.why:
-            lines.append(f"• Your reasoning: {chosen.why}")
+            lines.append(f"• Why it felt right: {chosen.why}")
         if not correct and best.why:
-            lines.append(f"• Better reasoning: {best.why}")
+            lines.append(f"• Solver plan: {best.why}")
         if getattr(chosen, "ends_hand", False):
             lines.append("[dim]Hand ends on this action.[/]")
         if self._feedback_panel:

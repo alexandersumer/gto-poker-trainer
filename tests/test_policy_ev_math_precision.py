@@ -114,7 +114,7 @@ def test_flop_half_pot_bet_uses_p_plus_2b_when_called(monkeypatch):
     expected = fe_expected * node.pot_bb + (1 - fe_expected) * ev_called
 
     assert abs(bet_half.ev - expected) < 1e-9
-    assert "needs eq" in bet_half.why and "equity" in bet_half.why
+    assert "needs" in bet_half.why and "equity" in bet_half.why
 
 
 def test_river_bet_uses_showdown_payout_formula(monkeypatch):
