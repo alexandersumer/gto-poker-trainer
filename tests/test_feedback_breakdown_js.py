@@ -167,6 +167,37 @@ def test_breakdown_treats_same_key_without_ev_data_as_match():
     assert "your decision" not in html
 
 
+def test_breakdown_handles_label_match_with_string_evs():
+    cases = [
+        {
+            "id": "label_match_strings",
+            "feedback": {
+                "best": {
+                    "key": "bet_pot_mix",
+                    "label": "Bet 75%",
+                    "ev": "1.80",
+                    "why": "Apply pressure",
+                },
+                "chosen": {
+                    "key": "bet_pot_exact",
+                    "label": "Bet 75%",
+                    "ev": "1.80",
+                    "why": "Apply pressure",
+                },
+                "alternatives": [],
+                "correct": True,
+            },
+            "classification": None,
+        }
+    ]
+    results = _run_breakdown(cases)
+    html = results["label_match_strings"]
+    assert "SOLVER MATCHED" in html
+    lowered = html.lower()
+    assert "solver best line" not in lowered
+    assert "your decision" not in lowered
+
+
 def test_breakdown_includes_alt_footnote_when_present():
     cases = [
         {

@@ -3694,18 +3694,49 @@
 
         const best = feedback.best;
         const chosen = feedback.chosen;
-        const sameLine = best && chosen && best.key && chosen.key && best.key === chosen.key;
-        const bestEv = typeof best?.ev === 'number' ? best.ev : null;
-        const chosenEv = typeof chosen?.ev === 'number' ? chosen.ev : null;
+        const toNumber = (value) => {
+          if(typeof value === 'number' && Number.isFinite(value)){
+            return value;
+          }
+          if(typeof value === 'string' && value.trim() !== ''){
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : null;
+          }
+          return null;
+        };
+        const normalizeText = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : null);
+        const bestEv = toNumber(best?.ev);
+        const chosenEv = toNumber(chosen?.ev);
         const delta = bestEv != null && chosenEv != null ? chosenEv - bestEv : null;
         const approxZero = (value) => value != null && Math.abs(value) < 1e-6;
+        const hasSameKey = Boolean(best && chosen && best.key && chosen.key && best.key === chosen.key);
+        const labelsMatch = (() => {
+          const bestLabel = normalizeText(best?.label);
+          const chosenLabel = normalizeText(chosen?.label);
+          if(!bestLabel || !chosenLabel || bestLabel !== chosenLabel){
+            return false;
+          }
+          const bestWhy = normalizeText(best?.why);
+          const chosenWhy = normalizeText(chosen?.why);
+          if(bestWhy === chosenWhy){
+            return true;
+          }
+          return !bestWhy && !chosenWhy;
+        })();
+        const noEvData = bestEv == null && chosenEv == null;
+        const sameLine = hasSameKey || (labelsMatch && (noEvData || approxZero(delta)));
         const matchedClassification = classification?.isGtoMatch === true;
-        const treatAsMatch = matchedClassification || sameLine || approxZero(delta);
+        const isMarkedCorrect = feedback?.correct === true;
+        const treatAsMatch =
+          matchedClassification ||
+          sameLine ||
+          approxZero(delta) ||
+          (isMarkedCorrect && labelsMatch && (noEvData || approxZero(delta)));
 
         if(treatAsMatch){
           const matchEv = bestEv != null ? bestEv : chosenEv;
           const metaText = matchEv != null ? 'GTO matched; no EV loss.' : '';
-          makeRow('match', 'Solver Matched', best || chosen, metaText, formatEvLabel('EV', matchEv));
+          makeRow('match', 'SOLVER MATCHED', best || chosen, metaText, formatEvLabel('EV', matchEv));
         } else {
           makeRow('solver', 'Solver Best Line', best, '', formatEvLabel('EV', bestEv));
 
