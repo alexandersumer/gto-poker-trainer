@@ -3688,17 +3688,17 @@
         const treatAsMatch = matchedClassification || (sameLine && approxZero(delta));
 
         if(treatAsMatch){
-          const metaText = bestEv != null ? 'Matches solver; no EV loss.' : '';
-          makeRow('match', 'GTO MATCHED', best || chosen, metaText, formatEvLabel('EV', bestEv));
+          const metaText = bestEv != null ? 'Same decision as solver; EV loss 0.' : '';
+          makeRow('match', 'Solver Match', best || chosen, metaText, formatEvLabel('EV', bestEv));
         } else {
-          makeRow('solver', 'SOLVER LINE', best, '', formatEvLabel('EV', bestEv));
+          makeRow('solver', 'Solver Best Line', best, '', formatEvLabel('EV', bestEv));
 
           const playerMeta = (() => {
             if(delta == null) return '';
-            if(approxZero(delta)) return 'No meaningful EV shift.';
-            return delta > 0 ? 'Ahead of solver.' : 'Behind solver.';
+            if(approxZero(delta)) return 'Within noise—no meaningful EV change.';
+            return delta > 0 ? 'Slightly higher EV than solver line.' : 'Loses EV versus solver line.';
           })();
-          makeRow('player', 'YOUR LINE', chosen, playerMeta, formatEvLabel('ΔEV', delta));
+          makeRow('player', 'Your Decision', chosen, playerMeta, formatEvLabel('ΔEV', delta));
 
           const altSource = Array.isArray(feedback.alternatives)
             ? feedback.alternatives
@@ -3707,19 +3707,19 @@
           altOptions.forEach((opt, index) => {
             const altEv = typeof opt?.ev === 'number' ? opt.ev : null;
             const altDelta = bestEv != null && altEv != null ? altEv - bestEv : null;
-            const altLabel = altOptions.length > 1 ? `ALTERNATIVE ${index + 1}` : 'ALTERNATIVE';
+            const altLabel = altOptions.length > 1 ? `Close Alternative ${index + 1}` : 'Close Alternative';
             const altMeta = altDelta != null
               ? (approxZero(altDelta)
-                ? 'Comparable to solver.'
+                ? 'EV within solver tolerance band.'
                 : altDelta > 0
-                  ? 'Higher EV than solver.'
-                  : 'Lower EV than solver.')
+                  ? 'Beats solver recommendation.'
+                  : 'Trails solver recommendation.')
               : '';
             makeRow('alt', altLabel, opt, altMeta, formatEvLabel('ΔEV', altDelta));
           });
 
           if(altOptions.length > 1){
-            rows.push('<div class="feedback-breakdown__meta feedback-breakdown__meta--alt">All alternatives stay within solver tolerance.</div>');
+            rows.push('<div class="feedback-breakdown__meta feedback-breakdown__meta--alt">All alternatives fall within solver tolerance.</div>');
           }
         }
 
@@ -3877,13 +3877,13 @@
           const labelSpan = document.createElement('span');
           labelSpan.className = 'ev-callout__label';
           if(evLossRaw == null){
-            labelSpan.textContent = 'Best line';
+            labelSpan.textContent = 'Solver best line';
           } else if(evLossRaw > 0){
-            labelSpan.textContent = 'EV loss';
+            labelSpan.textContent = 'EV lost';
           } else if(evLossRaw < 0){
-            labelSpan.textContent = 'EV gain';
+            labelSpan.textContent = 'EV gained';
           } else {
-            labelSpan.textContent = 'EV delta';
+            labelSpan.textContent = 'EV change';
           }
           headline.appendChild(labelSpan);
           if(lossMagnitude !== null){

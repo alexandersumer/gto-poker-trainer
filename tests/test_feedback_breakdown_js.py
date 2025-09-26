@@ -94,9 +94,9 @@ def test_breakdown_collapses_for_gto_match_with_different_keys():
     ]
     results = _run_breakdown(cases)
     html = results["mixed_zero_loss"].lower()
-    assert "gto matched" in html
-    assert "solver line" not in html
-    assert "your line" not in html
+    assert "solver match" in html
+    assert "solver best line" not in html
+    assert "your decision" not in html
 
 
 def test_breakdown_shows_both_rows_when_not_matched():
@@ -113,8 +113,8 @@ def test_breakdown_shows_both_rows_when_not_matched():
     ]
     results = _run_breakdown(cases)
     html = results["miss"].lower()
-    assert "solver line" in html
-    assert "your line" in html
+    assert "solver best line" in html
+    assert "your decision" in html
 
 
 def test_breakdown_handles_exact_match_without_classification():
@@ -131,6 +131,6 @@ def test_breakdown_handles_exact_match_without_classification():
     ]
     results = _run_breakdown(cases)
     html = results["same_key_zero"].lower()
-    assert "gto matched" in html
-    assert "solver line" not in html
-    assert "your line" not in html
+    assert "solver match" in html
+    assert "solver best line" not in html
+    assert "your decision" not in html
