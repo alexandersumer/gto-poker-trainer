@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import random
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from functools import lru_cache
 from itertools import combinations
 from typing import Final
@@ -13,10 +14,20 @@ import numpy as np
 from .cards import canonicalize_cards, card_int_to_str
 
 __all__ = [
+    "EquityEstimate",
     "estimate_equity",
+    "estimate_equity_with_stats",
     "hero_equity_vs_combo",
+    "hero_equity_vs_combo_stats",
     "hero_equity_vs_range",
 ]
+
+
+@dataclass(frozen=True)
+class EquityEstimate:
+    equity: float
+    std_error: float
+    trials: int
 
 
 class _Eval7MonteCarlo:
@@ -133,6 +144,7 @@ _MAX_MONTE_TRIALS = 3200
 _MONTE_CHUNK = 256
 _TARGET_STD_ERROR = 0.025
 _LAST_MONTE_TRIALS = 0
+_LAST_MONTE_STD_ERROR = float("inf")
 
 
 def estimate_equity(
@@ -145,6 +157,27 @@ def estimate_equity(
     wins, ties, total = _ENGINE.run_trials(hero, board, known_rival, trials=trials, rng=rng)
     total = max(1, total)
     return (wins + 0.5 * ties) / total
+
+
+def estimate_equity_with_stats(
+    hero: list[int],
+    board: list[int],
+    known_rival: list[int] | None,
+    rng: random.Random,
+    trials: int = 400,
+    *,
+    target_std_error: float | None = None,
+) -> EquityEstimate:
+    result = _adaptive_monte_carlo(
+        hero,
+        board,
+        known_rival,
+        base_trials=trials,
+        rng=rng,
+        target_std_error=target_std_error,
+        return_stats=True,
+    )
+    return result
 
 
 @lru_cache(maxsize=50000)
@@ -221,7 +254,8 @@ def _adaptive_monte_carlo(
     min_trials: int | None = None,
     max_trials: int | None = None,
     target_std_error: float | None = None,
-) -> float:
+    return_stats: bool = False,
+) -> float | EquityEstimate:
     """Return a Monte Carlo equity estimate with adaptive precision."""
 
     global _LAST_MONTE_TRIALS
@@ -234,6 +268,7 @@ def _adaptive_monte_carlo(
     wins = 0
     ties = 0
     total_trials = 0
+    std_error = float("inf")
 
     while total_trials < max_trials:
         remaining = max_trials - total_trials
@@ -258,8 +293,20 @@ def _adaptive_monte_carlo(
         if total_trials >= min_trials and std_error <= target:
             break
 
+    equity = (wins + 0.5 * ties) / max(1, total_trials)
+    if total_trials and (not math.isfinite(std_error) or std_error < 0):
+        variance = max(equity * (1 - equity), 0.0)
+        std_error = math.sqrt(variance / total_trials)
+    if not total_trials:
+        std_error = float("inf")
+
+    global _LAST_MONTE_TRIALS, _LAST_MONTE_STD_ERROR
     _LAST_MONTE_TRIALS = total_trials
-    return (wins + 0.5 * ties) / max(1, total_trials)
+    _LAST_MONTE_STD_ERROR = std_error
+
+    if return_stats:
+        return EquityEstimate(equity=equity, std_error=std_error, trials=total_trials)
+    return equity
 
 
 def hero_equity_vs_combo(
@@ -273,6 +320,42 @@ def hero_equity_vs_combo(
     hero_canon, board_canon, rival_canon = canonicalize_cards(hero, board, combo)
     target = target_std_error if target_std_error and target_std_error > 0 else None
     return _cached_equity(hero_canon, board_canon, rival_canon, trials, target)
+
+
+def hero_equity_vs_combo_stats(
+    hero: list[int],
+    board: list[int],
+    combo: tuple[int, int],
+    trials: int,
+    *,
+    target_std_error: float | None = None,
+) -> EquityEstimate:
+    hero_canon, board_canon, rival_canon = canonicalize_cards(hero, board, combo)
+    target = target_std_error if target_std_error and target_std_error > 0 else None
+    board_len = len(board_canon)
+    need = 5 - board_len
+    if board_len >= 3:
+        equity = _enumerate_remaining(hero_canon, board_canon, rival_canon)
+        if need <= 0:
+            trials_used = 1
+        else:
+            deck_size = 52 - len(set(hero_canon) | set(board_canon) | set(rival_canon))
+            trials_used = math.comb(deck_size, need)
+        return EquityEstimate(equity=equity, std_error=0.0, trials=trials_used)
+
+    hero_list = list(hero_canon)
+    board_list = list(board_canon)
+    rival_list = list(rival_canon)
+    estimate = _adaptive_monte_carlo(
+        hero_list,
+        board_list,
+        rival_list,
+        base_trials=trials,
+        rng=random.Random(hash((hero_canon, board_canon, rival_canon, trials, round(target or 0.0, 4))) & 0xFFFFFFFF),
+        target_std_error=target,
+        return_stats=True,
+    )
+    return estimate
 
 
 def hero_equity_vs_range(

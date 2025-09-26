@@ -57,6 +57,16 @@ class LinearCFRBackend:
 
         adjusted_values = payload.hero_payoff @ stats.rival_avg
 
+        diagnostics = _compute_cfr_diagnostics(
+            payload,
+            hero_probs=stats.hero_avg,
+            rival_probs=stats.rival_avg,
+            hero_values=adjusted_values,
+            config=self.config,
+        )
+
+        validation_flags = diagnostics.get("flags", ())
+
         hero_probs = stats.hero_avg.copy()
         best_value = float(np.max(adjusted_values)) if adjusted_values.size else 0.0
         drop_threshold = max(0.0, self.config.hero_dropout_threshold)
@@ -102,6 +112,13 @@ class LinearCFRBackend:
             meta["cfr_rival_mix"] = {
                 str(action): float(prob) for action, prob in zip(payload.rival_labels, stats.rival_avg, strict=False)
             }
+            meta["cfr_validation"] = diagnostics
+            if validation_flags:
+                meta.setdefault("warnings", [])
+                if isinstance(meta["warnings"], list):
+                    for flag in validation_flags:
+                        if flag not in meta["warnings"]:
+                            meta["warnings"].append(flag)
             option.meta = meta
             option.gto_freq = float(hero_prob)
             option.ev = float(action_value)
@@ -126,6 +143,62 @@ _SOLVER = LinearCFRBackend(
 
 def refine_options(node: Node | None, options: list[Option]) -> list[Option]:
     return _SOLVER.refine(node, options)
+
+
+_MAX_ZERO_SUM_DEVIATION = 1e-6
+_EXPLOITABILITY_THRESHOLD = 0.02
+
+
+def _compute_cfr_diagnostics(
+    payload: _SubgamePayload,
+    *,
+    hero_probs: np.ndarray,
+    rival_probs: np.ndarray,
+    hero_values: np.ndarray,
+    config: LinearCFRConfig,
+) -> dict[str, float | int | list[str]]:
+    hero_probs = np.asarray(hero_probs, dtype=np.float64)
+    rival_probs = np.asarray(rival_probs, dtype=np.float64)
+    hero_values = np.asarray(hero_values, dtype=np.float64)
+
+    hero_value = float(hero_probs @ hero_values) if hero_values.size else 0.0
+    hero_br_value = float(np.max(hero_values)) if hero_values.size else hero_value
+    hero_exploitability = max(0.0, hero_br_value - hero_value)
+
+    hero_vs_rival = hero_probs @ payload.hero_payoff if payload.hero_payoff.size else np.array([], dtype=np.float64)
+    rival_best_response_value = float(np.min(hero_vs_rival)) if hero_vs_rival.size else hero_value
+
+    rival_utilities = (
+        payload.rival_payoff.T @ hero_probs if payload.rival_payoff.size else np.array([], dtype=np.float64)
+    )
+    rival_value = float(rival_probs @ rival_utilities) if rival_utilities.size else -hero_value
+    rival_br_value = float(np.max(rival_utilities)) if rival_utilities.size else rival_value
+    rival_exploitability = max(0.0, rival_br_value - rival_value)
+
+    zero_sum_deviation = (
+        float(np.max(np.abs(payload.hero_payoff + payload.rival_payoff))) if payload.hero_payoff.size else 0.0
+    )
+    payoff_gap = hero_value + rival_value
+
+    flags: list[str] = []
+    if zero_sum_deviation > _MAX_ZERO_SUM_DEVIATION:
+        flags.append("cfr_non_zero_sum_payoffs")
+    if hero_exploitability > _EXPLOITABILITY_THRESHOLD or rival_exploitability > _EXPLOITABILITY_THRESHOLD:
+        flags.append("cfr_high_exploitability")
+    if abs(payoff_gap) > max(1e-6, 5 * config.regret_floor):
+        flags.append("cfr_inconsistent_value")
+
+    return {
+        "hero_value": hero_value,
+        "hero_best_response": hero_br_value,
+        "hero_exploitability": hero_exploitability,
+        "rival_value": rival_value,
+        "rival_best_response": rival_br_value,
+        "rival_exploitability": rival_exploitability,
+        "zero_sum_deviation": zero_sum_deviation,
+        "payoff_gap": payoff_gap,
+        "flags": flags,
+    }
 
 
 @dataclass(slots=True)

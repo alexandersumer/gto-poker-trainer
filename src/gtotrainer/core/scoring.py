@@ -246,3 +246,56 @@ def _ev_band_credit(*, ev_loss: float, pot: float) -> float:
 
     credit = 0.5 * math.exp(-RED_DECAY * ratio)
     return max(0.0, min(1.0, credit))
+
+
+def ev_conservation_diagnostics(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    tolerance: float = 1e-6,
+) -> dict[str, float | bool]:
+    """Return aggregate EV conservation metrics for audit/CI hooks.
+
+    ``records`` should contain ``best_ev``/``chosen_ev`` pairs. Optional keys
+    ``best_baseline_ev`` and ``chosen_baseline_ev`` mirror the behaviour of
+    :func:`effective_option_ev` by clamping downward revisions to their stored
+    baselines so downstream totals remain comparable.
+    """
+
+    if not records:
+        return {
+            "total_best": 0.0,
+            "total_chosen": 0.0,
+            "total_ev_lost": 0.0,
+            "delta": 0.0,
+            "within_tolerance": True,
+        }
+
+    def _clamp(value: float, baseline: float | None) -> float:
+        if baseline is None:
+            return value
+        try:
+            return max(value, float(baseline))
+        except (TypeError, ValueError):
+            return value
+
+    total_best = 0.0
+    total_chosen = 0.0
+    total_ev_lost = 0.0
+
+    for record in records:
+        best = _as_float(record.get("best_ev"))
+        chosen = _as_float(record.get("chosen_ev"))
+        best = _clamp(best, record.get("best_baseline_ev"))
+        chosen = _clamp(chosen, record.get("chosen_baseline_ev"))
+        total_best += best
+        total_chosen += chosen
+        total_ev_lost += max(0.0, best - chosen)
+
+    delta = (total_best - total_chosen) - total_ev_lost
+    return {
+        "total_best": total_best,
+        "total_chosen": total_chosen,
+        "total_ev_lost": total_ev_lost,
+        "delta": delta,
+        "within_tolerance": math.isclose(0.0, delta, abs_tol=tolerance, rel_tol=0.0),
+    }
