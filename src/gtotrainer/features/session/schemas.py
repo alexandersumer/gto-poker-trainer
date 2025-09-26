@@ -29,7 +29,6 @@ class OptionPayload(_APIModel):
     why: str
     ends_hand: bool
     gto_freq: float | None = None
-    meta: dict[str, Any] | None = None
 
 
 class ActionSnapshot(_APIModel):
@@ -39,7 +38,6 @@ class ActionSnapshot(_APIModel):
     why: str
     gto_freq: float | None = None
     resolution_note: str | None = None
-    meta: dict[str, Any] | None = None
 
 
 class NodePayload(_APIModel):

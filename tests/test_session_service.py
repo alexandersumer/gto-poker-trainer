@@ -41,9 +41,6 @@ def test_session_manager_basic_flow():
     assert data["options"], "options should be available"
     first_option = data["options"][0]
     assert {"key", "label", "ev", "why", "ends_hand"}.issubset(first_option)
-    assert "meta" in first_option
-    if first_option["meta"]:
-        assert "rival_profile" not in first_option["meta"]
 
     # choose first option for a couple of nodes to ensure caching works
     choice = manager.choose(session_id, 0)
@@ -52,8 +49,6 @@ def test_session_manager_basic_flow():
     assert "feedback" in choice_payload
     feedback = choice_payload["feedback"]
     assert "chosen" in feedback and "label" in feedback["chosen"]
-    if feedback["chosen"]["meta"]:
-        assert "solver_mix" in feedback["chosen"]["meta"]
     assert "accuracy" in feedback
     assert "cumulative_ev_lost" in feedback
     assert "cumulative_accuracy" in feedback
