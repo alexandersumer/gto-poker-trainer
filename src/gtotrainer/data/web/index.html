@@ -1870,6 +1870,12 @@
       .ev-callout__chip[data-tone="blunder"] {
         border-color: var(--feedback-blunder-outline);
       }
+      .ev-callout__body {
+        margin-top: 6px;
+        font-size: var(--text-size-label);
+        color: var(--text-secondary);
+        line-height: var(--line-height);
+      }
       .ev-chip__symbol {
         font-weight: 700;
         font-size: 0.85em;
@@ -3643,8 +3649,186 @@
         }, 1800);
       };
 
+      const toNumber = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
+      const formatPercentLabel = (value, decimals) => {
+        if(typeof value !== 'number' || Number.isNaN(value)) return null;
+        const percent = value * 100;
+        const places = typeof decimals === 'number' ? decimals : (Math.abs(percent) < 10 ? 1 : 0);
+        return normalizePercent(`${fmt(percent, places)}%`);
+      };
+      const describeMix = (freq) => {
+        if(typeof freq !== 'number' || Number.isNaN(freq)) return '';
+        if(freq >= 0.95) return 'Mostly chooses this.';
+        if(freq <= 0.05) return 'Rare mix here.';
+        return '';
+      };
+      const makeActionSentence = (option, ctx) => {
+        if(!option) return '';
+        const meta = option.meta || {};
+        const label = option.label || option.key || 'Solver line';
+        const loss = ctx.lossEv;
+        const bestEv = ctx.bestEv;
+        const action = meta.action || '';
+        const edgeGain = loss != null && loss > 0
+          ? `, adding ${formatBb(loss)}`
+          : bestEv != null && bestEv > 0
+            ? `, worth ${formatBb(bestEv)}`
+            : '';
+        if(action === 'call'){
+          const equity = formatPercentLabel(meta.equity);
+          const need = formatPercentLabel(meta.need_equity);
+          if(equity && need){
+            return `${label} keeps ${equity} equity while needing ${need}${edgeGain}.`;
+          }
+        }
+        if(action === '3bet' || action === 'jam'){
+          const foldPct = formatPercentLabel(meta.fold_pct ?? meta.rival_fe);
+          const eqCalled = formatPercentLabel(meta.equity_when_called);
+          const details = [foldPct ? `${foldPct} folds` : null, eqCalled ? `${eqCalled} equity when called` : null]
+            .filter(Boolean)
+            .join(' and ');
+          if(details){
+            return `${label} leverages ${details}${edgeGain}.`;
+          }
+        }
+        if(action === 'fold' && bestEv != null && bestEv < 0){
+          return `${label} minimizes loss to ${formatBb(Math.abs(bestEv))}.`;
+        }
+        if(edgeGain){
+          return `${label} is solver's top EV line${edgeGain}.`;
+        }
+        return `${label} is solver's preferred line.`;
+      };
+      const composeMatchBanner = (best, ctx) => {
+        const sentence = makeActionSentence(best, ctx);
+        return sentence ? sentence.replace(/\.$/, '') + ' — no EV lost.' : 'No EV lost; matched solver line.';
+      };
+      const composeMatchMeta = (best, ctx) => {
+        const ev = ctx.bestEv;
+        if(typeof ev === 'number' && Math.abs(ev) > 1e-6){
+          return `EV locked: keeps ${formatBb(Math.abs(ev))} in play.`;
+        }
+        return 'Matched solver line; nothing to add.';
+      };
+      const composeBanner = (best, ctx) => {
+        const sentence = makeActionSentence(best, ctx);
+        if(!sentence) return '';
+        if(ctx.close){
+          return `Close spot — ${sentence}`;
+        }
+        return sentence;
+      };
+      const composeSolverLine = (best, ctx) => {
+        const sentence = makeActionSentence(best, ctx);
+        if(!sentence) return '';
+        const sentences = [];
+        sentences.push(ctx.close ? `Close spot: ${sentence}` : sentence);
+        const mix = describeMix(best?.gto_freq);
+        if(mix){
+          sentences.push(mix);
+        } else if((best?.meta || {}).action === 'call'){
+          sentences.push('Would tighten if the price worsens.');
+        }
+        return sentences.slice(0, 2).join(' ');
+      };
+      const composePlayerLine = (best, chosen, ctx) => {
+        if(!chosen) return '';
+        const chosenMeta = chosen.meta || {};
+        const bestMeta = best?.meta || {};
+        const label = chosen.label || chosen.key || 'Your line';
+        const lossEv = ctx.lossEv;
+        const need = formatPercentLabel(bestMeta.need_equity);
+        const haveEquity = formatPercentLabel(bestMeta.equity ?? bestMeta.equity_when_called);
+        const positions = ctx.positions || {};
+        const rivalSeat = (positions.rival_seat || positions.rivalSeat || '').toString().toUpperCase();
+        const villain = rivalSeat || 'villain';
+        const potText = typeof ctx.node?.pot_bb === 'number' ? `${formatBb(ctx.node.pot_bb)}` : 'the pot';
+        if(ctx.deltaEv != null && ctx.deltaEv > 0){
+          const mix = describeMix(chosen.gto_freq);
+          const parts = [`${label} gains ${formatBb(ctx.deltaEv)} versus solver.`];
+          if(mix){
+            parts.push(mix);
+          }
+          return parts.slice(0, 2).join(' ');
+        }
+        if(chosenMeta.action === 'fold' && bestMeta.action === 'call'){
+          const first = `Fold lets ${villain} keep ${potText} uncontested.`;
+          if(lossEv != null && lossEv > 0){
+            const lossText = `That gives back ${formatBb(lossEv)} of EV${need && haveEquity ? ` (Need ${need} / Have ${haveEquity})` : ''}.`;
+            return ctx.close ? `Close spot: ${first} ${lossText}` : `${first} ${lossText}`;
+          }
+          if(need && haveEquity){
+            return `${first} Need ${need} / Have ${haveEquity}.`;
+          }
+          return first;
+        }
+        if(lossEv != null && lossEv > 0){
+          const bestLabel = best?.label || best?.key || 'solver line';
+          const reasonParts = [];
+          const foldPct = formatPercentLabel(bestMeta.fold_pct ?? bestMeta.rival_fe);
+          const eqCalled = formatPercentLabel(bestMeta.equity_when_called);
+          if(foldPct){
+            reasonParts.push(`folds ${foldPct}`);
+          }
+          if(eqCalled){
+            reasonParts.push(`keeps ${eqCalled} equity when called`);
+          }
+          const reason = reasonParts.length ? reasonParts.join(' and ') : 'captures more EV';
+          let line = `${label} trails by ${formatBb(lossEv)} because solver's ${bestLabel} ${reason}`;
+          if(need && haveEquity && bestMeta.action === 'call'){
+            line += ` (Need ${need} / Have ${haveEquity})`;
+          }
+          line += '.';
+          return ctx.close ? `Close spot: ${line}` : line;
+        }
+        if(ctx.close){
+          return `Close spot: ${label} ends up nearly even.`;
+        }
+        return `${label} holds even with solver.`;
+      };
+      const composeAlternativeMeta = (altEv, bestEv) => {
+        if(bestEv == null || altEv == null) return 'Within solver tolerance.';
+        const diff = altEv - bestEv;
+        if(Math.abs(diff) < 0.1) return 'Within solver tolerance.';
+        if(diff > 0) return `Ahead by ${formatBb(diff)}.`;
+        return `Behind by ${formatBb(Math.abs(diff))}.`;
+      };
+      const composeFeedbackCopy = (feedback, classification) => {
+        const node = activeNode || null;
+        const positions = (node && node.context) || {};
+        const best = feedback?.best || null;
+        const chosen = feedback?.chosen || null;
+        const bestEv = toNumber(best?.ev);
+        const chosenEv = toNumber(chosen?.ev);
+        const deltaEv = bestEv != null && chosenEv != null ? chosenEv - bestEv : null;
+        const lossEv = deltaEv != null ? -deltaEv : null;
+        const close = lossEv != null && Math.abs(lossEv) < 0.2;
+        const sameLine = best && chosen && best.key && chosen.key && best.key === chosen.key;
+        const approxZero = deltaEv != null && Math.abs(deltaEv) < 1e-6;
+        const matched = classification?.isGtoMatch === true || (sameLine && approxZero);
+        const ctx = { bestEv, chosenEv, deltaEv, lossEv, close, node, positions };
+        if(matched){
+          return {
+            banner: composeMatchBanner(best || chosen, ctx),
+            solver: '',
+            player: '',
+            match: composeMatchMeta(best || chosen, ctx),
+            matched: true,
+            ctx,
+          };
+        }
+        return {
+          banner: composeBanner(best, ctx),
+          solver: composeSolverLine(best, ctx),
+          player: composePlayerLine(best, chosen, ctx),
+          match: '',
+          matched: false,
+          ctx,
+        };
+      };
+
       const renderFeedbackBreakdown = (feedback, classification) => {
-        if(!feedback) return '';
+        if(!feedback) return { markup: '', copy: { banner: '', solver: '', player: '', match: '', matched: false } };
         const rows = [];
         const freqTextFor = (opt) => {
           const freq = typeof opt?.gto_freq === 'number' ? opt.gto_freq : null;
@@ -3679,51 +3863,31 @@
 
         const best = feedback.best;
         const chosen = feedback.chosen;
-        const sameLine = best && chosen && best.key && chosen.key && best.key === chosen.key;
-        const bestEv = typeof best?.ev === 'number' ? best.ev : null;
-        const chosenEv = typeof chosen?.ev === 'number' ? chosen.ev : null;
+        const bestEv = toNumber(best?.ev);
+        const chosenEv = toNumber(chosen?.ev);
         const delta = bestEv != null && chosenEv != null ? chosenEv - bestEv : null;
-        const approxZero = (value) => value != null && Math.abs(value) < 1e-6;
-        const matchedClassification = classification?.isGtoMatch === true;
-        const treatAsMatch = matchedClassification || (sameLine && approxZero(delta));
+        const copy = composeFeedbackCopy(feedback, classification);
 
-        if(treatAsMatch){
-          const metaText = bestEv != null ? 'Matches solver; no EV loss.' : '';
-          makeRow('match', 'GTO MATCHED', best || chosen, metaText, formatEvLabel('EV', bestEv));
+        if(copy.matched){
+          makeRow('match', 'GTO MATCHED', best || chosen, copy.match, formatEvLabel('EV', bestEv));
         } else {
-          makeRow('solver', 'SOLVER LINE', best, '', formatEvLabel('EV', bestEv));
-
-          const playerMeta = (() => {
-            if(delta == null) return '';
-            if(approxZero(delta)) return 'No meaningful EV shift.';
-            return delta > 0 ? 'Ahead of solver.' : 'Behind solver.';
-          })();
-          makeRow('player', 'YOUR LINE', chosen, playerMeta, formatEvLabel('ΔEV', delta));
+          makeRow('solver', 'SOLVER LINE', best, copy.solver, formatEvLabel('EV', bestEv));
+          makeRow('player', 'YOUR LINE', chosen, copy.player, formatEvLabel('ΔEV', delta));
 
           const altSource = Array.isArray(feedback.alternatives)
             ? feedback.alternatives
             : feedback.options;
           const altOptions = Array.isArray(altSource) ? altSource : [];
           altOptions.forEach((opt, index) => {
-            const altEv = typeof opt?.ev === 'number' ? opt.ev : null;
+            const altEv = toNumber(opt?.ev);
             const altDelta = bestEv != null && altEv != null ? altEv - bestEv : null;
             const altLabel = altOptions.length > 1 ? `ALTERNATIVE ${index + 1}` : 'ALTERNATIVE';
-            const altMeta = altDelta != null
-              ? (approxZero(altDelta)
-                ? 'Comparable to solver.'
-                : altDelta > 0
-                  ? 'Higher EV than solver.'
-                  : 'Lower EV than solver.')
-              : '';
+            const altMeta = composeAlternativeMeta(altEv, bestEv);
             makeRow('alt', altLabel, opt, altMeta, formatEvLabel('ΔEV', altDelta));
           });
-
-          if(altOptions.length > 1){
-            rows.push('<div class="feedback-breakdown__meta feedback-breakdown__meta--alt">All alternatives stay within solver tolerance.</div>');
-          }
         }
 
-        return rows.join('');
+        return { markup: rows.join(''), copy };
       };
 
       const classifyFeedback = ({ feedback, node, evLossRaw }) => {
@@ -3870,6 +4034,10 @@
         } else {
           delete feedbackBanner.dataset.state;
         }
+        const breakdownResult = renderFeedbackBreakdown(feedback, classification);
+        const breakdownCopy = breakdownResult?.copy || {};
+        const breakdownMarkup = breakdownResult?.markup || '';
+
         if(feedbackRecommendation){
           feedbackRecommendation.innerHTML = '';
           const headline = document.createElement('div');
@@ -3908,9 +4076,14 @@
           chip.innerHTML = `${symbolMarkup}<span class="ev-chip__text">${chipLabel}</span>`;
           headline.appendChild(chip);
           feedbackRecommendation.appendChild(headline);
+          if(breakdownCopy.banner){
+            const narrative = document.createElement('div');
+            narrative.className = 'ev-callout__body';
+            narrative.textContent = breakdownCopy.banner;
+            feedbackRecommendation.appendChild(narrative);
+          }
         }
         if(feedbackBreakdown){
-          const breakdownMarkup = renderFeedbackBreakdown(feedback, classification);
           if(classification?.state && classification.state !== 'neutral'){
             feedbackBreakdown.dataset.state = classification.state;
           } else {

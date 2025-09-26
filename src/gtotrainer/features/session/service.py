@@ -40,6 +40,32 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
+_PUBLIC_OPTION_META_KEYS = {
+    "street",
+    "action",
+    "rival_style",
+    "call_cost",
+    "raise_to",
+    "pot_before",
+    "final_pot",
+    "hero_add",
+    "rival_call",
+    "rival_call_cost",
+    "rival_fe",
+    "rival_continue_ratio",
+    "rival_threshold",
+    "solver_mix",
+    "sizing_key",
+    "risk",
+    "equity_when_called",
+    "equity",
+    "need_equity",
+    "fold_pct",
+    "call_pct",
+    "blockers",
+    "range_note",
+}
+
 
 def _card_strings(cards: list[int]) -> list[str]:
     return [format_card_ascii(card, upper=True) for card in cards]
@@ -336,6 +362,7 @@ def _option_payloads(node: Node, options: list[Option]) -> list[OptionPayload]:
             why=opt.why,
             ends_hand=getattr(opt, "ends_hand", False),
             gto_freq=getattr(opt, "gto_freq", None),
+            meta=_public_option_meta(opt, node),
         )
         for opt in options
     ]
@@ -349,7 +376,31 @@ def _snapshot(node: Node, option: Option) -> ActionSnapshot:
         why=option.why,
         gto_freq=getattr(option, "gto_freq", None),
         resolution_note=getattr(option, "resolution_note", None),
+        meta=_public_option_meta(option, node),
     )
+
+
+def _public_option_meta(option: Option, node: Node | None = None) -> dict[str, Any] | None:
+    raw = getattr(option, "meta", None)
+    if not isinstance(raw, dict):
+        return None
+    cleaned: dict[str, Any] = {}
+    for key in _PUBLIC_OPTION_META_KEYS:
+        if key not in raw:
+            continue
+        value = raw[key]
+        if isinstance(value, dict):
+            cleaned[key] = {
+                str(inner_key): float(inner_value) if isinstance(inner_value, (int, float)) else inner_value
+                for inner_key, inner_value in value.items()
+            }
+        elif isinstance(value, (int, float)):
+            cleaned[key] = float(value)
+        else:
+            cleaned[key] = value
+    if node is not None:
+        cleaned.setdefault("street", node.street)
+    return cleaned or None
 
 
 def _summary_payload(records: list[dict[str, Any]]) -> SummaryPayload:
