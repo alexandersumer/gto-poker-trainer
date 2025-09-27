@@ -3655,6 +3655,7 @@
         if(!feedback) return '';
         const rows = [];
         const freqTextFor = (opt) => {
+          if(opt?.out_of_policy === true) return '(0%)';
           const freq = typeof opt?.gto_freq === 'number' ? opt.gto_freq : null;
           if(freq == null || freq <= 0 || freq >= 0.995) return '';
           const pct = normalizePercent(`${fmt(freq * 100, freq * 100 >= 10 ? 0 : 1)}%`);
@@ -3738,7 +3739,8 @@
           const metaText = matchEv != null ? 'GTO matched; no EV loss.' : '';
           makeRow('match', 'SOLVER MATCHED', best || chosen, metaText, formatEvLabel('EV', matchEv));
         } else {
-          makeRow('solver', 'Solver Best Line', best, '', formatEvLabel('EV', bestEv));
+          const solverTag = best?.out_of_policy ? 'Highest EV (Out of Policy)' : 'Solver Best Line';
+          makeRow('solver', solverTag, best, '', formatEvLabel('EV', bestEv));
 
           const playerMeta = (() => {
             if(delta == null) return '';
@@ -3897,6 +3899,7 @@
         if(typeof feedback?.decisions === 'number'){
           answered = feedback.decisions;
         }
+        const bestIsOutOfPolicy = feedback?.best?.out_of_policy === true;
         const bestLabel = feedback?.best?.key || 'Best';
         const evLossRaw = typeof feedback?.ev_loss === 'number' ? feedback.ev_loss : null;
         const lossMagnitude = evLossRaw == null ? null : Math.abs(evLossRaw);
@@ -3924,7 +3927,7 @@
           const labelSpan = document.createElement('span');
           labelSpan.className = 'ev-callout__label';
           if(evLossRaw == null){
-            labelSpan.textContent = 'Solver best line';
+            labelSpan.textContent = bestIsOutOfPolicy ? 'Highest EV (outside policy)' : 'Solver best line';
           } else if(evLossRaw > 0){
             labelSpan.textContent = 'EV lost';
           } else if(evLossRaw < 0){
@@ -3949,7 +3952,7 @@
           } else {
             delete chip.dataset.tone;
           }
-          const chipLabel = withCardMarkup(`Best ${bestLabel}`);
+          const chipLabel = withCardMarkup(bestIsOutOfPolicy ? `Out-of-policy ${bestLabel}` : `Best ${bestLabel}`);
           const chipSymbol = classification?.symbol || '';
           const symbolMarkup = chipSymbol ? `<span class="ev-chip__symbol" aria-hidden="true">${chipSymbol}</span>` : '';
           chip.innerHTML = `${symbolMarkup}<span class="ev-chip__text">${chipLabel}</span>`;

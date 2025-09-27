@@ -374,6 +374,18 @@ def _best_index(opts: list[Option]) -> int:
     return max(target_indices, key=_key)
 
 
+def _out_of_policy(option: Option) -> bool | None:
+    meta = getattr(option, "meta", None)
+    if isinstance(meta, Mapping):
+        flag = meta.get("out_of_policy")
+        if isinstance(flag, bool):
+            return flag
+    freq = _policy_weight(option)
+    if freq is None:
+        return None
+    return freq <= _POLICY_FREQ_EPSILON
+
+
 def _option_payloads(node: Node, options: list[Option]) -> list[OptionPayload]:
     return [
         OptionPayload(
@@ -383,6 +395,7 @@ def _option_payloads(node: Node, options: list[Option]) -> list[OptionPayload]:
             why=opt.why,
             ends_hand=getattr(opt, "ends_hand", False),
             gto_freq=getattr(opt, "gto_freq", None),
+            out_of_policy=_out_of_policy(opt),
         )
         for opt in options
     ]
@@ -395,6 +408,7 @@ def _snapshot(node: Node, option: Option) -> ActionSnapshot:
         ev=_effective_ev(option),
         why=option.why,
         gto_freq=getattr(option, "gto_freq", None),
+        out_of_policy=_out_of_policy(option),
         resolution_note=getattr(option, "resolution_note", None),
     )
 

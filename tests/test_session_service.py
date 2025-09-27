@@ -632,6 +632,7 @@ def test_best_index_respects_policy_support() -> None:
     three_bet = next(opt for opt in options if opt.key.startswith("3-bet"))
     assert fold.gto_freq is not None and fold.gto_freq > (three_bet.gto_freq or 0.0)
     assert three_bet.gto_freq is not None and three_bet.gto_freq == pytest.approx(0.0, abs=1e-6)
+    assert session_service._out_of_policy(three_bet) is True
     assert "Not in solver policy" in three_bet.why
 
     best_idx = _best_index(options)
@@ -643,5 +644,5 @@ def test_best_index_respects_policy_support() -> None:
         mix = best_option.meta.get("solver_mix") if isinstance(best_option.meta, dict) else None
         if isinstance(mix, dict) and mix:
             assert max(float(v) for v in mix.values()) > 0.0
-
+    assert session_service._out_of_policy(best_option) is not True
     assert session_service._effective_ev(best_option) >= session_service._effective_ev(three_bet)

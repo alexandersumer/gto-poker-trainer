@@ -29,6 +29,7 @@ class OptionPayload(_APIModel):
     why: str
     ends_hand: bool
     gto_freq: float | None = None
+    out_of_policy: bool | None = None
 
 
 class ActionSnapshot(_APIModel):
@@ -37,6 +38,7 @@ class ActionSnapshot(_APIModel):
     ev: float
     why: str
     gto_freq: float | None = None
+    out_of_policy: bool | None = None
     resolution_note: str | None = None
 
 

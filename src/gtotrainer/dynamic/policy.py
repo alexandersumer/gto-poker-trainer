@@ -868,6 +868,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "action": "call",
             "call_cost": call_cost,
             "solver_mix": {"call": call_freq},
+            "policy_caption": call_usage,
             "rival_style": _current_rival_style(hand_state),
         }
         if call_out:
@@ -941,6 +942,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_continue_ratio": continue_ratio,
             "solver_mix": {"threebet": threebet_freq},
             "sizing_key": round(raise_to, 2),
+            "policy_caption": usage_caption,
             "rival_style": _current_rival_style(hand_state),
         }
         meta.update(precision.to_meta())
@@ -1003,6 +1005,7 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
             "rival_continue_ratio": continue_ratio,
             "solver_mix": {"jam": jam_freq},
             "sizing_key": round(jam_to, 2),
+            "policy_caption": jam_usage,
             "rival_style": _current_rival_style(hand_state),
         }
         meta.update(precision.to_meta())
