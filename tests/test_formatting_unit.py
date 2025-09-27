@@ -41,6 +41,17 @@ def test_format_option_label_convert_raise_from_text():
     assert label == "Raise to 6.00 bb (66.7% pot)"
 
 
+def test_format_option_label_raise_meta_uses_additional_amount():
+    opt = Option(
+        "Raise to 12.00 bb",
+        0.0,
+        "",
+        meta={"action": "raise", "raise_to": 12.0, "pot_before": 16.0, "raise_amount": 8.0},
+    )
+    label = format_option_label(_node(pot=16.0, street="river"), opt)
+    assert label == "Raise to 12.00 bb (+8.00; 50% pot)"
+
+
 def test_format_option_label_leave_fold_literal():
     opt = Option("Fold", 0.0, "")
     label = format_option_label(_node(pot=7.0), opt)

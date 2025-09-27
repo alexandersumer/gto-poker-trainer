@@ -49,6 +49,14 @@ def format_option_label(node: Node, option: Option) -> str:
     if action == "raise":
         raise_to = float(meta.get("raise_to", 0.0))
         pot_before = float(meta.get("pot_before", pot))
+        raise_amount = meta.get("raise_amount")
+        try:
+            raise_amount_value = float(raise_amount)
+        except (TypeError, ValueError):
+            raise_amount_value = None
+        if raise_amount_value is not None and raise_amount_value > 0:
+            pct = _safe_pct(raise_amount_value, pot_before)
+            return f"Raise to {raise_to:.2f} bb (+{raise_amount_value:.2f}; {_fmt_pct(pct)} pot)"
         pct = _safe_pct(raise_to, pot_before)
         return f"Raise to {raise_to:.2f} bb ({_fmt_pct(pct)} pot)"
 

@@ -1378,7 +1378,8 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
     )
 
     raise_to = round(max(rival_bet * 2.5, rival_bet + pot_start), 2)
-    risk = raise_to - _state_value(hand_state, "hero_contrib")
+    hero_total_before = _state_value(hand_state, "hero_contrib")
+    risk = raise_to - hero_total_before
     risk = max(risk, rival_bet + 0.5)
     rival_call_cost = max(0.0, raise_to - _state_value(hand_state, "rival_contrib") - rival_bet)
     final_pot = pot_after_bet + raise_to
@@ -1410,6 +1411,7 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
         "rival_threshold": be_threshold,
         "rival_bet": rival_bet,
         "pot_before": pot_after_bet,
+        "raise_amount": risk,
         "rival_fe": fe,
         "rival_continue_ratio": continue_ratio,
         "rival_style": _current_rival_style(hand_state),
@@ -1422,7 +1424,7 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
             f"Raise to {raise_to:.2f} bb",
             ev,
             (
-                f"Raise to {raise_to:.2f} bb. About {_fmt_pct(fe)} fold (needs {_fmt_pct(be_threshold, 1)} to continue). "
+                f"Raise to {raise_to:.2f} bb (add {risk:.2f} bb). About {_fmt_pct(fe)} fold (needs {_fmt_pct(be_threshold, 1)} to continue). "
                 f"Calls (~{_fmt_pct(continue_ratio)}) keep {_fmt_pct(eq_call, 1)} equity for {ev_called:.2f} bb EV."
             ),
             meta=raise_meta,
@@ -1565,7 +1567,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     ev = fe * pot_before_action + (1 - fe) * ev_called
     fe_break_even = risk / (risk + pot_before_action) if (risk + pot_before_action) > 0 else 1.0
     why_raise = (
-        f"Raise to {raise_to:.2f} bb. About {_fmt_pct(fe)} fold (needs {_fmt_pct(be_threshold, 1)} equity to continue). "
+        f"Raise to {raise_to:.2f} bb (add {risk:.2f} bb). About {_fmt_pct(fe)} fold (needs {_fmt_pct(be_threshold, 1)} equity to continue). "
         f"Calls (~{_fmt_pct(continue_ratio)}) keep {_fmt_pct(eq_call, 1)} equity for {ev_called:.2f} bb EV. "
         f"break-even FE target: {_fmt_pct(fe_break_even)}."
     )
@@ -1584,6 +1586,7 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         "rival_threshold": be_threshold,
         "rival_bet": rival_bet,
         "pot_before": pot_start,
+        "raise_amount": risk,
         "rival_fe": fe,
         "rival_continue_ratio": continue_ratio,
         "rival_style": _current_rival_style(hand_state),
