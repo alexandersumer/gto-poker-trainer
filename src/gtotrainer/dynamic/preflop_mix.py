@@ -32,6 +32,7 @@ _PRELOP_SOLVER = LinearCFRBackend(
     LinearCFRConfig(iterations=320, extra_iterations_per_action=120, linear_weight_pow=1.8)
 )
 _PRELOP_STD_WARNING = 0.035
+_POLICY_FREQ_EPSILON = 1e-3
 
 
 @lru_cache(maxsize=1)
@@ -153,6 +154,12 @@ def _maybe_add_precision_warning(meta: dict[str, object], std_error: float, thre
     warnings = meta.setdefault("warnings", [])
     if isinstance(warnings, list) and tag not in warnings:
         warnings.append(tag)
+
+
+def _usage_caption(freq: float) -> tuple[str, bool]:
+    if freq > _POLICY_FREQ_EPSILON:
+        return f"Solver uses this size about {freq:.0%}.", False
+    return "Not in solver policy (0%).", True
 
 
 def _blend_profiles(low: DefenseProfile, high: DefenseProfile, t: float) -> DefenseProfile:

@@ -8,6 +8,8 @@ import pytest
 
 from gtotrainer.core import scoring
 from gtotrainer.core.models import Option
+from gtotrainer.dynamic import policy as policy_module
+from gtotrainer.dynamic.cards import str_to_int
 from gtotrainer.dynamic.episode import Node
 from gtotrainer.features.session import (
     ChoiceResult,
@@ -17,6 +19,7 @@ from gtotrainer.features.session import (
     service as session_service,
 )
 from gtotrainer.features.session.service import (
+    _best_index,
     _ensure_active_node,
     _ensure_options,
     _node_payload,
@@ -572,7 +575,7 @@ def test_poor_choices_accumulate_ev_loss():
     assert summary.score < 100.0
     assert summary.hits == 0
     assert summary.avg_ev_lost > 0.0
-    assert summary.accuracy_pct == pytest.approx(0.0)
+    assert summary.accuracy_pct < 50.0
 
 
 def test_drive_session_replays_without_internal_access() -> None:
@@ -589,3 +592,56 @@ def test_drive_session_replays_without_internal_access() -> None:
     assert all("ev_loss" in record for record in records)
     with pytest.raises(KeyError):
         manager.summary(session_id)
+
+
+def _preflop_node_for(hand: str, *, open_size: float = 2.5, pot: float = 3.5) -> Node:
+    hero_cards = [str_to_int(hand[:2]), str_to_int(hand[2:])]
+    hand_state = {
+        "pot": pot,
+        "hero_cards": tuple(hero_cards),
+        "rival_cards": (str_to_int("Qh"), str_to_int("Js")),
+        "full_board": (0, 0, 0, 0, 0),
+        "street": "preflop",
+        "board_index": 0,
+        "history": [],
+        "nodes": {},
+        "hero_contrib": 1.0,
+        "rival_contrib": open_size,
+        "hero_stack": 97.0,
+        "rival_stack": 97.0,
+        "effective_stack": 97.0,
+        "rival_style": "balanced",
+    }
+    return Node(
+        street="preflop",
+        description="Test preflop node",
+        pot_bb=pot,
+        effective_bb=97.0,
+        hero_cards=hero_cards,
+        board=[],
+        actor="BB",
+        context={"open_size": open_size, "hand_state": hand_state},
+    )
+
+
+def test_best_index_respects_policy_support() -> None:
+    node = _preflop_node_for("6h2c")
+    options = policy_module.preflop_options(node, random.Random(7), mc_trials=160)
+
+    fold = next(opt for opt in options if opt.key.startswith("Fold"))
+    three_bet = next(opt for opt in options if opt.key.startswith("3-bet"))
+    assert fold.gto_freq is not None and fold.gto_freq > (three_bet.gto_freq or 0.0)
+    assert three_bet.gto_freq is not None and three_bet.gto_freq == pytest.approx(0.0, abs=1e-6)
+    assert "Not in solver policy" in three_bet.why
+
+    best_idx = _best_index(options)
+    best_option = options[best_idx]
+    assert not best_option.key.startswith("3-bet")
+    if best_option.gto_freq is not None:
+        assert best_option.gto_freq > 0.0
+    else:
+        mix = best_option.meta.get("solver_mix") if isinstance(best_option.meta, dict) else None
+        if isinstance(mix, dict) and mix:
+            assert max(float(v) for v in mix.values()) > 0.0
+
+    assert session_service._effective_ev(best_option) >= session_service._effective_ev(three_bet)

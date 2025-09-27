@@ -38,6 +38,8 @@ from .hand_state import (
 
 MAX_BET_OPTIONS = 4
 
+POLICY_FREQ_EPSILON = 1e-3
+
 FOLD_LOGIT_BIAS = 0.2
 FOLD_LOGIT_DELTA = 32.0
 FOLD_LOGIT_STRENGTH = 0.9
@@ -51,6 +53,12 @@ FOLD_HARD_BLEND = 0.7
 
 def _fmt_pct(x: float, decimals: int = 0) -> str:
     return f"{100.0 * x:.{decimals}f}%"
+
+
+def _policy_usage_caption(freq: float) -> tuple[str, bool]:
+    if freq > POLICY_FREQ_EPSILON:
+        return f"Solver uses this size about {freq:.0%}.", False
+    return "Not in solver policy (0%).", True
 
 
 def _select_fractions(fractions: Iterable[float], limit: int) -> list[float]:
@@ -854,23 +862,26 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
     if call_cost > 0:
         final_pot_call = pot + call_cost
         be_call_eq = call_cost / final_pot_call if final_pot_call > 0 else 1.0
+        call_usage, call_out = _policy_usage_caption(call_freq)
+        call_meta = {
+            "street": "preflop",
+            "action": "call",
+            "call_cost": call_cost,
+            "solver_mix": {"call": call_freq},
+            "rival_style": _current_rival_style(hand_state),
+        }
+        if call_out:
+            call_meta["out_of_policy"] = True
         options.append(
             Option(
                 "Call",
                 avg_range_eq * final_pot_call - call_cost,
                 (
                     f"Pot odds: call {call_cost:.2f} bb to play for {final_pot_call:.2f} bb. "
-                    f"Need about {_fmt_pct(be_call_eq, 1)} equity; this combo shows {_fmt_pct(avg_range_eq, 1)}. "
-                    f"Solver continues about {call_freq:.0%}."
+                    f"Need about {_fmt_pct(be_call_eq, 1)} equity; this combo shows {_fmt_pct(avg_range_eq, 1)}. {call_usage}"
                 ),
                 gto_freq=call_freq,
-                meta={
-                    "street": "preflop",
-                    "action": "call",
-                    "call_cost": call_cost,
-                    "solver_mix": {"call": call_freq},
-                    "rival_style": _current_rival_style(hand_state),
-                },
+                meta=call_meta,
             )
         )
 
@@ -904,10 +915,11 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         )
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
+        usage_caption, out_of_policy = _policy_usage_caption(raise_share)
         why = (
             f"3-bet to {raise_to:.2f} bb. Folds around {_fmt_pct(fe)} lock the pot; "
             f"calls (~{_fmt_pct(continue_ratio)}) leave {_fmt_pct(avg_eq_when_called, 1)} equity worth {ev_called:.2f} bb EV. "
-            f"Villain needs {_fmt_pct(be_threshold, 1)} equity to continue."
+            f"Villain needs {_fmt_pct(be_threshold, 1)} equity to continue. {usage_caption}"
         )
         profile, continue_range = _rival_profile(
             sampled_range,
@@ -934,11 +946,13 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         meta.update(precision.to_meta())
         _apply_profile_meta(meta, profile, continue_range)
         _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"call": ev_called})
+        if out_of_policy:
+            meta["out_of_policy"] = True
         options.append(
             Option(
                 f"3-bet to {raise_to:.2f}bb",
                 ev,
-                f"{why} Solver uses this size about {raise_share:.0%}.",
+                why,
                 gto_freq=raise_share,
                 meta=meta,
             )
@@ -963,10 +977,11 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         )
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
+        jam_usage, jam_out_of_policy = _policy_usage_caption(jam_freq)
         why_jam = (
             f"Jam all-in. About {_fmt_pct(fe)} fold immediately; "
             f"calls (~{_fmt_pct(continue_ratio)}) still leave {_fmt_pct(avg_eq_when_called, 1)} equity worth {ev_called:.2f} bb EV. "
-            f"Villain needs {_fmt_pct(be_threshold, 1)} equity to call."
+            f"Villain needs {_fmt_pct(be_threshold, 1)} equity to call. {jam_usage}"
         )
         profile, continue_range = _rival_profile(
             sampled_range,
@@ -994,11 +1009,13 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         _apply_profile_meta(meta, profile, continue_range)
         _attach_cfr_meta(meta, fold_ev=pot, continue_evs={"call": ev_called})
         meta["supports_cfr"] = False
+        if jam_out_of_policy:
+            meta["out_of_policy"] = True
         options.append(
             Option(
                 "All-in",
                 ev,
-                f"{why_jam} Solver jams about {jam_freq:.0%}.",
+                why_jam,
                 gto_freq=jam_freq,
                 ends_hand=True,
                 meta=meta,

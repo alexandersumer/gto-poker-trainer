@@ -5,7 +5,7 @@ import random
 import secrets
 import string
 import threading
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable
 
@@ -323,8 +323,55 @@ def _node_payload(state: SessionState, node: Node) -> NodePayload:
     )
 
 
+_POLICY_FREQ_EPSILON = 1e-3
+
+
+def _policy_weight(option: Option) -> float | None:
+    freq = getattr(option, "gto_freq", None)
+    value: float | None
+    try:
+        value = float(freq) if freq is not None else None
+    except (TypeError, ValueError):
+        value = None
+
+    if value is None:
+        meta = getattr(option, "meta", None)
+        if isinstance(meta, Mapping):
+            mix = meta.get("solver_mix")
+            if isinstance(mix, Mapping) and mix:
+                weights: list[float] = []
+                for raw in mix.values():
+                    try:
+                        weights.append(float(raw))
+                    except (TypeError, ValueError):
+                        continue
+                if weights:
+                    value = max(weights)
+
+    if value is None:
+        return None
+    if value != value or value < 0.0:  # NaN or negative
+        return None
+    return value
+
+
 def _best_index(opts: list[Option]) -> int:
-    return max(range(len(opts)), key=lambda idx: _effective_ev(opts[idx]))
+    if not opts:
+        raise ValueError("options list cannot be empty")
+
+    policy_weights = [_policy_weight(opt) for opt in opts]
+    eligible = [idx for idx, weight in enumerate(policy_weights) if weight and weight > _POLICY_FREQ_EPSILON]
+    if eligible:
+        target_indices = eligible
+    else:
+        target_indices = list(range(len(opts)))
+
+    def _key(idx: int) -> tuple[float, float]:
+        ev = _effective_ev(opts[idx])
+        weight = policy_weights[idx] if policy_weights[idx] is not None else -1.0
+        return ev, weight
+
+    return max(target_indices, key=_key)
 
 
 def _option_payloads(node: Node, options: list[Option]) -> list[OptionPayload]:

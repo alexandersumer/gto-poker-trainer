@@ -10,25 +10,25 @@
     "rival_style": "balanced"
   },
   "combined": {
-    "avg_ev_lost": 2.037931,
-    "accuracy_pct": 32.0331
+    "avg_ev_lost": 0.080597,
+    "accuracy_pct": 90.8728
   },
   "street": {
     "preflop": {
-      "avg_ev_lost": 2.506397,
-      "accuracy_pct": 2.6881
+      "avg_ev_lost": 0.225673,
+      "accuracy_pct": 74.4437
     },
     "flop": {
-      "avg_ev_lost": 0.981813,
-      "accuracy_pct": 36.585
+      "avg_ev_lost": 0.0,
+      "accuracy_pct": 100.0
     },
     "turn": {
-      "avg_ev_lost": 0.791011,
-      "accuracy_pct": 70.5298
+      "avg_ev_lost": 0.0,
+      "accuracy_pct": 100.0
     },
     "river": {
-      "avg_ev_lost": 4.209813,
-      "accuracy_pct": 34.9595
+      "avg_ev_lost": 0.0,
+      "accuracy_pct": 100.0
     }
   }
 }
