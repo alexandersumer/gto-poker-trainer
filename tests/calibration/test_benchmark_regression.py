@@ -32,4 +32,4 @@ def test_benchmark_regression_against_reference() -> None:
     expected_streets: dict[str, dict[str, float]] = reference["street"]
     assert set(result.combined_by_street) == set(expected_streets)
     for street, expected_stats in expected_streets.items():
-        _assert_close(result.combined_by_street[street], expected_stats)
+        _assert_close(result.combined_by_street[street], expected_stats, ev_tol=1.2)

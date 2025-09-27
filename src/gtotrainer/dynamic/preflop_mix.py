@@ -8,14 +8,16 @@ professional-grade charts without requiring bundled proprietary solves.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 
 from ..core.models import Option
+from ..data.range_loader import get_repository
 from .cards import fresh_deck
 from .cfr import LinearCFRBackend, LinearCFRConfig
-from .equity import hero_equity_vs_combo
+from .equity import hero_equity_vs_combo, hero_equity_vs_combo_stats
 from .hand_strength import combo_playability_score
 from .range_model import load_range_with_weights, rival_sb_open_range
 
@@ -29,6 +31,7 @@ _PRELOP_SAMPLE_LIMIT = 80
 _PRELOP_SOLVER = LinearCFRBackend(
     LinearCFRConfig(iterations=320, extra_iterations_per_action=120, linear_weight_pow=1.8)
 )
+_PRELOP_STD_WARNING = 0.035
 
 
 @lru_cache(maxsize=1)
@@ -66,58 +69,90 @@ class DefenseProfile:
     threebet_smooth: float  # portion of the 3bet band used for call/3bet mixing
 
 
-_PROFILE_ANCHORS: list[tuple[float, DefenseProfile]] = [
-    (
-        2.0,
-        DefenseProfile(
-            defend=0.72,
-            threebet=0.13,
-            jam=0.012,
-            marginal_band=0.08,
-            threebet_smooth=0.042,
-        ),
+_LEGACY_DEFENCE_PROFILES: dict[float, DefenseProfile] = {
+    2.0: DefenseProfile(
+        defend=0.72,
+        threebet=0.13,
+        jam=0.012,
+        marginal_band=0.08,
+        threebet_smooth=0.042,
     ),
-    (
-        2.3,
-        DefenseProfile(
-            defend=0.68,
-            threebet=0.13,
-            jam=0.012,
-            marginal_band=0.15,
-            threebet_smooth=0.038,
-        ),
+    2.3: DefenseProfile(
+        defend=0.68,
+        threebet=0.13,
+        jam=0.012,
+        marginal_band=0.15,
+        threebet_smooth=0.038,
     ),
-    (
-        2.5,
-        DefenseProfile(
-            defend=0.7,
-            threebet=0.13,
-            jam=0.012,
-            marginal_band=0.2,
-            threebet_smooth=0.033,
-        ),
+    2.5: DefenseProfile(
+        defend=0.7,
+        threebet=0.13,
+        jam=0.012,
+        marginal_band=0.2,
+        threebet_smooth=0.033,
     ),
-    (
-        2.8,
-        DefenseProfile(
-            defend=0.48,
-            threebet=0.115,
-            jam=0.015,
-            marginal_band=0.058,
-            threebet_smooth=0.028,
-        ),
+    2.8: DefenseProfile(
+        defend=0.48,
+        threebet=0.115,
+        jam=0.015,
+        marginal_band=0.058,
+        threebet_smooth=0.028,
     ),
-    (
-        3.2,
-        DefenseProfile(
-            defend=0.34,
-            threebet=0.17,
-            jam=0.015,
-            marginal_band=0.05,
-            threebet_smooth=0.015,
-        ),
+    3.2: DefenseProfile(
+        defend=0.34,
+        threebet=0.17,
+        jam=0.015,
+        marginal_band=0.05,
+        threebet_smooth=0.015,
     ),
-]
+}
+
+
+def _build_defence_profiles() -> list[tuple[float, DefenseProfile]]:
+    repo = get_repository()
+    raw = repo.raw_profiles("bb_defend")
+    total_combos = 52 * 51 / 2
+    result: list[tuple[float, DefenseProfile]] = []
+
+    for sizing, legacy in sorted(_LEGACY_DEFENCE_PROFILES.items()):
+        key = f"{sizing:.1f}"
+        payload = raw.get(key) if raw else None
+        if payload:
+            total_weight = sum(float(value) for value in payload.values() if value and float(value) > 0)
+            defend_share = max(0.01, min(0.99, total_weight / total_combos))
+        else:
+            defend_share = legacy.defend
+
+        base_defend = max(legacy.defend, 1e-6)
+        threebet_ratio = legacy.threebet / base_defend
+        jam_ratio = legacy.jam / base_defend
+
+        threebet_share = min(defend_share, max(0.0, defend_share * threebet_ratio))
+        jam_share = min(defend_share - threebet_share, max(0.0, defend_share * jam_ratio))
+
+        updated = DefenseProfile(
+            defend=defend_share,
+            threebet=threebet_share,
+            jam=jam_share,
+            marginal_band=legacy.marginal_band,
+            threebet_smooth=legacy.threebet_smooth,
+        )
+        result.append((sizing, updated))
+
+    return result
+
+
+_PROFILE_ANCHORS: list[tuple[float, DefenseProfile]] = _build_defence_profiles()
+
+
+def _maybe_add_precision_warning(meta: dict[str, object], std_error: float, threshold: float, tag: str) -> None:
+    if not math.isfinite(std_error):
+        return
+    if std_error <= threshold:
+        return
+    warnings = meta.setdefault("warnings", [])
+    if isinstance(warnings, list) and tag not in warnings:
+        warnings.append(tag)
 
 
 def _blend_profiles(low: DefenseProfile, high: DefenseProfile, t: float) -> DefenseProfile:
@@ -202,11 +237,11 @@ def _equity_profiles(
     avg_eq = 0.0
     pairs: list[tuple[float, float]] = []
     for combo in combos:
-        equity = hero_equity_vs_combo(hero_cards, [], combo, trials)
-        equities[combo] = equity
-        errors[combo] = 0.0
-        pairs.append((equity, weight))
-        avg_eq += equity * weight
+        estimate = hero_equity_vs_combo_stats(hero_cards, [], combo, trials)
+        equities[combo] = estimate.equity
+        errors[combo] = estimate.std_error
+        pairs.append((estimate.equity, weight))
+        avg_eq += estimate.equity * weight
     return equities, errors, pairs, avg_eq
 
 
@@ -360,20 +395,22 @@ def _solve_combo_profile(
 
     options: list[Option] = []
 
+    fold_meta = {
+        "supports_cfr": True,
+        "hero_ev_fold": 0.0,
+        "hero_ev_continue": 0.0,
+        "rival_fe": 0.0,
+        "rival_continue_ratio": 1.0,
+        "equity_std_error": range_error,
+    }
+    _maybe_add_precision_warning(fold_meta, range_error, _PRELOP_STD_WARNING, "preflop_equity_std_error_high")
     options.append(
         Option(
             key="Fold",
             ev=0.0,
             why="Fold now to keep your stack intact; this combo loses versus the open.",
             ends_hand=True,
-            meta={
-                "supports_cfr": True,
-                "hero_ev_fold": 0.0,
-                "hero_ev_continue": 0.0,
-                "rival_fe": 0.0,
-                "rival_continue_ratio": 1.0,
-                "equity_std_error": range_error,
-            },
+            meta=fold_meta,
         )
     )
 
@@ -381,6 +418,15 @@ def _solve_combo_profile(
     final_pot_call = pot + call_cost
     call_ev = avg_eq * final_pot_call - call_cost
     be_call_eq = call_cost / final_pot_call if final_pot_call > 0 else 1.0
+    call_meta = {
+        "supports_cfr": True,
+        "hero_ev_fold": call_ev,
+        "hero_ev_continue": call_ev,
+        "rival_fe": 0.0,
+        "rival_continue_ratio": 1.0,
+        "equity_std_error": range_error,
+    }
+    _maybe_add_precision_warning(call_meta, range_error, _PRELOP_STD_WARNING, "preflop_equity_std_error_high")
     options.append(
         Option(
             key="Call",
@@ -389,14 +435,7 @@ def _solve_combo_profile(
                 f"Pot odds: call {call_cost:.2f} bb to play for {final_pot_call:.2f} bb. "
                 f"Need about {be_call_eq * 100:.1f}% equity; this hand shows {avg_eq * 100:.1f}%."
             ),
-            meta={
-                "supports_cfr": True,
-                "hero_ev_fold": call_ev,
-                "hero_ev_continue": call_ev,
-                "rival_fe": 0.0,
-                "rival_continue_ratio": 1.0,
-                "equity_std_error": range_error,
-            },
+            meta=call_meta,
         )
     )
 
@@ -422,6 +461,17 @@ def _solve_combo_profile(
         hero_ev_continue = ev_called
         continue_error = _continue_error(equities, errors, weights, be_threshold)
         ev = fe * pot + (1 - fe) * hero_ev_continue
+        raise_meta = {
+            "supports_cfr": True,
+            "hero_ev_fold": hero_ev_fold,
+            "hero_ev_continue": hero_ev_continue,
+            "rival_fe": fe,
+            "rival_continue_ratio": continue_ratio,
+            "equity_std_error": range_error,
+            "continue_std_error": continue_error,
+        }
+        _maybe_add_precision_warning(raise_meta, range_error, _PRELOP_STD_WARNING, "preflop_equity_std_error_high")
+        _maybe_add_precision_warning(raise_meta, continue_error, _PRELOP_STD_WARNING, "preflop_continue_std_error_high")
         options.append(
             Option(
                 key=f"3-bet to {raise_to:.2f}bb",
@@ -431,15 +481,7 @@ def _solve_combo_profile(
                     f"calls (~{continue_ratio * 100:.0f}%) leave {avg_eq_called * 100:.1f}% equity for {hero_ev_continue:.2f} bb EV. "
                     f"Villain needs {be_threshold * 100:.1f}% equity to continue."
                 ),
-                meta={
-                    "supports_cfr": True,
-                    "hero_ev_fold": hero_ev_fold,
-                    "hero_ev_continue": hero_ev_continue,
-                    "rival_fe": fe,
-                    "rival_continue_ratio": continue_ratio,
-                    "equity_std_error": range_error,
-                    "continue_std_error": continue_error,
-                },
+                meta=raise_meta,
             )
         )
 
@@ -456,6 +498,19 @@ def _solve_combo_profile(
             hero_ev_continue = ev_called
             continue_error = _continue_error(equities, errors, weights, be_threshold)
             ev = fe * pot + (1 - fe) * hero_ev_continue
+            jam_meta = {
+                "supports_cfr": True,
+                "hero_ev_fold": hero_ev_fold,
+                "hero_ev_continue": hero_ev_continue,
+                "rival_fe": fe,
+                "rival_continue_ratio": continue_ratio,
+                "equity_std_error": range_error,
+                "continue_std_error": continue_error,
+            }
+            _maybe_add_precision_warning(jam_meta, range_error, _PRELOP_STD_WARNING, "preflop_equity_std_error_high")
+            _maybe_add_precision_warning(
+                jam_meta, continue_error, _PRELOP_STD_WARNING, "preflop_continue_std_error_high"
+            )
             options.append(
                 Option(
                     key="All-in",
@@ -466,15 +521,7 @@ def _solve_combo_profile(
                         f"Villain needs {be_threshold * 100:.1f}% equity to call."
                     ),
                     ends_hand=True,
-                    meta={
-                        "supports_cfr": True,
-                        "hero_ev_fold": hero_ev_fold,
-                        "hero_ev_continue": hero_ev_continue,
-                        "rival_fe": fe,
-                        "rival_continue_ratio": continue_ratio,
-                        "equity_std_error": range_error,
-                        "continue_std_error": continue_error,
-                    },
+                    meta=jam_meta,
                 )
             )
 

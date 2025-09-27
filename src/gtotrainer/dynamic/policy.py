@@ -38,6 +38,16 @@ from .hand_state import (
 
 MAX_BET_OPTIONS = 4
 
+FOLD_LOGIT_BIAS = 0.2
+FOLD_LOGIT_DELTA = 32.0
+FOLD_LOGIT_STRENGTH = 0.9
+FOLD_LOGIT_SIZE = 0.6
+FOLD_LOGIT_TEXTURE = 0.8
+FOLD_LOGIT_CONTINUE = 0.5
+FOLD_LOGIT_SPR = 0.2
+FOLD_LOGIT_ADAPT = 1.2
+FOLD_HARD_BLEND = 0.7
+
 
 def _fmt_pct(x: float, decimals: int = 0) -> str:
     return f"{100.0 * x:.{decimals}f}%"
@@ -166,36 +176,109 @@ def _board_metadata(node: Node) -> dict[str, Any]:
 
 
 def _fold_continue_stats(
-    hero_equities: Iterable[float | tuple[float, float]], rival_threshold: float
+    hero_equities: Iterable[float | tuple[float, float]],
+    rival_threshold: float,
+    *,
+    params: "FoldModelParams" | None = None,
 ) -> tuple[float, float, float]:
-    entries = list(hero_equities)
-    if not entries:
-        return 0.0, 0.0, 0.0
-    fold_weight = 0.0
-    continue_weight = 0.0
-    continue_eq = 0.0
+    entries: list[tuple[float, float, float]] = []
     total_weight = 0.0
-    for entry in entries:
+    continue_hint_weight = 0.0
+
+    for entry in hero_equities:
         if isinstance(entry, (tuple, list)) and len(entry) == 2:
-            eq = float(entry[0])
+            equity = float(entry[0])
             weight = max(0.0, float(entry[1]))
         else:
-            eq = float(entry)
+            equity = float(entry)
             weight = 1.0
         if weight <= 0:
             continue
+        villain_equity = max(0.0, min(1.0, 1.0 - equity))
+        entries.append((equity, villain_equity, weight))
         total_weight += weight
-        if 1.0 - eq < rival_threshold:
-            fold_weight += weight
-        else:
-            continue_weight += weight
-            continue_eq += eq * weight
+        if villain_equity >= rival_threshold:
+            continue_hint_weight += weight
+
     if total_weight <= 0:
         return 0.0, 0.0, 0.0
+
+    params = params or FoldModelParams()
+    persona = rival_strategy.PERSONA_LIBRARY.get(params.style, rival_strategy.PERSONA_LIBRARY["balanced"])
+
+    continue_hint = params.continue_hint
+    if continue_hint is None:
+        continue_hint = continue_hint_weight / total_weight if total_weight else 0.0
+    continue_hint = max(0.02, min(0.98, continue_hint))
+
+    threshold_shift = persona.threshold_delta
+    threshold_shift += 0.22 * params.size_ratio - 0.08
+    threshold_shift -= 0.06 * (params.texture - 0.5)
+    threshold_shift -= 0.05 * (continue_hint - 0.5)
+    threshold_shift -= 0.05 * params.adapt_scale * persona.aggression_scale
+    threshold_shift += 0.04 * math.tanh(max(0.0, params.spr) - 2.5)
+
+    effective_threshold = max(0.0, min(1.0, rival_threshold + threshold_shift))
+
+    base_band = 0.035 + 0.02 * persona.noise_scale
+    band = base_band
+    band += 0.05 * params.size_ratio
+    band -= 0.04 * (params.texture - 0.5)
+    band -= 0.028 * (continue_hint - 0.5)
+    band += 0.035 * abs(params.adapt_scale)
+    band = max(0.015, min(0.18, band))
+
+    fold_weight = 0.0
+    continue_weight = 0.0
+    continue_equity = 0.0
+
+    for equity, villain_equity, weight in entries:
+        delta = effective_threshold - villain_equity
+        if delta >= band:
+            fold_prob = 1.0
+        elif delta <= -band:
+            fold_prob = 0.0
+        else:
+            fold_prob = 0.5 + (delta / (2.0 * band))
+        fold_prob = max(0.0, min(1.0, fold_prob))
+
+        fold_weight += weight * fold_prob
+        continue_prob = 1.0 - fold_prob
+        if continue_prob > 0:
+            continue_weight += weight * continue_prob
+            continue_equity += equity * weight * continue_prob
+
+    if continue_weight <= 0.0:
+        return fold_weight / total_weight, 0.0, 0.0
+
     fe = fold_weight / total_weight
     continue_ratio = continue_weight / total_weight
-    avg_eq = (continue_eq / continue_weight) if continue_weight > 0 else 0.0
+    avg_eq = continue_equity / continue_weight
     return fe, avg_eq, continue_ratio
+
+
+def _fold_params(
+    hand_state: Mapping[str, Any] | None,
+    *,
+    pot: float,
+    bet: float,
+    board: Sequence[int],
+    continue_hint: float | None = None,
+) -> FoldModelParams:
+    style = _current_rival_style(hand_state)
+    adapt = _rival_adapt_state(hand_state) if isinstance(hand_state, dict) else {"aggr": 0, "passive": 0}
+    size_ratio = bet / max(pot, 1e-6)
+    texture = _board_texture_score(board) if board else 0.5
+    spr = _effective_spr(hand_state or {}, pot)
+    return FoldModelParams(
+        size_ratio=max(0.0, size_ratio),
+        texture=max(0.0, min(1.0, texture)),
+        spr=max(0.0, spr),
+        style=style,
+        adapt_aggr=float(adapt.get("aggr", 0.0)),
+        adapt_passive=float(adapt.get("passive", 0.0)),
+        continue_hint=continue_hint,
+    )
 
 
 def _sample_cap_preflop(mc_trials: int) -> int:
@@ -260,6 +343,27 @@ class MonteCarloPrecision:
         if self.target_std_error is not None:
             data["target_std_error"] = self.target_std_error
         return data
+
+
+@dataclass(frozen=True)
+class FoldModelParams:
+    size_ratio: float = 0.75
+    texture: float = 0.5
+    spr: float = 2.5
+    style: str = "balanced"
+    adapt_aggr: float = 0.0
+    adapt_passive: float = 0.0
+    continue_hint: float | None = None
+
+    @property
+    def adapt_scale(self) -> float:
+        sample_total = float(self.adapt_aggr + self.adapt_passive)
+        if sample_total <= 0:
+            return 0.0
+        deviation = math.log((self.adapt_aggr + 1.0) / (self.adapt_passive + 1.0))
+        sample_weight = min(1.0, sample_total / 5.0)
+        scaled = 0.09 * deviation * sample_weight
+        return max(-0.25, min(0.25, scaled))
 
 
 def _precision_for_street(mc_trials: int, street: str) -> MonteCarloPrecision:
@@ -791,6 +895,12 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(
             _equity_with_weights(equities, sample_weights),
             be_threshold,
+            params=_fold_params(
+                hand_state,
+                pot=pot,
+                bet=hero_add,
+                board=node.board,
+            ),
         )
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
@@ -844,6 +954,12 @@ def preflop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Opti
         fe, avg_eq_when_called, continue_ratio = _fold_continue_stats(
             _equity_with_weights(equities, sample_weights),
             be_threshold,
+            params=_fold_params(
+                hand_state,
+                pot=pot,
+                bet=hero_add,
+                board=node.board,
+            ),
         )
         ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
         ev = fe * pot + (1 - fe) * ev_called
@@ -947,6 +1063,12 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
         fe, eq_call, continue_ratio = _fold_continue_stats(
             _equity_with_weights(equities, sample_weights),
             be_threshold,
+            params=_fold_params(
+                hand_state,
+                pot=pot,
+                bet=bet,
+                board=node.board,
+            ),
         )
         ev_called = eq_call * final_pot - bet if continue_ratio else -bet
         ev = fe * pot + (1 - fe) * ev_called
@@ -986,6 +1108,12 @@ def _turn_probe_options(node: Node, rng: random.Random, mc_trials: int) -> list[
         fe, eq_call, continue_ratio = _fold_continue_stats(
             _equity_with_weights(equities, sample_weights),
             be_threshold,
+            params=_fold_params(
+                hand_state,
+                pot=pot,
+                bet=risk,
+                board=node.board,
+            ),
         )
         ev_called = eq_call * final_pot - risk if continue_ratio else -risk
         ev = fe * pot + (1 - fe) * ev_called
@@ -1075,6 +1203,12 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         fe, eq_call, continue_ratio = _fold_continue_stats(
             _equity_with_weights(equities, sample_weights),
             be_threshold,
+            params=_fold_params(
+                hand_state,
+                pot=pot,
+                bet=bet,
+                board=node.board,
+            ),
         )
         ev_called = eq_call * final_pot - bet if continue_ratio else -bet
         ev = fe * pot + (1 - fe) * ev_called
@@ -1116,6 +1250,12 @@ def flop_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
         fe, eq_call, continue_ratio = _fold_continue_stats(
             _equity_with_weights(equities, sample_weights),
             be_threshold,
+            params=_fold_params(
+                hand_state,
+                pot=pot,
+                bet=risk,
+                board=node.board,
+            ),
         )
         ev_called = eq_call * final_pot - risk if continue_ratio else -risk
         ev = fe * pot + (1 - fe) * ev_called
@@ -1226,6 +1366,12 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
     fe, eq_call, continue_ratio = _fold_continue_stats(
         _equity_with_weights(equities, sample_weights),
         be_threshold,
+        params=_fold_params(
+            hand_state,
+            pot=pot_after_bet,
+            bet=risk,
+            board=node.board,
+        ),
     )
     ev_called = eq_call * final_pot - risk if continue_ratio else -risk
     ev = fe * pot_after_bet + (1 - fe) * ev_called
@@ -1270,6 +1416,12 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
         fe_ai, eq_call_ai, continue_ratio_ai = _fold_continue_stats(
             _equity_with_weights(equities, sample_weights),
             be_threshold_allin,
+            params=_fold_params(
+                hand_state,
+                pot=pot_after_bet,
+                bet=risk_allin,
+                board=node.board,
+            ),
         )
         ev_called_ai = eq_call_ai * final_pot_allin - risk_allin if continue_ratio_ai else -risk_allin
         ev_ai = fe_ai * pot_after_bet + (1 - fe_ai) * ev_called_ai
@@ -1382,6 +1534,12 @@ def turn_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option]
     fe, eq_call, continue_ratio = _fold_continue_stats(
         _equity_with_weights(equities, sample_weights),
         be_threshold,
+        params=_fold_params(
+            hand_state,
+            pot=pot_before_action,
+            bet=risk,
+            board=node.board,
+        ),
     )
     ev_called = eq_call * final_pot - risk if continue_ratio else -risk
     ev = fe * pot_before_action + (1 - fe) * ev_called
@@ -1475,6 +1633,12 @@ def river_options(node: Node, rng: random.Random, mc_trials: int) -> list[Option
         fe, eq_call, continue_ratio = _fold_continue_stats(
             _equity_with_weights(equities, sample_weights),
             be_threshold,
+            params=_fold_params(
+                hand_state,
+                pot=pot,
+                bet=bet,
+                board=node.board,
+            ),
         )
         ev_showdown = eq_call * (pot + bet) - (1 - eq_call) * bet
         ev_called = ev_showdown if continue_ratio else -bet

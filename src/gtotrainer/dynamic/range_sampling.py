@@ -113,6 +113,43 @@ def sample_range(
 
     local_rng = rng or random.Random()
 
+    if weights:
+        weighted_pool: list[tuple[int, tuple[int, int], float]] = []
+        for idx, combo in enumerate(combos_list):
+            key = normalize_combo(combo)
+            weight = max(0.0, float(weights.get(key, 0.0)))
+            weighted_pool.append((idx, combo, weight))
+
+        positive = [entry for entry in weighted_pool if entry[2] > 0]
+        if positive and len(positive) >= limit:
+            pool = positive
+        else:
+            pool = weighted_pool
+        if not pool:
+            return []
+
+        count = min(limit, len(pool))
+        selected: list[tuple[int, int]] = []
+        mutable_pool = pool.copy()
+
+        for _ in range(count):
+            total_weight = sum(entry[2] for entry in mutable_pool)
+            if total_weight <= 0.0:
+                choice = local_rng.randrange(len(mutable_pool))
+            else:
+                target = local_rng.random() * total_weight
+                cumulative = 0.0
+                choice = len(mutable_pool) - 1
+                for idx, entry in enumerate(mutable_pool):
+                    cumulative += entry[2]
+                    if cumulative >= target:
+                        choice = idx
+                        break
+            _, combo, _ = mutable_pool.pop(choice)
+            selected.append(combo)
+
+        return selected
+
     buckets: dict[str, list[tuple[int, tuple[int, int]]]] = {
         "pair": [],
         "suited": [],

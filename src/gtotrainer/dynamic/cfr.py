@@ -291,6 +291,7 @@ def _build_payload(options: list[Option]) -> _SubgamePayload | None:
     hero_matrix: list[list[float]] = []
     rival_matrix: list[list[float]] = []
     labels_order: list[str] = []
+    labels_per_option: list[list[str]] = []
 
     for option in options:
         meta = option.meta or {}
@@ -303,6 +304,7 @@ def _build_payload(options: list[Option]) -> _SubgamePayload | None:
             return None
         hero_matrix.append(hero_row)
         rival_matrix.append(rival_row)
+        labels_per_option.append(list(labels))
         for label in labels:
             if label not in labels_order:
                 labels_order.append(label)
@@ -312,11 +314,11 @@ def _build_payload(options: list[Option]) -> _SubgamePayload | None:
 
     reordered_hero: list[list[float]] = []
     reordered_rival: list[list[float]] = []
-    for hero_row, rival_row in zip(hero_matrix, rival_matrix, strict=False):
-        hero_map = dict(zip(labels_order, hero_row))
-        rival_map = dict(zip(labels_order, rival_row))
-        reordered_hero.append([hero_map[label] for label in labels_order])
-        reordered_rival.append([rival_map[label] for label in labels_order])
+    for labels, hero_row, rival_row in zip(labels_per_option, hero_matrix, rival_matrix, strict=False):
+        hero_map = dict(zip(labels, hero_row))
+        rival_map = dict(zip(labels, rival_row))
+        reordered_hero.append([hero_map.get(label, 0.0) for label in labels_order])
+        reordered_rival.append([rival_map.get(label, 0.0) for label in labels_order])
 
     hero_array = np.array(reordered_hero, dtype=np.float64)
     rival_array = np.array(reordered_rival, dtype=np.float64)
@@ -336,21 +338,22 @@ def _row_from_payoff_dict(payoffs: dict) -> tuple[list[float] | None, list[float
         return None, None, None
     if not isinstance(hero_values, (list, tuple)):
         return None, None, None
-    if rival_values is None:
-        rival_values = [-float(value) for value in hero_values]
-    if not isinstance(rival_values, (list, tuple)):
-        return None, None, None
+    derived_rival_values: list[float] | tuple[float, ...] | None
     labels = [str(label) for label in raw_labels]
     try:
         hero_row = [float(value) for value in hero_values]
-        rival_row = [float(value) for value in rival_values]
+        if rival_values is None:
+            rival_row = [-value for value in hero_row]
+        elif isinstance(rival_values, (list, tuple)):
+            rival_row = [float(value) for value in rival_values]
+        else:
+            return None, None, None
     except (TypeError, ValueError):
         return None, None, None
     if len(hero_row) != len(labels) or len(rival_row) != len(labels):
         return None, None, None
     if any(not math.isfinite(v) for v in hero_row + rival_row):
         return None, None, None
-    rival_row = [-value for value in hero_row]
     return hero_row, rival_row, labels
 
 

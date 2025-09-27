@@ -145,9 +145,9 @@ class _Eval7MonteCarlo:
 _ENGINE: Final[_Eval7MonteCarlo] = _Eval7MonteCarlo()
 
 _MIN_MONTE_TRIALS = 0
-_MAX_MONTE_TRIALS = 3200
-_MONTE_CHUNK = 256
-_TARGET_STD_ERROR = 0.025
+_MAX_MONTE_TRIALS = 12800
+_MONTE_CHUNK = 512
+_TARGET_STD_ERROR = 0.018
 _LAST_MONTE_TRIALS = 0
 _LAST_MONTE_STD_ERROR = float("inf")
 
@@ -319,6 +319,10 @@ def _adaptive_monte_carlo(
 
         if total_trials >= min_trials and std_error <= target:
             break
+
+        if target is not None and std_error > target and total_trials >= max_trials and max_trials < _MAX_MONTE_TRIALS:
+            max_trials = min(_MAX_MONTE_TRIALS, max_trials * 2)
+            chunk = max(1, min(_MONTE_CHUNK, max_trials - total_trials))
 
     if total_trials > 0:
         equity = sum_payoff / total_trials

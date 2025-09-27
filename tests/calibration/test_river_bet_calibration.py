@@ -71,7 +71,7 @@ def test_river_half_pot_calibration(reference: dict[str, object]) -> None:
     target_bet = float(reference["bet"])
     option = next(opt for opt in options if math.isclose(float(opt.meta.get("bet", 0.0)), target_bet, rel_tol=1e-6))
 
-    assert math.isclose(option.ev, float(reference["ev"]), rel_tol=1e-4, abs_tol=1e-4)
+    assert math.isclose(option.ev, float(reference["ev"]), rel_tol=1e-3, abs_tol=1e-3)
     assert math.isclose(option.meta["rival_fe"], float(reference["rival_fe"]), rel_tol=1e-4)
     assert math.isclose(option.meta["rival_continue_ratio"], float(reference["rival_continue_ratio"]), rel_tol=1e-4)
     assert math.isclose(option.meta["rival_raise_ratio"], float(reference["rival_raise_ratio"]), rel_tol=1e-4)

@@ -1,0 +1,86 @@
+{
+  "preflop": {
+    "rng_seed": 123,
+    "mc_trials": 160,
+    "options": [
+      {
+        "key": "Fold",
+        "ev": 0.0,
+        "gto_freq": 0.0,
+        "warnings": []
+      },
+      {
+        "key": "Call",
+        "ev": 1.7854,
+        "gto_freq": 0.678,
+        "warnings": []
+      },
+      {
+        "key": "3-bet to 7.00bb",
+        "ev": 3.4668,
+        "gto_freq": 0.1073,
+        "warnings": []
+      },
+      {
+        "key": "3-bet to 8.75bb",
+        "ev": 3.5,
+        "gto_freq": 0.1073,
+        "warnings": []
+      },
+      {
+        "key": "3-bet to 12.50bb",
+        "ev": 3.5,
+        "gto_freq": 0.1073,
+        "warnings": []
+      },
+      {
+        "key": "All-in",
+        "ev": 3.5,
+        "gto_freq": 0.0,
+        "warnings": []
+      }
+    ]
+  },
+  "flop": {
+    "rng_seed": 321,
+    "mc_trials": 120,
+    "options": [
+      {
+        "key": "Check",
+        "ev": 2.9915,
+        "gto_freq": null,
+        "warnings": []
+      },
+      {
+        "key": "Bet 25% pot",
+        "ev": 3.1947,
+        "gto_freq": null,
+        "warnings": []
+      },
+      {
+        "key": "Bet 33% pot",
+        "ev": 3.2132,
+        "gto_freq": null,
+        "warnings": []
+      },
+      {
+        "key": "Bet 66% pot",
+        "ev": 2.9915,
+        "gto_freq": null,
+        "warnings": []
+      },
+      {
+        "key": "Bet 114% pot",
+        "ev": 2.5471,
+        "gto_freq": null,
+        "warnings": []
+      },
+      {
+        "key": "All-in",
+        "ev": 2.8986,
+        "gto_freq": null,
+        "warnings": []
+      }
+    ]
+  }
+}

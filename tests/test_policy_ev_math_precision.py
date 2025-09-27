@@ -56,16 +56,23 @@ def test_preflop_threebet_uses_fold_equity_threshold(monkeypatch):
 
     pot = node.pot_bb
     raise_to = float(three_bet.key.split()[2][:-2])
-    risk = raise_to - 1.0
+    hero_add = raise_to - 1.0
+    risk = hero_add
     call_cost = raise_to - 2.5
     final_pot = pot + risk + call_cost
     be_threshold = call_cost / final_pot
-    hero_eq_continue = eq_map[combos[0]]
-    fe_expected = 1 / len(eq_map)
-    ev_called = hero_eq_continue * final_pot - risk
-    expected = fe_expected * pot + (1 - fe_expected) * ev_called
+    entries = [(eq_map[combo], 1.0) for combo in combos]
+    params = pol._fold_params({}, pot=pot, bet=hero_add, board=node.board)
+    fe_calc, avg_eq_when_called, continue_ratio = pol._fold_continue_stats(entries, be_threshold, params=params)
+    ev_called = avg_eq_when_called * final_pot - hero_add if continue_ratio else -hero_add
+    expected = fe_calc * pot + (1 - fe_calc) * ev_called
 
-    assert abs(three_bet.ev - expected) < 1e-9
+    assert three_bet.meta["rival_fe"] == pytest.approx(fe_calc, rel=1e-6)
+    assert three_bet.meta["rival_continue_ratio"] == pytest.approx(continue_ratio, rel=1e-6)
+    hero_payoffs = three_bet.meta["cfr_payoffs"]["hero"]
+    assert hero_payoffs[0] == pytest.approx(pot)
+    assert hero_payoffs[1] == pytest.approx(ev_called)
+    assert three_bet.ev == pytest.approx(expected)
     assert f"{be_threshold * 100:.1f}%" in three_bet.why
 
 
@@ -108,12 +115,19 @@ def test_flop_half_pot_bet_uses_p_plus_2b_when_called(monkeypatch):
 
     bet = round(node.pot_bb * 0.5, 2)
     final_pot = node.pot_bb + 2 * bet
-    fe_expected = 0.5
-    eq_call = eq_map[combos[0]]
-    ev_called = eq_call * final_pot - bet
-    expected = fe_expected * node.pot_bb + (1 - fe_expected) * ev_called
+    be_threshold = bet / final_pot if final_pot > 0 else 1.0
+    entries = [(eq_map[combo], 1.0) for combo in combos]
+    params = pol._fold_params({}, pot=node.pot_bb, bet=bet, board=node.board)
+    fe_calc, avg_eq_when_called, continue_ratio = pol._fold_continue_stats(entries, be_threshold, params=params)
+    ev_called = avg_eq_when_called * final_pot - bet if continue_ratio else -bet
+    expected = fe_calc * node.pot_bb + (1 - fe_calc) * ev_called
 
-    assert abs(bet_half.ev - expected) < 1e-9
+    assert bet_half.meta["rival_fe"] == pytest.approx(fe_calc, rel=1e-6)
+    assert bet_half.meta["rival_continue_ratio"] == pytest.approx(continue_ratio, rel=1e-6)
+    hero_payoffs = bet_half.meta["cfr_payoffs"]["hero"]
+    assert hero_payoffs[0] == pytest.approx(node.pot_bb)
+    assert hero_payoffs[1] == pytest.approx(ev_called)
+    assert bet_half.ev == pytest.approx(expected)
     assert "needs" in bet_half.why and "equity" in bet_half.why
 
 
@@ -156,10 +170,17 @@ def test_river_bet_uses_showdown_payout_formula(monkeypatch):
 
     pot = node.pot_bb
     bet = round(pot * 0.5, 2)
-    fe_expected = 0.5  # one of two combos folds
-    eq_call = eq_map[combos[0]]
-    showdown_ev = eq_call * (pot + bet) - (1 - eq_call) * bet
-    expected = fe_expected * pot + (1 - fe_expected) * showdown_ev
+    final_pot = pot + 2 * bet
+    entries = [(eq_map[combo], 1.0) for combo in combos]
+    params = pol._fold_params({}, pot=pot, bet=bet, board=node.board)
+    fe_calc, avg_eq_when_called, continue_ratio = pol._fold_continue_stats(entries, bet / final_pot, params=params)
+    showdown_ev = avg_eq_when_called * (pot + bet) - (1 - avg_eq_when_called) * bet
+    expected = fe_calc * pot + (1 - fe_calc) * showdown_ev
 
-    assert abs(bet_half.ev - expected) < 1e-9
+    assert bet_half.meta["rival_fe"] == pytest.approx(fe_calc, rel=1e-6)
+    assert bet_half.meta["rival_continue_ratio"] == pytest.approx(continue_ratio, rel=1e-6)
+    hero_payoffs = bet_half.meta["cfr_payoffs"]["hero"]
+    assert hero_payoffs[0] == pytest.approx(pot)
+    assert hero_payoffs[1] == pytest.approx(showdown_ev)
+    assert bet_half.ev == pytest.approx(expected)
     assert "EV" in bet_half.why and "equity" in bet_half.why

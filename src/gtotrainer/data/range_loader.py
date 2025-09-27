@@ -63,6 +63,12 @@ class RangeRepository:
         filtered.sort(key=lambda combo: filtered_weights.get(combo, 0.0), reverse=True)
         return filtered, filtered_weights or None
 
+    def raw_profiles(self, range_id: str) -> dict[str, dict[str, float]]:
+        data = self._payload.get(range_id)
+        if not data:
+            return {}
+        return {key: dict(value) for key, value in data.items()}
+
     @staticmethod
     def _interpolate_profiles(
         profiles: dict[str, dict[str, float]],
