@@ -3651,7 +3651,55 @@
         }, 1800);
       };
 
-      const renderFeedbackBreakdown = (feedback, classification) => {
+      const POLICY_FREQ_EPSILON = 0.001;
+
+      const analyzeDecision = (feedback) => {
+        const EPS = 1e-6;
+        const best = feedback?.best || null;
+        const chosen = feedback?.chosen || null;
+        const toNumber = (value) => {
+          if(typeof value === 'number' && Number.isFinite(value)){
+            return value;
+          }
+          if(typeof value === 'string' && value.trim() !== ''){
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : null;
+          }
+          return null;
+        };
+        const normalizeText = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+        const bestEv = toNumber(best?.ev);
+        const chosenEv = toNumber(chosen?.ev);
+        const delta = bestEv != null && chosenEv != null ? chosenEv - bestEv : null;
+        const approxZero = delta != null && Math.abs(delta) < EPS;
+        const bestKey = best?.key || '';
+        const chosenKey = chosen?.key || '';
+        const sameAction = Boolean(bestKey && chosenKey && bestKey === chosenKey);
+        const bestLabelText = normalizeText(best?.label);
+        const chosenLabelText = normalizeText(chosen?.label);
+        const labelsMatch = Boolean(bestLabelText && chosenLabelText && bestLabelText === chosenLabelText);
+        const chosenFreq = typeof chosen?.gto_freq === 'number' && Number.isFinite(chosen.gto_freq)
+          ? Math.max(0, chosen.gto_freq)
+          : null;
+        const chosenOutOfPolicy = chosen?.out_of_policy === true;
+        const chosenInPolicy = !chosenOutOfPolicy && chosenFreq != null && chosenFreq > POLICY_FREQ_EPSILON;
+        const solverMatch = sameAction || (chosenInPolicy && approxZero);
+        const bestOutOfPolicy = best?.out_of_policy === true;
+        return {
+          best,
+          chosen,
+          delta,
+          approxZero,
+          sameAction,
+          labelsMatch,
+          solverMatch,
+          chosenOutOfPolicy,
+          chosenInPolicy,
+          bestOutOfPolicy,
+        };
+      };
+
+      const renderFeedbackBreakdown = (feedback, classification, analysis = analyzeDecision(feedback)) => {
         if(!feedback) return '';
         const rows = [];
         const freqTextFor = (opt) => {
@@ -3693,8 +3741,8 @@
           `);
         };
 
-        const best = feedback.best;
-        const chosen = feedback.chosen;
+        const best = analysis?.best || feedback.best;
+        const chosen = analysis?.chosen || feedback.chosen;
         const toNumber = (value) => {
           if(typeof value === 'number' && Number.isFinite(value)){
             return value;
@@ -3708,10 +3756,11 @@
         const normalizeText = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : null);
         const bestEv = toNumber(best?.ev);
         const chosenEv = toNumber(chosen?.ev);
-        const delta = bestEv != null && chosenEv != null ? chosenEv - bestEv : null;
+        const delta = analysis?.delta ?? (bestEv != null && chosenEv != null ? chosenEv - bestEv : null);
         const approxZero = (value) => value != null && Math.abs(value) < 1e-6;
-        const hasSameKey = Boolean(best && chosen && best.key && chosen.key && best.key === chosen.key);
-        const labelsMatch = (() => {
+        const approxZeroDelta = analysis?.approxZero ?? approxZero(delta);
+        const hasSameKey = analysis?.sameAction ?? Boolean(best && chosen && best.key && chosen.key && best.key === chosen.key);
+        const labelsMatch = analysis?.labelsMatch ?? (() => {
           const bestLabel = normalizeText(best?.label);
           const chosenLabel = normalizeText(chosen?.label);
           if(!bestLabel || !chosenLabel || bestLabel !== chosenLabel){
@@ -3725,14 +3774,15 @@
           return !bestWhy && !chosenWhy;
         })();
         const noEvData = bestEv == null && chosenEv == null;
-        const sameLine = hasSameKey || (labelsMatch && (noEvData || approxZero(delta)));
+        const sameLine = hasSameKey || (labelsMatch && (noEvData || approxZeroDelta));
         const matchedClassification = classification?.isGtoMatch === true;
         const isMarkedCorrect = feedback?.correct === true;
         const treatAsMatch =
           matchedClassification ||
           sameLine ||
-          approxZero(delta) ||
-          (isMarkedCorrect && labelsMatch && (noEvData || approxZero(delta)));
+          approxZeroDelta ||
+          (analysis?.chosenInPolicy && approxZeroDelta) ||
+          (isMarkedCorrect && labelsMatch && (noEvData || approxZeroDelta));
 
         if(treatAsMatch){
           const matchEv = bestEv != null ? bestEv : chosenEv;
@@ -3744,7 +3794,7 @@
 
           const playerMeta = (() => {
             if(delta == null) return '';
-            if(approxZero(delta)) return 'EV gap negligible.';
+            if(approxZeroDelta) return 'EV gap negligible.';
             return delta > 0 ? 'Slightly ahead of solver mix.' : 'Loses EV versus solver line.';
           })();
           makeRow('player', 'Your Decision', chosen, playerMeta, formatEvLabel('ΔEV', delta));
@@ -3775,7 +3825,7 @@
         return rows.join('');
       };
 
-      const classifyFeedback = ({ feedback, node, evLossRaw }) => {
+      const classifyFeedback = ({ feedback, node, evLossRaw, analysis }) => {
         const EPS = 0.005;
         const NOISE_FLOOR = 0.015;
         const GREEN_POT_MULTIPLIER = 0.004;
@@ -3849,7 +3899,7 @@
           }
         }
 
-        const shouldTintValue = rawLoss < 0 ? true : rawLoss > EPS && (tone === 'warning' || tone === 'danger');
+        const shouldTintValueBase = rawLoss < 0 ? true : rawLoss > EPS && (tone === 'warning' || tone === 'danger');
         let symbol;
         if(tone === 'warning'){
           symbol = '!';
@@ -3858,6 +3908,24 @@
         } else {
           symbol = '✓';
         }
+
+        let solverMatch = analysis?.solverMatch;
+        if(solverMatch == null){
+          solverMatch = isZeroLoss;
+        }
+        if(analysis && !solverMatch){
+          if(loss < 0){
+            state = 'neutral';
+            tone = 'neutral';
+            symbol = '';
+          } else if(state === 'success' || state === 'gain'){
+            state = 'warning';
+            tone = 'warning';
+            symbol = '!';
+          }
+        }
+
+        const shouldTintValue = state === 'neutral' ? false : shouldTintValueBase;
 
         return {
           state,
@@ -3868,7 +3936,7 @@
           gtoFreqPct,
           evLossBb: absLoss,
           thresholds: { greenCutoff, yellowUpper },
-          isGtoMatch: isZeroLoss,
+          isGtoMatch: Boolean(solverMatch),
         };
       };
 
@@ -3899,8 +3967,10 @@
         if(typeof feedback?.decisions === 'number'){
           answered = feedback.decisions;
         }
-        const bestIsOutOfPolicy = feedback?.best?.out_of_policy === true;
-        const bestLabel = feedback?.best?.key || 'Best';
+        const analysis = analyzeDecision(feedback);
+        let solverMatch = analysis?.solverMatch === true;
+        const bestIsOutOfPolicy = analysis?.bestOutOfPolicy === true;
+        const bestLabel = (analysis?.best?.key || feedback?.best?.key) || 'Best';
         const evLossRaw = typeof feedback?.ev_loss === 'number' ? feedback.ev_loss : null;
         const lossMagnitude = evLossRaw == null ? null : Math.abs(evLossRaw);
         if(lossMagnitude !== null && lossMagnitude > 0){
@@ -3914,7 +3984,10 @@
           return normalized.length <= 110 ? normalized : `${normalized.slice(0, 107).trim()}…`;
         };
         const secondaryLine = summarizeResolution(resolutionNote);
-        const classification = classifyFeedback({ feedback, node: activeNode, evLossRaw });
+        const classification = classifyFeedback({ feedback, node: activeNode, evLossRaw, analysis });
+        if(!solverMatch && classification?.isGtoMatch === true){
+          solverMatch = true;
+        }
         if(classification?.state && classification.state !== 'neutral'){
           feedbackBanner.dataset.state = classification.state;
         } else {
@@ -3927,13 +4000,15 @@
           const labelSpan = document.createElement('span');
           labelSpan.className = 'ev-callout__label';
           if(evLossRaw == null){
-            labelSpan.textContent = bestIsOutOfPolicy ? 'Highest EV (outside policy)' : 'Solver best line';
+            labelSpan.textContent = solverMatch
+              ? (bestIsOutOfPolicy ? 'Highest EV (outside policy)' : 'Solver best line')
+              : 'EV change';
           } else if(evLossRaw > 0){
             labelSpan.textContent = 'EV lost';
           } else if(evLossRaw < 0){
-            labelSpan.textContent = 'EV gained';
+            labelSpan.textContent = solverMatch ? 'EV gained' : 'EV ahead';
           } else {
-            labelSpan.textContent = 'EV change';
+            labelSpan.textContent = solverMatch ? 'EV change' : 'EV result';
           }
           headline.appendChild(labelSpan);
           if(lossMagnitude !== null){
@@ -3952,7 +4027,16 @@
           } else {
             delete chip.dataset.tone;
           }
-          const chipLabel = withCardMarkup(bestIsOutOfPolicy ? `Out-of-policy ${bestLabel}` : `Best ${bestLabel}`);
+          const chosenLabel = analysis?.chosen?.key || feedback?.chosen?.key || 'Your Line';
+          const chipLabel = (() => {
+            if(solverMatch){
+              return withCardMarkup(bestIsOutOfPolicy ? `Out-of-policy ${bestLabel}` : `Best ${bestLabel}`);
+            }
+            if(evLossRaw != null && evLossRaw < 0){
+              return withCardMarkup(`EV ahead • ${chosenLabel}`);
+            }
+            return withCardMarkup(`Your ${chosenLabel}`);
+          })();
           const chipSymbol = classification?.symbol || '';
           const symbolMarkup = chipSymbol ? `<span class="ev-chip__symbol" aria-hidden="true">${chipSymbol}</span>` : '';
           chip.innerHTML = `${symbolMarkup}<span class="ev-chip__text">${chipLabel}</span>`;
@@ -3960,7 +4044,7 @@
           feedbackRecommendation.appendChild(headline);
         }
         if(feedbackBreakdown){
-          const breakdownMarkup = renderFeedbackBreakdown(feedback, classification);
+          const breakdownMarkup = renderFeedbackBreakdown(feedback, classification, analysis);
           if(classification?.state && classification.state !== 'neutral'){
             feedbackBreakdown.dataset.state = classification.state;
           } else {

@@ -12,6 +12,10 @@ def _extract_render_feedback_breakdown() -> str:
     text = WEB_INDEX.read_text(encoding="utf-8")
     needle = "const renderFeedbackBreakdown ="
     start = text.index(needle)
+    helper_anchor = text.rfind("const POLICY_FREQ_EPSILON", 0, start)
+    prefix = ""
+    if helper_anchor != -1:
+        prefix = text[helper_anchor:start]
     arrow_idx = text.index("=>", start)
     first_brace = text.index("{", arrow_idx)
     brace_level = 1
@@ -27,7 +31,7 @@ def _extract_render_feedback_breakdown() -> str:
     if text[idx] == ";":
         idx += 1
         function_body = text[start:idx]
-    return function_body
+    return prefix + function_body
 
 
 def _run_breakdown(cases: list[dict[str, object]]):
