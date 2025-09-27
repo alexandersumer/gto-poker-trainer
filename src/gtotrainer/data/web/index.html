@@ -3913,12 +3913,8 @@
         if(solverMatch == null){
           solverMatch = isZeroLoss;
         }
-        if(analysis && !solverMatch){
-          if(loss < 0){
-            state = 'neutral';
-            tone = 'neutral';
-            symbol = '';
-          } else if(state === 'success' || state === 'gain'){
+        if(analysis && !solverMatch && loss >= 0){
+          if(state === 'success' || state === 'gain'){
             state = 'warning';
             tone = 'warning';
             symbol = '!';
