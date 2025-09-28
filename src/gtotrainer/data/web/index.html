@@ -2570,7 +2570,7 @@
       let betGroupCounter = 0;
       let pendingNextPayload = null;
       let nextHandButton = null;
-      let totalEvLost = 0;
+      let sessionEvDelta = 0;
       let correctDecisions = 0;
       let accuracyPoints = 0;
       let sessionHands = 0;
@@ -3015,8 +3015,7 @@
           }
         }
 
-        const evMagnitude = Math.abs(totalEvLost);
-        const evDisplay = totalEvLost > 0 ? `-${formatBb(totalEvLost)}` : `+${formatBb(evMagnitude)}`;
+        const evDisplay = sessionEvDelta === 0 ? '+0bb' : formatSignedBb(sessionEvDelta);
         metricSegments.push(`ΔEV ${evDisplay}`);
 
         const accPct = answered > 0
@@ -3941,10 +3940,10 @@
         if(!feedbackBanner || !feedbackRecommendation || !feedbackChoice){
           return;
         }
-        if(typeof feedback?.cumulative_ev_lost === 'number'){
-          totalEvLost = Math.max(0, feedback.cumulative_ev_lost);
-        } else if(typeof feedback?.ev_loss === 'number'){
-          totalEvLost += Math.max(0, feedback.ev_loss);
+        if(typeof feedback?.cumulative_ev_lost === 'number' && Number.isFinite(feedback.cumulative_ev_lost)){
+          sessionEvDelta = -feedback.cumulative_ev_lost;
+        } else if(typeof feedback?.ev_loss === 'number' && Number.isFinite(feedback.ev_loss)){
+          sessionEvDelta += -feedback.ev_loss;
         }
         if(feedback?.correct){
           correctDecisions += 1;
@@ -4395,7 +4394,7 @@
           answered = 0;
           correctDecisions = 0;
           accuracyPoints = 0;
-          totalEvLost = 0;
+          sessionEvDelta = 0;
           sessionHands = hands;
           pending = false;
           pendingSummary = null;
@@ -4569,7 +4568,7 @@
         const summaryEvLost = typeof s.ev_lost === 'number' ? s.ev_lost : 0;
         const deltaEv = -summaryEvLost;
         const avgDelta = s.hands ? deltaEv / s.hands : deltaEv;
-        totalEvLost = summaryEvLost;
+        sessionEvDelta = deltaEv;
         if(totalDecisions > 0){
           accuracyPoints = (normalizedAccuracyPct / 100) * totalDecisions;
         }
@@ -4644,7 +4643,7 @@
           pendingSummary = null;
           correctDecisions = 0;
           accuracyPoints = 0;
-          totalEvLost = 0;
+          sessionEvDelta = 0;
           resetFeedback();
           setStartButtonState(false);
           setSummaryAvailability(false);
