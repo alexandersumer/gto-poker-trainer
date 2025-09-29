@@ -3922,6 +3922,12 @@
 
         const shouldTintValue = state === 'neutral' ? false : shouldTintValueBase;
 
+        const isSolverMatch = Boolean(
+          (solverMatch || (solverMatch == null && isZeroLoss)) &&
+          (state === 'success' || state === 'gain') &&
+          Math.abs(loss) <= EPS
+        );
+
         return {
           state,
           tone,
@@ -3931,7 +3937,7 @@
           gtoFreqPct,
           evLossBb: absLoss,
           thresholds: { greenCutoff, yellowUpper },
-          isGtoMatch: Boolean(solverMatch),
+          isGtoMatch: isSolverMatch,
         };
       };
 
@@ -3963,7 +3969,6 @@
           answered = feedback.decisions;
         }
         const analysis = analyzeDecision(feedback);
-        let solverMatch = analysis?.solverMatch === true;
         const bestIsOutOfPolicy = analysis?.bestOutOfPolicy === true;
         const bestLabel = (analysis?.best?.key || feedback?.best?.key) || 'Best';
         const evLossRaw = typeof feedback?.ev_loss === 'number' ? feedback.ev_loss : null;
@@ -3980,9 +3985,7 @@
         };
         const secondaryLine = summarizeResolution(resolutionNote);
         const classification = classifyFeedback({ feedback, node: activeNode, evLossRaw, analysis });
-        if(!solverMatch && classification?.isGtoMatch === true){
-          solverMatch = true;
-        }
+        const solverMatch = classification?.isGtoMatch === true;
         if(classification?.state && classification.state !== 'neutral'){
           feedbackBanner.dataset.state = classification.state;
         } else {
