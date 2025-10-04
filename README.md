@@ -21,6 +21,12 @@ Hosted app: [gto.alexandersumer.com](https://gto.alexandersumer.com/)
    ```
    `--no-config` keeps local uv settings from drifting off the locked resolver.
 
+3. Install pre-commit hooks to ensure code quality before commits.
+   ```bash
+   uv run pre-commit install
+   ```
+   This automatically runs ruff formatting and linting on staged files before each commit.
+
 ## Run The Trainer Locally
 
 Start the FastAPI app with live reload:
@@ -60,7 +66,6 @@ Add `HX-Request: true` to get HTML partials (for HTMX swaps); omit it for JSON.
 
 ## Developer Tooling
 
-- Git hooks live in `.githooks`. Enable them with `git config core.hooksPath .githooks`.
 - Helpful Make targets:
 
   | Target | Description |
