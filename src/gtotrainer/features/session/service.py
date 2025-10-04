@@ -367,14 +367,44 @@ def _policy_weight(option: Option) -> float | None:
 
 
 def _best_index(opts: list[Option]) -> int:
+    """Return the index of the best in-policy action, preferring higher EV and frequency.
+
+    When in-policy actions exist (gto_freq > 0.1%), only those are considered.
+    Actions with explicit out_of_policy flags are always excluded from best selection.
+    Falls back to all non-flagged actions only when solver frequency data is missing.
+    """
     if not opts:
         raise ValueError("options list cannot be empty")
 
     policy_weights = [_policy_weight(opt) for opt in opts]
-    eligible = [idx for idx, weight in enumerate(policy_weights) if weight and weight > _POLICY_FREQ_EPSILON]
+
+    # First, filter out explicitly flagged out-of-policy actions
+    not_explicitly_oop = [
+        idx for idx, opt in enumerate(opts)
+        if not (isinstance(getattr(opt, "meta", None), Mapping) and getattr(opt, "meta").get("out_of_policy") is True)
+    ]
+
+    # Among remaining actions, prefer those with in-policy frequencies
+    eligible = [
+        idx for idx in not_explicitly_oop
+        if policy_weights[idx] and policy_weights[idx] > _POLICY_FREQ_EPSILON
+    ]
+
+    # Determine comparison set: in-policy actions if available, else all non-flagged actions
     if eligible:
         target_indices = eligible
+    elif not_explicitly_oop:
+        logger.debug(
+            "No in-policy frequencies found; using all non-flagged actions",
+            extra={"policy_weights": policy_weights, "option_keys": [opt.key for opt in opts]},
+        )
+        target_indices = not_explicitly_oop
     else:
+        # All actions are explicitly out-of-policy; fall back to all (shouldn't happen)
+        logger.warning(
+            "All actions flagged as out-of-policy; falling back to all actions",
+            extra={"option_keys": [opt.key for opt in opts]},
+        )
         target_indices = list(range(len(opts)))
 
     def _key(idx: int) -> tuple[float, float]:

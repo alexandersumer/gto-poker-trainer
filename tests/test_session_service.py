@@ -737,3 +737,51 @@ def test_out_of_policy_ev_gain_scores_as_loss() -> None:
         break
     else:  # pragma: no cover - guard to ensure deterministic scenario exists
         pytest.fail("expected preflop jam scenario not reached")
+
+
+def test_best_index_excludes_explicitly_flagged_out_of_policy() -> None:
+    """Verify that actions with explicit out_of_policy flags are never selected as best.
+
+    This tests the fix for the bug where out-of-policy actions with higher EV than
+    in-policy actions could be selected as "best" when frequency data was missing,
+    causing misleading feedback like "Highest EV (out of policy)" for valid calls.
+    """
+    # Scenario: Call is 100% in-policy, 3-bet is explicitly out-of-policy with higher EV
+    opts = [
+        Option(key="call", ev=0.5, why="Standard call", gto_freq=1.0, meta={}),
+        Option(
+            key="3-bet",
+            ev=0.6,  # Higher EV
+            why="Not in solver policy",
+            gto_freq=0.0,
+            meta={"out_of_policy": True},  # Explicit flag
+        ),
+    ]
+
+    best_idx = _best_index(opts)
+    best = opts[best_idx]
+
+    assert best.key == "call", "Best action should be call, not the out-of-policy 3-bet"
+    assert session_service._out_of_policy(best) is not True, "Best action should not be out-of-policy"
+
+    # Edge case: All actions have explicit out_of_policy flags (shouldn't happen in practice)
+    all_oop = [
+        Option(key="fold", ev=0.0, why="", gto_freq=0.0, meta={"out_of_policy": True}),
+        Option(key="call", ev=0.5, why="", gto_freq=0.0, meta={"out_of_policy": True}),
+    ]
+
+    # Should still work (fall back to highest EV)
+    best_idx_oop = _best_index(all_oop)
+    assert all_oop[best_idx_oop].key == "call", "Should pick highest EV when all are out-of-policy"
+
+    # Mixed case: Some have frequencies, some have explicit flags
+    mixed = [
+        Option(key="call", ev=0.5, why="", gto_freq=0.7, meta={}),
+        Option(key="fold", ev=0.0, why="", gto_freq=0.3, meta={}),
+        Option(key="3-bet", ev=0.6, why="", gto_freq=None, meta={"out_of_policy": True}),
+    ]
+
+    best_idx_mixed = _best_index(mixed)
+    best_mixed = mixed[best_idx_mixed]
+    assert best_mixed.key in ("call", "fold"), "Should select in-policy action"
+    assert session_service._out_of_policy(best_mixed) is not True

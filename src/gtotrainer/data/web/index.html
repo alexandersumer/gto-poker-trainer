@@ -4537,7 +4537,7 @@
             } else if(feedback?.ended){
               queueNextHand(data.next);
             } else {
-              await renderNodePayload(data.next, {clearFeedback: false});
+              await renderNodePayload(data.next, {clearFeedback: true});
             }
           } else {
             await showNode();
