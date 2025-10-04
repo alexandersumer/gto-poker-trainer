@@ -56,7 +56,21 @@ def _policy_mismatch(record: Mapping[str, Any]) -> bool:
 
 
 def _ev_loss(record: Mapping[str, Any]) -> float:
-    """Return the non-negative EV gap between the best and chosen actions."""
+    """Return the non-negative EV gap between the best and chosen actions.
+
+    Prefers the stored ``ev_loss`` field when present (service.py pre-computes
+    this for out-of-policy jams where chosen_ev > best_ev). Falls back to
+    calculating ``max(0, best_ev - chosen_ev)`` when not stored.
+    """
+
+    stored = record.get("ev_loss")
+    if stored is not None:
+        try:
+            loss = float(stored)
+            if loss >= 0.0 and not math.isnan(loss):
+                return loss
+        except (TypeError, ValueError):
+            pass
 
     best = _as_float(record.get("best_ev", 0.0))
     chosen = _as_float(record.get("chosen_ev", 0.0))
@@ -270,6 +284,10 @@ def ev_conservation_diagnostics(
     ``best_baseline_ev`` and ``chosen_baseline_ev`` mirror the behaviour of
     :func:`effective_option_ev` by clamping downward revisions to their stored
     baselines so downstream totals remain comparable.
+
+    When ``ev_loss`` is present in a record (pre-computed by service.py for
+    out-of-policy jams), this function uses that value to ensure consistency
+    with the rest of the scoring system.
     """
 
     if not records:
@@ -300,7 +318,11 @@ def ev_conservation_diagnostics(
         chosen = _clamp(chosen, record.get("chosen_baseline_ev"))
         total_best += best
         total_chosen += chosen
-        total_ev_lost += max(0.0, best - chosen)
+
+        # For conservation checks, use the actual EV delta (best - chosen),
+        # not the grading penalty stored in ev_loss for out-of-policy jams
+        actual_ev_delta = max(0.0, best - chosen)
+        total_ev_lost += actual_ev_delta
 
     delta = (total_best - total_chosen) - total_ev_lost
     return {

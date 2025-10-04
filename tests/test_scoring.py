@@ -122,3 +122,54 @@ def test_policy_mismatch_zeroes_accuracy() -> None:
     }
 
     assert scoring.decision_accuracy(record) == pytest.approx(0.0)
+
+
+def test_ev_loss_respects_stored_value_for_out_of_policy_jam() -> None:
+    """Verify that scoring uses the stored ev_loss field, not recalculated best-chosen.
+
+    When a user makes an out-of-policy jam with higher EV than the best in-policy
+    action, service.py stores the correct ev_loss (absolute difference). Scoring
+    must use this stored value, not recalculate from best_ev - chosen_ev which
+    would be negative.
+    """
+    record = {
+        "best_ev": 0.5,
+        "chosen_ev": 1.5,
+        "ev_loss": 1.0,  # Stored by service.py
+        "pot_bb": 12.0,
+        "best_key": "call",
+        "chosen_key": "jam",
+        "chosen_out_of_policy": True,
+        "best_out_of_policy": False,
+    }
+
+    # decision_loss_ratio should use stored ev_loss
+    ratio = scoring.decision_loss_ratio(record)
+    assert ratio == pytest.approx(1.0 / 12.0, rel=1e-6)
+
+    # decision_score should also use stored ev_loss
+    score = scoring.decision_score(record)
+    # With ev_loss=1.0 and pot=12.0, this should produce a low score
+    assert score < 50.0
+
+    # Total EV lost in summary should match stored values
+    summary = scoring.summarize_records([record])
+    assert summary.total_ev_lost == pytest.approx(1.0, rel=1e-6)
+
+
+def test_ev_loss_fallback_when_not_stored() -> None:
+    """When ev_loss is not in the record, calculate from best_ev - chosen_ev."""
+    record = {
+        "best_ev": 2.0,
+        "chosen_ev": 1.5,
+        "pot_bb": 10.0,
+        "best_key": "raise",
+        "chosen_key": "call",
+    }
+
+    # Without stored ev_loss, should calculate from EVs
+    ratio = scoring.decision_loss_ratio(record)
+    assert ratio == pytest.approx(0.5 / 10.0, rel=1e-6)
+
+    summary = scoring.summarize_records([record])
+    assert summary.total_ev_lost == pytest.approx(0.5, rel=1e-6)
