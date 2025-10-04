@@ -108,3 +108,17 @@ def test_ev_band_accuracy_curve_respects_warning_band():
     assert accuracy_for(0.5) == pytest.approx(71.9644465063, rel=1e-9)
     assert accuracy_for(1.5) == pytest.approx(31.8814075811, rel=1e-9)
     assert accuracy_for(12.0) == pytest.approx(0.0)
+
+
+def test_policy_mismatch_zeroes_accuracy() -> None:
+    record = {
+        "best_ev": 0.5,
+        "chosen_ev": 1.5,
+        "pot_bb": 12.0,
+        "best_key": "call",
+        "chosen_key": "jam",
+        "chosen_out_of_policy": True,
+        "best_out_of_policy": False,
+    }
+
+    assert scoring.decision_accuracy(record) == pytest.approx(0.0)

@@ -3669,7 +3669,12 @@
         const normalizeText = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
         const bestEv = toNumber(best?.ev);
         const chosenEv = toNumber(chosen?.ev);
-        const delta = bestEv != null && chosenEv != null ? chosenEv - bestEv : null;
+        const evLossRaw = typeof feedback?.ev_loss === 'number' ? feedback.ev_loss : null;
+        const delta = evLossRaw != null
+          ? -evLossRaw
+          : bestEv != null && chosenEv != null
+            ? chosenEv - bestEv
+            : null;
         const approxZero = delta != null && Math.abs(delta) < EPS;
         const bestKey = best?.key || '';
         const chosenKey = chosen?.key || '';

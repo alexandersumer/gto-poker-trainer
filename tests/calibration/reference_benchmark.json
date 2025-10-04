@@ -10,13 +10,13 @@
     "rival_style": "balanced"
   },
   "combined": {
-    "avg_ev_lost": 0.080597,
-    "accuracy_pct": 90.8728
+    "avg_ev_lost": 0.092589,
+    "accuracy_pct": 83.2999
   },
   "street": {
     "preflop": {
-      "avg_ev_lost": 0.225673,
-      "accuracy_pct": 74.4437
+      "avg_ev_lost": 0.246905,
+      "accuracy_pct": 55.4665
     },
     "flop": {
       "avg_ev_lost": 0.0,

@@ -173,6 +173,13 @@ class SessionManager:
             chosen_ev_eff = _effective_ev(chosen)
             best_ev_eff = _effective_ev(best)
             worst_ev_eff = _effective_ev(worst)
+            chosen_out_flag = _out_of_policy(chosen)
+            best_out_flag = _out_of_policy(best)
+            ev_gap = best_ev_eff - chosen_ev_eff
+            if chosen_out_flag is True and best_out_flag is not True and ev_gap < 0.0:
+                ev_loss = -ev_gap
+            else:
+                ev_loss = ev_gap
             record = {
                 "street": node.street,
                 "chosen_key": chosen.key,
@@ -181,13 +188,17 @@ class SessionManager:
                 "best_ev": best_ev_eff,
                 "worst_ev": worst_ev_eff,
                 "room_ev": max(1e-9, best_ev_eff - worst_ev_eff),
-                "ev_loss": best_ev_eff - chosen_ev_eff,
+                "ev_loss": ev_loss,
                 "chosen_cfr_ev": chosen.ev,
                 "best_cfr_ev": best.ev,
                 "hand_ended": getattr(chosen_feedback, "ends_hand", False),
                 "resolution_note": chosen_feedback.resolution_note,
                 "hand_index": state.hand_index,
                 "pot_bb": float(getattr(node, "pot_bb", 0.0)),
+                "chosen_out_of_policy": chosen_out_flag,
+                "best_out_of_policy": best_out_flag,
+                "chosen_freq": getattr(chosen, "gto_freq", None),
+                "best_freq": getattr(best, "gto_freq", None),
             }
             state.records.append(record)
             accuracy_credit = decision_accuracy(record)

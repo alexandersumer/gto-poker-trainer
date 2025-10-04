@@ -49,6 +49,12 @@ def _as_float(value: Any) -> float:
         return 0.0
 
 
+def _policy_mismatch(record: Mapping[str, Any]) -> bool:
+    chosen_flag = record.get("chosen_out_of_policy")
+    best_flag = record.get("best_out_of_policy")
+    return bool(chosen_flag) and best_flag is not True
+
+
 def _ev_loss(record: Mapping[str, Any]) -> float:
     """Return the non-negative EV gap between the best and chosen actions."""
 
@@ -88,6 +94,8 @@ def decision_accuracy(record: Mapping[str, Any]) -> float:
     pot = _extract_pot(record)
     ev_loss = _ev_loss(record)
     score = decision_score(record)
+    if _policy_mismatch(record):
+        return 0.0
     within_noise = _within_noise(record, score=score)
     if within_noise:
         return 1.0
@@ -114,6 +122,9 @@ def _score_for_ev_loss(ev_loss: float, *, noise_floor: float, decay: float = EV_
 
 def _within_noise(record: Mapping[str, Any], *, score: float | None = None) -> bool:
     """Return True when the chosen action is within solver noise tolerances."""
+
+    if _policy_mismatch(record):
+        return False
 
     if record.get("chosen_key") == record.get("best_key"):
         return True

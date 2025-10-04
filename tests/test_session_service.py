@@ -525,7 +525,7 @@ def _play_session_with_policy(manager, sid, chooser):
     guard = 0
     while not node_resp.done:
         assert node_resp.options, "expected options while session active"
-        choice_index = chooser(node_resp.options)
+        choice_index = chooser(node_resp, manager)
         choice = manager.choose(sid, choice_index)
         node_resp = choice.next_payload
         guard += 1
@@ -538,8 +538,11 @@ def test_optimal_play_produces_zero_ev_loss():
     manager = SessionManager()
     sid = manager.create_session(SessionConfig(hands=1, mc_trials=60, seed=321))
 
-    def take_best(options):
-        return max(range(len(options)), key=lambda idx: options[idx].ev)
+    def take_best(_resp, mgr):
+        state = mgr._sessions[sid]
+        node = _ensure_active_node(state)
+        options = _ensure_options(state, node)
+        return _best_index(options)
 
     summary = _play_session_with_policy(manager, sid, take_best)
 
@@ -564,8 +567,11 @@ def test_poor_choices_accumulate_ev_loss():
     manager = SessionManager()
     sid = manager.create_session(SessionConfig(hands=1, mc_trials=60, seed=321))
 
-    def take_worst(options):
-        return min(range(len(options)), key=lambda idx: options[idx].ev)
+    def take_worst(_resp, mgr):
+        state = mgr._sessions[sid]
+        node = _ensure_active_node(state)
+        options = _ensure_options(state, node)
+        return min(range(len(options)), key=lambda idx: session_service._effective_ev(options[idx]))
 
     summary = _play_session_with_policy(manager, sid, take_worst)
 
@@ -646,3 +652,45 @@ def test_best_index_respects_policy_support() -> None:
             assert max(float(v) for v in mix.values()) > 0.0
     assert session_service._out_of_policy(best_option) is not True
     assert session_service._effective_ev(best_option) >= session_service._effective_ev(three_bet)
+
+
+def test_out_of_policy_ev_gain_scores_as_loss() -> None:
+    manager = SessionManager()
+    sid = manager.create_session(SessionConfig(hands=5, mc_trials=40, seed=22))
+    state = manager._sessions[sid]
+
+    for _ in range(40):
+        node_response = manager.get_node(sid)
+        node_data = node_response.to_dict()
+        if node_data["done"]:
+            break
+        node = node_data["node"]
+        options = node_data["options"] or []
+        hero_cards = set(node.get("hero_cards", []))
+        jam_idx = None
+        if hero_cards == {"3H", "JC"}:
+            for idx, opt in enumerate(options):
+                if opt["label"].lower().startswith("all-in"):
+                    jam_idx = idx
+                    break
+        if jam_idx is None:
+            if not options:
+                continue
+            best_idx = max(range(len(options)), key=lambda idx: options[idx]["ev"])
+            manager.choose(sid, best_idx)
+            continue
+
+        choice = manager.choose(sid, jam_idx)
+        feedback = choice.feedback
+        record = state.records[-1]
+
+        assert feedback.best.key.startswith("Call")
+        assert feedback.chosen.key.startswith("All-in")
+        assert feedback.ev_loss > 0.0
+        assert feedback.accuracy == pytest.approx(0.0)
+        assert record["chosen_out_of_policy"] is True
+        assert record["best_out_of_policy"] is not True
+        assert feedback.ev_loss == pytest.approx(abs(feedback.best.ev - feedback.chosen.ev), rel=1e-6)
+        break
+    else:  # pragma: no cover - guard to ensure deterministic scenario exists
+        pytest.fail("expected preflop jam scenario not reached")
