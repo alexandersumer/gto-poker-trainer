@@ -1382,7 +1382,7 @@ def _river_vs_bet_options(node: Node, rng: random.Random, mc_trials: int) -> lis
     risk = raise_to - hero_total_before
     risk = max(risk, rival_bet + 0.5)
     rival_call_cost = max(0.0, raise_to - _state_value(hand_state, "rival_contrib") - rival_bet)
-    final_pot = pot_after_bet + raise_to
+    final_pot = pot_after_bet + risk + rival_call_cost
     be_threshold = rival_call_cost / final_pot if final_pot > 0 else 1.0
     fe, eq_call, continue_ratio = _fold_continue_stats(
         _equity_with_weights(equities, sample_weights),

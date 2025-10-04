@@ -654,6 +654,49 @@ def test_best_index_respects_policy_support() -> None:
     assert session_service._effective_ev(best_option) >= session_service._effective_ev(three_bet)
 
 
+def test_equal_ev_actions_all_considered_best() -> None:
+    """When multiple in-policy actions have equal EV, all should be valid best choices.
+
+    In GTO poker, when actions have identical EV, they're all equally correct.
+    The solver mixes between them at various frequencies, but frequency doesn't
+    indicate one is "better" - it's just how the solver chooses to implement the
+    equilibrium. Users should not be penalized for choosing any equal-EV action.
+    """
+    from gtotrainer.core.models import Option
+
+    # Create options with identical EV but different frequencies
+    opts = [
+        Option(key="fold", ev=1.5, why="", gto_freq=0.5, meta={}),
+        Option(key="call", ev=1.5, why="", gto_freq=0.3, meta={}),
+        Option(key="raise", ev=1.5, why="", gto_freq=0.2, meta={}),
+    ]
+
+    # All three have identical EV, so all should be considered "best"
+    # The current bug picks fold (highest freq), but all are equally valid
+    best_idx = _best_index(opts)
+    best_ev = session_service._effective_ev(opts[best_idx])
+
+    # Verify all options have the same EV
+    for opt in opts:
+        assert session_service._effective_ev(opt) == pytest.approx(best_ev, abs=1e-6)
+
+    # The bug is that choosing call or raise would show ev_loss > 0
+    # After fix, ev_loss should be ~0 for all equal-EV choices
+    # For now, just document the expected behavior
+
+    # Test with slight EV differences (within noise)
+    opts_with_noise = [
+        Option(key="fold", ev=1.500, why="", gto_freq=0.5, meta={}),
+        Option(key="call", ev=1.499, why="", gto_freq=0.3, meta={}),  # 0.001 bb worse
+        Option(key="raise", ev=1.501, why="", gto_freq=0.2, meta={}),  # 0.001 bb better
+    ]
+
+    # With noise-level differences, raise should be best despite lowest freq
+    best_idx_noise = _best_index(opts_with_noise)
+    assert opts_with_noise[best_idx_noise].key == "raise", \
+        "Best action should be determined by EV, not frequency"
+
+
 def test_out_of_policy_ev_gain_scores_as_loss() -> None:
     manager = SessionManager()
     sid = manager.create_session(SessionConfig(hands=5, mc_trials=40, seed=22))

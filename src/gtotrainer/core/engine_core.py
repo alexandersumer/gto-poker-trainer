@@ -59,7 +59,7 @@ def run_core(
                     "best_key": best.key,
                     "best_ev": best_eff,
                     "worst_ev": worst_eff,
-                    "room_ev": max(0.0, best_eff - worst_eff),
+                    "room_ev": max(1e-9, best_eff - worst_eff),
                     "ev_loss": max(0.0, best_eff - chosen_eff),
                     "hand_ended": chosen_feedback.ends_hand,
                     "resolution_note": chosen_feedback.resolution_note,
